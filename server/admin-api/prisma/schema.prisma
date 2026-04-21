@@ -1,0 +1,396 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== 管理员账号 ====================
+model Admin {
+  id           Int       @id @default(autoincrement())
+  username     String    @unique @db.VarChar(50)
+  password     String    @db.VarChar(255)
+  nickname     String?   @db.VarChar(50)
+  avatar       String?   @db.VarChar(255)
+  role         AdminRole @default(EDITOR)
+  status       AccountStatus @default(ACTIVE)
+  lastLoginAt  DateTime?
+  lastLoginIp  String?   @db.VarChar(50)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  operationLogs OperationLog[]
+
+  @@map("admins")
+}
+
+enum AdminRole {
+  SUPER_ADMIN   // 超级管理员
+  ADMIN        // 管理员
+  EDITOR       // 编辑
+}
+
+enum AccountStatus {
+  ACTIVE
+  DISABLED
+}
+
+// ==================== 操作日志 ====================
+model OperationLog {
+  id         Int      @id @default(autoincrement())
+  adminId    Int
+  admin      Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  action     String   @db.VarChar(100)
+  module     String   @db.VarChar(50)
+  targetId   String?  @db.VarChar(50)
+  detail     String?  @db.Text
+  ip         String?  @db.VarChar(50)
+  userAgent  String?  @db.VarChar(255)
+  createdAt  DateTime @default(now())
+
+  @@index([adminId])
+  @@index([createdAt])
+  @@map("operation_logs")
+}
+
+// ==================== 用户管理 ====================
+model User {
+  id           Int         @id @default(autoincrement())
+  openid       String      @unique @db.VarChar(100)
+  unionid      String?     @unique @db.VarChar(100)
+  nickname     String?     @db.VarChar(50)
+  avatar       String?     @db.VarChar(255)
+  phone        String?     @unique @db.VarChar(20)
+  gender       Gender?     @default(UNKNOWN)
+  birthday     DateTime?
+  status       AccountStatus @default(ACTIVE)
+  lastLoginAt  DateTime?
+  lastLoginIp  String?     @db.VarChar(50)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  favorites    Favorite[]
+  collections  Collection[]
+  feedbacks    Feedback[]
+  shoppingLists ShoppingList[]
+  aiScans      AiScan[]
+
+  @@index([openid])
+  @@index([unionid])
+  @@index([createdAt])
+  @@map("users")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+// ==================== 食谱 ====================
+model Recipe {
+  id           Int       @id @default(autoincrement())
+  title        String    @db.VarChar(200)
+  coverImage   String?   @db.VarChar(255)
+  description  String?   @db.Text
+  difficulty   Difficulty @default(MEDIUM)
+  cookingTime  Int?      // 分钟
+  servings     Int?      // 份数
+  calories     Int?      // 千卡
+  tags         Json?     // 标签数组
+  ingredients  Json      // 食材列表
+  steps        Json      // 烹饪步骤
+  tips         String?   @db.Text
+  nutrition    Json?     // 营养成分
+  cuisine      String?   @db.VarChar(50)  // 菜系
+  category     String?   @db.VarChar(50) // 分类
+  isAiGenerated Boolean  @default(false)
+  aiPrompt     String?   @db.Text
+  viewCount    Int       @default(0)
+  collectCount Int       @default(0)
+  shareCount   Int       @default(0)
+  status       ContentStatus @default(DRAFT)
+  isFeatured   Boolean   @default(false)
+  isDeleted    Boolean   @default(false)
+  publishedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  favorites    Favorite[]
+  recipeIngredients RecipeIngredient[]
+
+  @@index([status])
+  @@index([isFeatured])
+  @@index([createdAt])
+  @@index([category])
+  @@map("recipes")
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  OFFLINE
+  DELETED
+}
+
+// ==================== 食材 ====================
+model Ingredient {
+  id           Int       @id @default(autoincrement())
+  name         String    @db.VarChar(100)
+  alias        String?   @db.VarChar(100)
+  coverImage   String?   @db.VarChar(255)
+  category     String?   @db.VarChar(50)
+  unit         String?   @db.VarChar(20)   // 默认单位
+  calories     Float?    // 每100g千卡
+  nutrition    Json?     // 营养成分
+  tags         Json?     // 标签
+  status       ContentStatus @default(ACTIVE)
+  isDeleted    Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  recipeIngredients RecipeIngredient[]
+
+  @@index([name])
+  @@index([category])
+  @@map("ingredients")
+}
+
+// ==================== 食谱-食材关联 ====================
+model RecipeIngredient {
+  id           Int       @id @default(autoincrement())
+  recipeId     Int
+  ingredientId Int?
+  name         String    @db.VarChar(100)  // 食材名称
+  amount       String    @db.VarChar(50)   // 用量
+  unit         String?   @db.VarChar(20)   // 单位
+  isOptional   Boolean   @default(false)
+  sortOrder    Int       @default(0)
+  createdAt    DateTime  @default(now())
+
+  recipe       Recipe    @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredient   Ingredient? @relation(fields: [ingredientId], references: [id])
+
+  @@index([recipeId])
+  @@map("recipe_ingredients")
+}
+
+// ==================== 收藏夹 ====================
+model Collection {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  name         String    @db.VarChar(100)
+  description  String?   @db.VarChar(255)
+  coverImage   String?   @db.VarChar(255)
+  isPublic     Boolean   @default(false)
+  itemCount    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items        CollectionItem[]
+
+  @@index([userId])
+  @@map("collections")
+}
+
+model CollectionItem {
+  id           Int       @id @default(autoincrement())
+  collectionId Int
+  recipeId     Int
+  note         String?   @db.Text
+  createdAt    DateTime  @default(now())
+
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, recipeId])
+  @@index([collectionId])
+  @@map("collection_items")
+}
+
+// ==================== 收藏（点赞） ====================
+model Favorite {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  recipeId     Int
+  createdAt    DateTime  @default(now())
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe       Recipe    @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recipeId])
+  @@index([userId])
+  @@index([recipeId])
+  @@map("favorites")
+}
+
+// ==================== 购物清单 ====================
+model ShoppingList {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  name         String    @db.VarChar(100)
+  status       ListStatus @default(ACTIVE)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items        ShoppingItem[]
+
+  @@index([userId])
+  @@map("shopping_lists")
+}
+
+model ShoppingItem {
+  id           Int       @id @default(autoincrement())
+  listId       Int
+  name         String    @db.VarChar(100)
+  amount       String?   @db.VarChar(50)
+  unit         String?   @db.VarChar(20)
+  category     String?   @db.VarChar(50)
+  isChecked    Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+
+  shoppingList ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@index([listId])
+  @@map("shopping_items")
+}
+
+enum ListStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+// ==================== 用户反馈 ====================
+model Feedback {
+  id           Int       @id @default(autoincrement())
+  userId       Int?
+  type         FeedbackType @default(OTHER)
+  content      String    @db.Text
+  images       Json?     // 图片URL数组
+  contact      String?   @db.VarChar(100)
+  status       FeedbackStatus @default(PENDING)
+  reply        String?   @db.Text
+  repliedAt    DateTime?
+  repliedBy    Int?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user         User?     @relation(fields: [userId], references: [id])
+  replies      FeedbackReply[]
+
+  @@index([status])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("feedbacks")
+}
+
+model FeedbackReply {
+  id           Int       @id @default(autoincrement())
+  feedbackId   Int
+  adminId      Int?
+  content      String    @db.Text
+  createdAt    DateTime  @default(now())
+
+  feedback     Feedback  @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  @@index([feedbackId])
+  @@map("feedback_replies")
+}
+
+enum FeedbackType {
+  BUG_REPORT
+  FEATURE_REQUEST
+  CONTENT_ISSUE
+  OTHER
+}
+
+enum FeedbackStatus {
+  PENDING
+  REPLIED
+  RESOLVED
+  CLOSED
+}
+
+// ==================== AI 扫描记录 ====================
+model AiScan {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  imageUrl     String    @db.VarChar(255)
+  result       Json      // 识别结果
+  recipes      Json?     // 推荐食谱
+  status       ScanStatus @default(SUCCESS)
+  createdAt    DateTime  @default(now())
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("ai_scans")
+}
+
+enum ScanStatus {
+  PROCESSING
+  SUCCESS
+  FAILED
+}
+
+// ==================== 内容运营 ====================
+model Banner {
+  id           Int       @id @default(autoincrement())
+  title        String    @db.VarChar(100)
+  imageUrl     String    @db.VarChar(255)
+  linkType     LinkType  @default(NONE)
+  linkValue    String?   @db.VarChar(255)
+  sortOrder    Int       @default(0)
+  status       ContentStatus @default(ACTIVE)
+  startTime    DateTime?
+  endTime      DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([status, startTime, endTime])
+  @@map("banners")
+}
+
+enum LinkType {
+  NONE
+  RECIPE
+  PAGE
+  LINK
+}
+
+model Notice {
+  id           Int       @id @default(autoincrement())
+  title        String    @db.VarChar(100)
+  content      String    @db.Text
+  type         NoticeType @default(SYSTEM)
+  target       NoticeTarget @default(ALL)
+  status       ContentStatus @default(ACTIVE)
+  publishedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("notices")
+}
+
+enum NoticeType {
+  SYSTEM
+  ACTIVITY
+  UPDATE
+}
+
+enum NoticeTarget {
+  ALL
+  NEW_USER
+  ACTIVE_USER
+}

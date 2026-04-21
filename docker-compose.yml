@@ -1,0 +1,97 @@
+version: "3.9"
+
+services:
+  # ==================== 后台管理 API ====================
+  admin-api:
+    build:
+      context: ./server/admin-api
+      dockerfile: Dockerfile
+    container_name: airecipe-admin-api
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_API_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_NAME: ${DB_NAME:-airecipe}
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      OSS_ENDPOINT: ${OSS_ENDPOINT:-}
+      OSS_ACCESS_KEY_ID: ${OSS_ACCESS_KEY_ID:-}
+      OSS_ACCESS_KEY_SECRET: ${OSS_ACCESS_KEY_SECRET:-}
+      OSS_BUCKET: ${OSS_BUCKET:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - airecipe-network
+    volumes:
+      - ./server/admin-api/uploads:/app/uploads
+      - admin-api-logs:/app/logs
+
+  # ==================== 后台管理 Web ====================
+  admin-web:
+    build:
+      context: ./client/admin-web
+      dockerfile: Dockerfile
+    container_name: airecipe-admin-web
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_WEB_PORT:-80}:80"
+    depends_on:
+      - admin-api
+    networks:
+      - airecipe-network
+
+  # ==================== 数据库 ====================
+  db:
+    image: mysql:8.0
+    container_name: airecipe-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password}
+      MYSQL_DATABASE: ${DB_NAME:-airecipe}
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATE: utf8mb4_unicode_ci
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./server/admin-api/src/database/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - airecipe-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-password}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ==================== Redis ====================
+  redis:
+    image: redis:7-alpine
+    container_name: airecipe-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - airecipe-network
+
+networks:
+  airecipe-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  redis-data:
+  admin-api-logs:
