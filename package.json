@@ -1,15 +1,41 @@
 {
-  "name": "miniprogram-ts-quickstart",
+  "name": "airecipe-monorepo",
   "version": "1.0.0",
-  "description": "",
+  "private": true,
+  "description": "AIRecipe - 智能食谱全栈应用 Monorepo",
   "scripts": {
-  },
-  "keywords": [],
-  "author": "",
-  "license": "",
-  "dependencies": {
+    "dev:admin-api": "pnpm --filter @airecipe/admin-api dev",
+    "dev:admin-web": "pnpm --filter @airecipe/admin-web dev",
+    "dev:mobile-app": "pnpm --filter @airecipe/mobile-app dev",
+    "build:admin-api": "pnpm --filter @airecipe/admin-api build",
+    "build:admin-web": "pnpm --filter @airecipe/admin-web build",
+    "build:mobile-app": "pnpm --filter @airecipe/mobile-app build",
+    "lint": "pnpm -r lint",
+    "lint:fix": "pnpm -r lint:fix",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,vue,json,css,md}\"",
+    "prepare": "husky install"
   },
   "devDependencies": {
-    "miniprogram-api-typings": "^2.8.3-1"
-  }
+    "@types/node": "^20.11.0",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.2.0",
+    "typescript": "^5.3.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,vue}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@9.0.0"
 }
