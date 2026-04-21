@@ -1,0 +1,10 @@
+{
+  "name": "uploadAvatar",
+  "version": "1.0.0",
+  "description": "上传文件到COS存储桶",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3",
+    "cos-nodejs-sdk-v5": "^2.14.0"
+  }
+}

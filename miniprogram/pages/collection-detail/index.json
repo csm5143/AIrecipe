@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "收藏夹",
+  "usingComponents": {
+    "action-toast": "/components/action-toast/index"
+  }
+}

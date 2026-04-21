@@ -1,0 +1,448 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #fbf4e6;
+  background-color: var(--app-bg, #fbf4e6);
+  width: 100vw;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* 顶部固定区域：搜索栏 + 分类标签 */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background-color: #fffdf8;
+  background-color: var(--surface, #fffdf8);
+}
+
+.header-spacer {
+  /* 与 header 视觉高度匹配（搜索 + 分类），子分类标签会动态增加高度 */
+  height: 180rpx;
+  flex: 0 0 auto;
+}
+
+/* 子分类标签区域 */
+.subcategory-tabs {
+  padding: 12rpx 24rpx;
+  background-color: #fffdf8;
+  background-color: var(--surface, #fffdf8);
+  border-bottom: 1rpx solid rgba(15, 23, 42, 0.06);
+  position: sticky;
+  top: 180rpx;
+  z-index: 9;
+  white-space: nowrap;
+}
+
+.subcategory-tabs .subcategory-tab {
+  display: inline-block;
+}
+
+.subcategory-tab {
+  padding: 8rpx 20rpx;
+  margin-right: 12rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  color: #6b7280;
+  color: var(--muted, #6b7280);
+  background-color: #f3f4f6;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.subcategory-tab.active {
+  color: #ffffff;
+  background-color: #e2a650;
+  background-color: var(--primary, #e2a650);
+  font-weight: 500;
+}
+
+.search-bar {
+  padding: 16rpx 24rpx;
+  background-color: #fffdf8;
+  background-color: var(--surface, #fffdf8);
+  box-shadow: 0 12rpx 28rpx rgba(125, 90, 50, 0.08);
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background-color: #f6e8d6;
+  background-color: var(--surface-2, #f6e8d6);
+  border-radius: 999rpx;
+  padding: 10rpx 26rpx;
+}
+
+.search-icon {
+  width: 32rpx;
+  height: 32rpx;
+  margin-right: 12rpx;
+  opacity: 0.8;
+}
+
+.search-input {
+  flex: 1;
+  background-color: transparent;
+  border-radius: 999rpx;
+  /* 左侧留一点间距，让光标不要紧贴图标 */
+  padding: 8rpx 0 8rpx 6rpx;
+  font-size: 28rpx;
+  /* 调整行高让提示文字和搜索图标在视觉上更居中对齐 */
+  line-height: 40rpx;
+}
+
+.category-tabs {
+  padding: 16rpx 24rpx 8rpx;
+  background-color: #fffdf8;
+  background-color: var(--surface, #fffdf8);
+  white-space: nowrap;
+}
+
+.category-tabs .tab-item {
+  display: inline-flex;
+}
+
+.tab-item {
+  padding: 8rpx 22rpx;
+  margin-right: 16rpx;
+  border-radius: 999rpx;
+  font-size: 26rpx;
+  color: #4b5563;
+  color: var(--text, #4b5563);
+  background-color: #f6e8d6;
+  background-color: var(--surface-2, #f6e8d6);
+  white-space: nowrap;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-item.active {
+  color: #ffffff;
+  background-color: #e2a650;
+  background-color: var(--primary, #e2a650);
+}
+
+.tab-icon {
+  width: 40rpx;
+  height: 40rpx;
+  margin-right: 8rpx;
+  border-radius: 999rpx;
+}
+
+/* 豆制品分类图标稍微放大一点，更突出一些，但不撑大按钮高度 */
+.tab-icon-soy {
+  transform: scale(1.3);
+}
+
+.tab-text {
+  display: inline-block;
+  max-width: 120rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* swiper 容器 */
+.ingredients-swiper {
+  flex: 1;
+  /* 关键：在 flex 容器里让 swiper 允许"收缩" */
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* swiper-item 需要占满高度 */
+.ingredients-swiper swiper-item {
+  height: 100%;
+  overflow: hidden;
+}
+
+.ingredients-scroll {
+  height: 100%;
+  /* 与分类标签稍微拉开一点距离 */
+  margin-top: 10rpx;
+  /* 底部预留空间，避免被底部操作栏遮挡（适当减小高度） */
+  padding: 8rpx 0 20rpx;
+  /* 关键：在 flex 容器里让 scroll-view 允许"收缩"，否则内容多时可能出现无法滚动 */
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+/* 卡片式：三列网格（不拥挤），用 stagger 做一点"非主流"错位感 */
+.ingredients-grid {
+  display: flex;
+  flex-wrap: wrap;
+  /* 靠左排列 */
+  justify-content: flex-start;
+  /* 两侧稍微收窄一点留白 */
+  padding: 8rpx 16rpx 20rpx;
+  box-sizing: border-box;
+}
+
+.ingredient-card {
+  position: relative;
+  /* 三列卡片 + 水平外边距，保证卡片之间有固定空隙 */
+  width: 30%;
+  min-height: 116rpx;
+  padding: 20rpx 18rpx 18rpx;
+  /* 上下留白 + 左右留白，避免卡片之间贴得太近 */
+  margin: 0 8rpx 18rpx;
+  border-radius: 26rpx;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  box-shadow: 0 14rpx 34rpx rgba(125, 90, 50, 0.1);
+  box-shadow: var(--shadow, 0 14rpx 34rpx rgba(125, 90, 50, 0.1));
+  border: 1rpx solid rgba(15, 23, 42, 0.04);
+  border: 1rpx solid var(--border, rgba(15, 23, 42, 0.04));
+  box-sizing: border-box;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+/* 之前用 .stagger 做错位效果，现在取消，让卡片整齐对齐 */
+
+.ingredient-card--hover {
+  transform: translateY(-2rpx) scale(0.99);
+  box-shadow: 0 14rpx 30rpx rgba(15, 23, 42, 0.1);
+}
+
+.ingredient-card.selected {
+  border: 1rpx solid rgba(199, 134, 45, 0.28);
+  background: linear-gradient(180deg, #fbf4e6 0%, #fffdf8 100%);
+}
+
+.ingredient-card-name {
+  font-size: 28rpx;
+  color: #111827;
+  color: var(--text-strong, #111827);
+  line-height: 36rpx;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  word-break: break-all;
+  padding-right: 34rpx;
+}
+
+.ingredient-card-badge {
+  position: absolute;
+  right: 14rpx;
+  top: 14rpx;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #374151;
+  background-color: rgba(229, 231, 235, 0.9);
+}
+
+.ingredient-card-badge.selected {
+  color: #e2a650;
+  color: var(--primary, #e2a650);
+  background-color: rgba(246, 232, 214, 0.95);
+}
+
+/* 轻微的“分类氛围”色：不用主流的纯色块，而是极淡的边缘色 */
+.cat-meat {
+  box-shadow: 0 10rpx 24rpx rgba(239, 68, 68, 0.06);
+}
+.cat-vegetable {
+  box-shadow: 0 10rpx 24rpx rgba(34, 197, 94, 0.06);
+}
+.cat-staple {
+  box-shadow: 0 10rpx 24rpx rgba(245, 158, 11, 0.06);
+}
+.cat-egg_dairy {
+  box-shadow: 0 10rpx 24rpx rgba(59, 130, 246, 0.06);
+}
+.cat-seafood {
+  box-shadow: 0 10rpx 24rpx rgba(14, 165, 233, 0.06);
+}
+.cat-seasoning {
+  box-shadow: 0 10rpx 24rpx rgba(168, 85, 247, 0.06);
+}
+.cat-other {
+  box-shadow: 0 10rpx 24rpx rgba(107, 114, 128, 0.06);
+}
+
+.empty-state {
+  width: 100%;
+  padding: 40rpx 24rpx;
+  text-align: center;
+  color: #6b7280;
+  font-size: 26rpx;
+}
+
+.bottom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 24rpx 32rpx;
+  background-color: #fffdf8;
+  background-color: var(--surface, #fffdf8);
+  box-shadow: 0 -14rpx 34rpx rgba(125, 90, 50, 0.1);
+}
+
+.summary {
+  font-size: 26rpx;
+  color: #4b5563;
+  color: var(--text, #4b5563);
+}
+
+.primary-btn {
+  background-color: #e2a650;
+  background-color: var(--primary, #e2a650);
+  color: #ffffff;
+  border-radius: 999rpx;
+  padding: 16rpx 40rpx;
+  font-size: 28rpx;
+  /* 再略微左移，避免太贴右侧边缘 */
+  margin-right: 15rpx;
+}
+
+.bottom-left {
+  display: flex;
+  align-items: center;
+}
+
+.selected-cart {
+  position: relative;
+  margin-right: 18rpx;
+}
+
+.selected-cart.disabled {
+  opacity: 0.4;
+}
+
+.cart-icon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 24rpx;
+  display: block;
+  box-shadow: 0 8rpx 20rpx rgba(15, 23, 42, 0.18);
+}
+
+.cart-badge {
+  position: absolute;
+  right: -8rpx;
+  top: -6rpx;
+  min-width: 34rpx;
+  padding: 2rpx 8rpx;
+  border-radius: 999rpx;
+  background-color: #d46a4c;
+  background-color: var(--accent, #d46a4c);
+  color: #ffffff;
+  font-size: 22rpx;
+  text-align: center;
+  box-shadow: 0 10rpx 22rpx rgba(212, 106, 76, 0.24);
+}
+
+.selected-panel-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.35);
+  z-index: 30;
+}
+
+.selected-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #fffdf8;
+  background-color: var(--surface, #fffdf8);
+  border-radius: 24rpx 24rpx 0 0;
+  box-shadow: 0 -18rpx 44rpx rgba(125, 90, 50, 0.18);
+  padding: 16rpx 24rpx 32rpx;
+  box-sizing: border-box;
+  /* 关键：需要一个“明确高度”，scroll-view 才能稳定滚动（真机更明显） */
+  height: 60vh;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  z-index: 31;
+  /* 防止内部滚动区域溢出到圆角之外 */
+  overflow: hidden;
+}
+
+.selected-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8rpx;
+  border-bottom: 1rpx solid #e5e7eb;
+}
+
+.header-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #111827;
+  color: var(--text-strong, #111827);
+}
+
+.header-close {
+  font-size: 30rpx;
+  color: #9ca3af;
+  padding: 8rpx 4rpx;
+}
+
+.selected-panel-body {
+  flex: 1;
+  margin-top: 8rpx;
+  /* 关键：在 flex 容器里让 scroll-view 允许“收缩”，否则可能无法滚动 */
+  min-height: 0;
+}
+
+.selected-panel-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18rpx 4rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+}
+
+.item-name {
+  font-size: 28rpx;
+  color: #111827;
+}
+
+.item-remove {
+  font-size: 24rpx;
+  color: #ef4444;
+  padding: 8rpx 16rpx;
+}
+
+.selected-panel-empty {
+  padding: 32rpx 4rpx;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 26rpx;
+}
+
+.show-more-wrap {
+  padding: 0 24rpx 24rpx;
+  box-sizing: border-box;
+}
+
+.show-more-btn {
+  width: 100%;
+  background-color: #fffdf8;
+  background-color: var(--surface, #fffdf8);
+  color: #e2a650;
+  color: var(--primary, #e2a650);
+  border-radius: 999rpx;
+  font-size: 26rpx;
+  padding: 16rpx 24rpx;
+  border: 1rpx solid rgba(199, 134, 45, 0.22);
+  border: 1rpx solid var(--primary-border, rgba(199, 134, 45, 0.22));
+  box-shadow: 0 12rpx 28rpx rgba(125, 90, 50, 0.1);
+  box-shadow: var(--shadow, 0 12rpx 28rpx rgba(125, 90, 50, 0.1));
+}

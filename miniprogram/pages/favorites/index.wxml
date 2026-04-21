@@ -1,0 +1,10 @@
+<view class="page">
+  <view class="loading-content">
+    <view class="loading-icon">
+      <image class="loading-img" src="/assets/收藏-选中.png" mode="aspectFit" />
+    </view>
+    <text class="loading-title">收藏夹系统已升级</text>
+    <text class="loading-text">正在跳转到新版收藏夹页面...</text>
+    <view class="loading-spinner"></view>
+  </view>
+</view>

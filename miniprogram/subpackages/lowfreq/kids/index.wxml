@@ -1,0 +1,232 @@
+<view class="page">
+  <wxs module="arrutils">
+  function includes(arr, item) {
+    if (!arr || arr.length === undefined) return false;
+    var i = 0;
+    for (i = 0; i < arr.length; i++) {
+      if (arr[i] === item) return true;
+    }
+    return false;
+  }
+  module.exports.includes = includes;
+  </wxs>
+  <scroll-view class="page-scroll" scroll-y enhanced bounces="{{true}}">
+
+    <!-- 顶部进度条 -->
+    <view class="progress-bar">
+      <view class="progress-step {{currentStep >= 1 ? 'active' : ''}} {{currentStep > 1 ? 'done' : ''}}">
+        <view class="step-dot" />
+        <view class="step-label">年龄段</view>
+      </view>
+      <view class="progress-line {{currentStep >= 2 ? 'active' : ''}}" />
+      <view class="progress-step {{currentStep >= 2 ? 'active' : ''}}">
+        <view class="step-dot" />
+        <view class="step-label">过敏</view>
+      </view>
+      <view class="progress-line {{currentStep >= 3 ? 'active' : ''}}" />
+      <view class="progress-step {{currentStep >= 3 ? 'active' : ''}}">
+        <view class="step-dot" />
+        <view class="step-label">时段</view>
+      </view>
+    </view>
+
+    <!-- STEP 1：选择儿童年龄段 -->
+    <view class="step-panel" wx:if="{{currentStep === 1}}">
+      <view class="step-header">
+        <view class="step-num">01</view>
+        <view class="step-title">选择宝宝的年龄段</view>
+        <view class="step-desc">不同年龄段对应不同的食材质地与营养需求</view>
+      </view>
+
+      <view class="goal-list">
+        <view
+          class="goal-card {{stage === 'toddler' ? 'goal-card--selected' : ''}}"
+          bindtap="onSelectStage"
+          data-stage="toddler"
+        >
+          <view class="goal-card__left">
+            <image class="goal-icon-img" src="/assets/线性奶瓶婴儿.png" mode="aspectFit" />
+            <view class="goal-card__info">
+              <view class="goal-card__title">1-2 岁 · 辅食期</view>
+              <view class="goal-card__sub">软烂泥/末状 · 无盐无糖 · 食材单一</view>
+            </view>
+          </view>
+          <image
+            wx:if="{{stage === 'toddler'}}"
+            class="goal-card__check-img"
+            src="/assets/选中.png"
+            mode="aspectFit"
+          />
+        </view>
+
+        <view
+          class="goal-card {{stage === 'preschool' ? 'goal-card--selected' : ''}}"
+          bindtap="onSelectStage"
+          data-stage="preschool"
+        >
+          <view class="goal-card__left">
+            <image class="goal-icon-img" src="/assets/宝宝.png" mode="aspectFit" />
+            <view class="goal-card__info">
+              <view class="goal-card__title">3-6 岁 · 幼童期</view>
+              <view class="goal-card__sub">碎丁/小块状 · 少盐少糖 · 造型可爱</view>
+            </view>
+          </view>
+          <image
+            wx:if="{{stage === 'preschool'}}"
+            class="goal-card__check-img"
+            src="/assets/选中.png"
+            mode="aspectFit"
+          />
+        </view>
+
+        <view
+          class="goal-card {{stage === 'school' ? 'goal-card--selected' : ''}}"
+          bindtap="onSelectStage"
+          data-stage="school"
+        >
+          <view class="goal-card__left">
+            <image class="goal-icon-img" src="/assets/儿童.png" mode="aspectFit" />
+            <view class="goal-card__info">
+              <view class="goal-card__title">7-12 岁 · 学龄期</view>
+              <view class="goal-card__sub">正常块状 · 清淡调味 · 营养加餐</view>
+            </view>
+          </view>
+          <image
+            wx:if="{{stage === 'school'}}"
+            class="goal-card__check-img"
+            src="/assets/选中.png"
+            mode="aspectFit"
+          />
+        </view>
+      </view>
+
+      <view class="step-tip">
+        <text class="step-tip__text">选择年龄段后，下一步将根据宝宝的发育特点推荐餐品</text>
+      </view>
+    </view>
+
+    <!-- STEP 2：食物过敏原 -->
+    <view class="step-panel" wx:if="{{currentStep === 2}}">
+      <view class="step-header">
+        <view class="step-num">02</view>
+        <view class="step-title">宝宝是否有食物过敏？</view>
+        <view class="step-desc">选中后，系统将自动排除含相关食材的餐品</view>
+      </view>
+
+      <view class="allergy-pills">
+        <view
+          class="allergy-pill {{arrutils.includes(allergies, 'none') ? 'allergy-pill--selected' : ''}}"
+          bindtap="onToggleAllergy"
+          data-val="none"
+        >
+          <text class="allergy-pill__text">无过敏</text>
+        </view>
+        <view
+          class="allergy-pill {{arrutils.includes(allergies, 'seafood') ? 'allergy-pill--selected' : ''}}"
+          bindtap="onToggleAllergy"
+          data-val="seafood"
+        >
+          <text class="allergy-pill__text">海鲜</text>
+        </view>
+        <view
+          class="allergy-pill {{arrutils.includes(allergies, 'shrimp') ? 'allergy-pill--selected' : ''}}"
+          bindtap="onToggleAllergy"
+          data-val="shrimp"
+        >
+          <text class="allergy-pill__text">虾蟹</text>
+        </view>
+        <view
+          class="allergy-pill {{arrutils.includes(allergies, 'nuts') ? 'allergy-pill--selected' : ''}}"
+          bindtap="onToggleAllergy"
+          data-val="nuts"
+        >
+          <text class="allergy-pill__text">坚果</text>
+        </view>
+        <view
+          class="allergy-pill {{arrutils.includes(allergies, 'peanut') ? 'allergy-pill--selected' : ''}}"
+          bindtap="onToggleAllergy"
+          data-val="peanut"
+        >
+          <text class="allergy-pill__text">花生</text>
+        </view>
+        <view
+          class="allergy-pill {{arrutils.includes(allergies, 'wheat') ? 'allergy-pill--selected' : ''}}"
+          bindtap="onToggleAllergy"
+          data-val="wheat"
+        >
+          <text class="allergy-pill__text">小麦</text>
+        </view>
+        <view
+          class="allergy-pill {{arrutils.includes(allergies, 'soy') ? 'allergy-pill--selected' : ''}}"
+          bindtap="onToggleAllergy"
+          data-val="soy"
+        >
+          <text class="allergy-pill__text">大豆</text>
+        </view>
+        <view
+          class="allergy-pill {{arrutils.includes(allergies, 'dairy') ? 'allergy-pill--selected' : ''}}"
+          bindtap="onToggleAllergy"
+          data-val="dairy"
+        >
+          <text class="allergy-pill__text">乳制品</text>
+        </view>
+      </view>
+
+      <view class="step-actions">
+        <view class="step-btn step-btn--ghost" bindtap="onGoBack">返回</view>
+        <view class="step-btn step-btn--primary" bindtap="onNextFromAllergy">下一步</view>
+      </view>
+    </view>
+
+    <!-- STEP 3：用餐时段 -->
+    <view class="step-panel" wx:if="{{currentStep === 3}}">
+      <view class="step-header">
+        <view class="step-num">03</view>
+        <view class="step-title">选择用餐时段</view>
+        <view class="step-desc">根据宝宝的饮食习惯选择，系统将优先推荐适合的餐品</view>
+      </view>
+
+      <view class="meal-cards-row">
+        <view
+          class="meal-card {{arrutils.includes(mealTimes, 'breakfast') ? 'meal-card--selected' : ''}}"
+          bindtap="onToggleMealTime"
+          data-val="breakfast"
+        >
+          <image class="meal-card__icon-img" src="/assets/早餐.png" mode="aspectFit" />
+          <view class="meal-card__name">早餐</view>
+        </view>
+
+        <view
+          class="meal-card {{arrutils.includes(mealTimes, 'lunch') ? 'meal-card--selected' : ''}}"
+          bindtap="onToggleMealTime"
+          data-val="lunch"
+        >
+          <image class="meal-card__icon-img" src="/assets/午餐.png" mode="aspectFit" />
+          <view class="meal-card__name">午餐</view>
+        </view>
+
+        <view
+          class="meal-card {{arrutils.includes(mealTimes, 'dinner') ? 'meal-card--selected' : ''}}"
+          bindtap="onToggleMealTime"
+          data-val="dinner"
+        >
+          <image class="meal-card__icon-img" src="/assets/晚餐.png" mode="aspectFit" />
+          <view class="meal-card__name">晚餐</view>
+        </view>
+      </view>
+
+      <view class="meal-hint" wx:if="{{mealTimes.length === 0}}">
+        <text class="meal-hint__text">不选则不限时段，系统会推荐所有适合宝宝的餐品</text>
+      </view>
+      <view class="meal-selected-hint" wx:if="{{mealTimes.length > 0}}">
+        <text class="meal-selected-hint__text">已选 {{mealTimes.length}} 个时段</text>
+      </view>
+
+      <view class="step-actions">
+        <view class="step-btn step-btn--ghost" bindtap="onGoBack">返回</view>
+        <view class="step-btn step-btn--generate" bindtap="onGenerate">生成宝宝专属餐单</view>
+      </view>
+    </view>
+
+  </scroll-view>
+</view>

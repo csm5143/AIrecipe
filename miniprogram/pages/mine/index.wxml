@@ -1,0 +1,65 @@
+<view class="page">
+  <scroll-view class="page-scroll" scroll-y enhanced bounces="{{true}}">
+    <view class="content">
+
+      <!-- 用户信息区域 -->
+      <view class="user-section" bindtap="onGoToLogin">
+        <view class="user-avatar">
+          <image 
+            class="avatar-img" 
+            src="{{userInfo.avatar || '/assets/默认头像.png'}}" 
+            mode="aspectFill" 
+          />
+          <!-- 未登录遮罩 -->
+          <view wx:if="{{!hasLogin}}" class="avatar-unlogin">
+            <text class="unlogin-icon">+</text>
+          </view>
+        </view>
+        <view class="user-info">
+          <view class="user-name">
+            <block wx:if="{{hasLogin}}">{{userInfo.nickname}}</block>
+            <block wx:else class="user-name-unlogin">点击登录</block>
+          </view>
+          <view class="user-tip">
+            <block wx:if="{{hasLogin}}">点击修改个人资料</block>
+            <block wx:else>登录后享受更多功能</block>
+          </view>
+        </view>
+        <view class="user-arrow">›</view>
+      </view>
+
+      <!-- 功能菜单区域 -->
+      <view class="menu-section">
+        <!-- 我的收藏 -->
+        <view class="menu-item" bindtap="onGoToFavorites">
+          <view class="menu-icon">
+            <image src="/assets/收藏.png" mode="aspectFit" />
+          </view>
+          <view class="menu-text">我的收藏</view>
+          <view class="menu-badge" wx:if="{{favoriteCount > 0}}">{{favoriteCount}}</view>
+          <view class="menu-arrow">›</view>
+        </view>
+
+        <!-- 问题反馈 -->
+        <view class="menu-item" bindtap="onFeedback">
+          <view class="menu-icon menu-icon--feedback">
+            <image src="/assets/反馈.png" mode="aspectFit" />
+          </view>
+          <view class="menu-text">问题反馈</view>
+          <view class="menu-arrow">›</view>
+        </view>
+
+        <!-- 关于我们 -->
+        <view class="menu-item" bindtap="onAbout">
+          <view class="menu-icon menu-icon--about">
+            <image src="/assets/关于我们.png" mode="aspectFit" />
+          </view>
+          <view class="menu-text">关于我们</view>
+          <view class="menu-arrow">›</view>
+        </view>
+
+      </view>
+
+    </view>
+  </scroll-view>
+</view>

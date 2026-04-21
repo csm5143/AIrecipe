@@ -1,0 +1,121 @@
+<view class="page home">
+
+  <!-- 整页滚动区域，顶部搜索+分类入口，随内容向下滚动 -->
+  <scroll-view
+    class="home-scroll"
+    scroll-y="{{true}}"
+    show-scrollbar="{{false}}"
+  >
+    <view class="content">
+
+      <view class="brand-block">
+        <image class="brand-title-img" src="https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/%E7%B3%BB%E7%BB%9F%E5%9B%BE%E7%89%87/%E5%90%83%E4%BA%86%E4%B9%884.png" mode="aspectFit" />
+      </view>
+
+      <view class="home-search-entry" bindtap="onGoToSearch">
+        <image class="home-search-entry__icon" src="/assets/搜索.png" mode="aspectFit" />
+        <text class="home-search-entry__placeholder">搜索菜谱</text>
+      </view>
+
+      <view class="cat-row">
+        <view class="cat-item" bindtap="onQuickRecipes" data-preset-dish="stir_fry">
+          <view class="cat-bubble">
+            <image class="cat-bubble__img cat-bubble__img--stir-fry" src="/assets/小炒.png" mode="aspectFit" />
+          </view>
+          <text class="cat-label">小炒菜</text>
+        </view>
+        <view class="cat-item" bindtap="onQuickRecipes" data-preset-dish="soup">
+          <view class="cat-bubble">
+            <image class="cat-bubble__img cat-bubble__img--soup" src="/assets/汤品.png" mode="aspectFit" />
+          </view>
+          <text class="cat-label">汤品</text>
+        </view>
+        <view class="cat-item" bindtap="onQuickRecipes" data-preset-meal="breakfast">
+          <view class="cat-bubble">
+            <image class="cat-bubble__img cat-bubble__img--breakfast" src="/assets/早餐.png" mode="aspectFit" />
+          </view>
+          <text class="cat-label">早餐</text>
+        </view>
+        <view class="cat-item" bindtap="onQuickRecipes" data-preset-dish="baked">
+          <view class="cat-bubble">
+            <image class="cat-bubble__img cat-bubble__img--baked" src="/assets/烘焙.png" mode="aspectFit" />
+          </view>
+          <text class="cat-label">烘焙</text>
+        </view>
+        <view class="cat-item" bindtap="onGoToMore">
+          <view class="cat-bubble">
+            <image class="cat-bubble__img cat-bubble__img--more" src="/assets/更多.png" mode="aspectFit" />
+          </view>
+          <text class="cat-label">更多</text>
+        </view>
+      </view>
+
+      <view class="tile-grid">
+        <view class="tile-card tile-card--scan" bindtap="onGoToScan">
+          <view class="scan-icon-wrap">
+            <image class="tile-card__icon scan-icon" src="/assets/相机.png" mode="aspectFit" />
+          </view>
+          <view class="tile-card__info">
+            <text class="tile-card__title scan-title">拍照识别食材</text>
+            <text class="tile-card__desc scan-desc">拍一拍，AI 智能分析并推荐菜谱</text>
+          </view>
+          <view class="scan-arrow">›</view>
+        </view>
+        <view class="tile-card tile-card--select" bindtap="onGoToIngredients">
+          <view class="select-icon-wrap">
+            <image class="tile-card__icon select-icon" src="/assets/点击.png" mode="aspectFit" />
+          </view>
+          <view class="tile-card__info">
+            <text class="tile-card__title">手动勾选食材</text>
+            <text class="tile-card__desc">从食材库中挑选</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="section-head">
+        <text class="section-head__title">热门推荐</text>
+      </view>
+
+      <view class="hot-grid">
+        <view
+          wx:for="{{hotDishes}}"
+          wx:key="id"
+          class="hot-card"
+          bindtap="onTapHotDish"
+          data-id="{{item.id}}"
+          data-name="{{item.name}}"
+        >
+          <view class="hot-cover-wrap">
+            <image
+              wx:if="{{item.coverUrl}}"
+              class="hot-cover"
+              src="{{item.coverUrl}}"
+              mode="aspectFill"
+            />
+            <view wx:else class="hot-cover hot-cover--placeholder">
+              <text class="hot-cover__ph">配图待导入</text>
+            </view>
+          </view>
+          <text class="hot-title">{{item.name}}</text>
+        </view>
+      </view>
+
+      <!-- 加载中动画 -->
+      <view wx:if="{{loadingMore}}" class="loading-more">
+        <view class="loading-more__dot"></view>
+        <view class="loading-more__dot"></view>
+        <view class="loading-more__dot"></view>
+      </view>
+
+      <!-- 懒加载触发区：网格下方的透明占位 div，由 IntersectionObserver 监听 -->
+      <view id="load-more-trigger" class="load-more-trigger"></view>
+
+      <!-- 底部提示 -->
+      <view class="hot-no-more">
+        <text class="hot-no-more__text">{{hasMore ? '上滑加载更多' : '— 让所有的食材，都有做法！ —'}}</text>
+      </view>
+
+    </view>
+  </scroll-view>
+
+</view>

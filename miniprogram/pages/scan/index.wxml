@@ -1,0 +1,314 @@
+<!--scan/index.wxml-->
+<view class="page">
+
+  <!-- ========== 第一步：选择图片 ========== -->
+  <block wx:if="{{imageUrls.length === 0}}">
+    <view class="upload-section">
+
+      <!-- 装饰性背景圆点 -->
+      <view class="bg-dots">
+        <view class="bg-dot bg-dot--1"></view>
+        <view class="bg-dot bg-dot--2"></view>
+        <view class="bg-dot bg-dot--3"></view>
+      </view>
+
+      <!-- 木质砧板插画区 -->
+      <view class="board-wrap">
+        <!-- 砧板主体 -->
+        <view class="board">
+          <!-- 板面纹理 -->
+          <view class="board-grain"></view>
+          <!-- 边缘阴影 -->
+          <view class="board-edge board-edge--top"></view>
+          <view class="board-edge board-edge--bottom"></view>
+          <!-- 食材摆件 -->
+          <view class="board-items">
+            <!-- 番茄 -->
+            <view class="board-item board-item--tomato">
+              <view class=" veggie tomato"></view>
+              <view class="veggie-stem"></view>
+            </view>
+            <!-- 鸡蛋 -->
+            <view class="board-item board-item--egg">
+              <view class="veggie egg"></view>
+            </view>
+            <!-- 胡萝卜 -->
+            <view class="board-item board-item--carrot">
+              <view class="veggie carrot"></view>
+              <view class="veggie-leaf"></view>
+            </view>
+            <!-- 肉块 -->
+            <view class="board-item board-item--meat">
+              <view class="veggie meat"></view>
+            </view>
+            <!-- 小葱 -->
+            <view class="board-item board-item--scallion">
+              <view class="veggie scallion"></view>
+            </view>
+          </view>
+          <!-- 刀痕装饰 -->
+          <view class="board-cut board-cut--1"></view>
+          <view class="board-cut board-cut--2"></view>
+          <view class="board-cut board-cut--3"></view>
+        </view>
+      </view>
+
+      <!-- 标题区 -->
+      <view class="upload-header">
+        <view class="upload-badge">
+          <text class="badge-star">✦</text>
+          <text class="badge-text">AI 智能识别</text>
+        </view>
+        <view class="upload-title">拍下你的食材</view>
+        <view class="upload-subtitle">拍照或相册上传，AI 自动分析</view>
+        <!-- 剩余次数提示（仅游客/未登录显示） -->
+        <view class="scan-count-tip" wx:if="{{remainingCount >= 0}}">
+          <image class="scan-count-icon" src="/assets/相机.png" mode="aspectFit" />
+          <text class="scan-count-text">今日剩余 {{remainingCount}} 次</text>
+        </view>
+      </view>
+
+      <!-- 操作按钮组 -->
+      <view class="action-group">
+        <view class="action-btn action-btn--primary" bindtap="onTakePhoto">
+          <view class="action-btn-icon">
+            <image class="icon-camera" src="/assets/相机2.png" mode="aspectFit" />
+          </view>
+          <view class="action-btn-text">
+            <text class="action-btn-title">拍照识别</text>
+            <text class="action-btn-sub">即时 AI 分析</text>
+          </view>
+          <view class="action-btn-arrow">›</view>
+        </view>
+
+        <view class="action-btn" bindtap="onChooseImages">
+          <view class="action-btn-icon">
+            <image class="icon-album" src="/assets/相册.png" mode="aspectFit" />
+          </view>
+          <view class="action-btn-text">
+            <text class="action-btn-title">相册选择</text>
+            <text class="action-btn-sub">最多 9 张图片</text>
+          </view>
+          <view class="action-btn-arrow">›</view>
+        </view>
+      </view>
+
+      <!-- 底部温馨语 -->
+      <view class="upload-footer">
+        <text class="footer-text">确保食材清晰可见，光线充足效果更佳 ✦</text>
+      </view>
+
+    </view>
+  </block>
+
+  <!-- ========== 第二步：识别中 ========== -->
+  <block wx:elif="{{recognizing}}">
+    <view class="recognizing-section">
+
+      <!-- 砂锅插画 -->
+      <view class="pot-wrap">
+        <view class="pot">
+          <!-- 锅身 -->
+          <view class="pot-body"></view>
+          <!-- 锅沿 -->
+          <view class="pot-rim"></view>
+          <!-- 锅柄 -->
+          <view class="pot-handle pot-handle--left"></view>
+          <view class="pot-handle pot-handle--right"></view>
+          <!-- 锅内汤面 -->
+          <view class="pot-soup"></view>
+          <!-- 食材浮雕 -->
+          <view class="pot-ingredient pot-ingredient--1"></view>
+          <view class="pot-ingredient pot-ingredient--2"></view>
+          <view class="pot-ingredient pot-ingredient--3"></view>
+        </view>
+        <!-- 蒸汽组 -->
+        <view class="steam-group">
+          <view class="steam steam--1"></view>
+          <view class="steam steam--2"></view>
+          <view class="steam steam--3"></view>
+        </view>
+      </view>
+
+      <!-- 状态文字 -->
+      <view class="rec-badge">
+        <view class="rec-dot"></view>
+        <text class="rec-badge-text">识别中</text>
+      </view>
+      <view class="rec-title">AI 正在分析食材</view>
+      <view class="rec-sub">请稍候 · 即将完成</view>
+
+      <!-- 进度条 -->
+      <view class="rec-progress-bar">
+        <view class="rec-progress-fill"></view>
+      </view>
+
+    </view>
+  </block>
+
+  <!-- ========== 第三步：识别结果 ========== -->
+  <block wx:elif="{{showResult}}">
+
+    <!-- 顶部图片预览 -->
+    <view class="result-header">
+      <scroll-view class="result-img-scroll" scroll-x="{{true}}" enhanced bounces="{{false}}">
+        <view class="result-img-list">
+          <view
+            class="result-img-item"
+            wx:for="{{imageUrls}}"
+            wx:key="*this"
+          >
+            <image src="{{item}}" mode="aspectFill" class="result-img" bindtap="onPreviewSingleImage" data-index="{{index}}" />
+            <view class="result-img-remove" bindtap="onRemoveImage" data-index="{{index}}"><text>×</text></view>
+          </view>
+        </view>
+      </scroll-view>
+      <view class="result-retake" bindtap="onRetake"><text>重新拍摄</text></view>
+    </view>
+
+    <!-- 图片模糊提示 -->
+    <view class="blur-tip" wx:if="{{showBlurTip}}">
+      <image class="blur-tip-icon" src="/assets/相机.png" mode="aspectFit" />
+      <view class="blur-tip-content">
+        <text class="blur-tip-title">图片可能较模糊</text>
+        <text class="blur-tip-desc">识别结果较少，建议重新拍摄</text>
+      </view>
+      <view class="blur-tip-close" bindtap="onCloseBlurTip">×</view>
+    </view>
+
+    <!-- 食材区 -->
+    <view class="result-body">
+
+      <!-- 统计卡片 -->
+      <view class="result-stat-card">
+        <view class="stat-card-left">
+          <text class="stat-card-title">识别结果</text>
+        </view>
+        <view class="stat-card-divider"></view>
+        <view class="stat-card-right">
+          <view class="stat-count-wrap">
+            <text class="stat-count-num">{{selectedIngredients.length}}</text>
+            <text class="stat-count-unit">种食材</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 食材标签区 -->
+      <view class="tags-zone">
+        <block wx:for="{{selectedIngredients}}" wx:key="*this">
+          <view class="wood-tag" bindtap="onRemoveIngredient" data-name="{{item}}">
+            <!-- 顶部绳孔 -->
+            <view class="tag-hole">
+              <view class="tag-string"></view>
+            </view>
+            <text class="tag-text">{{item}}</text>
+            <text class="tag-x">×</text>
+          </view>
+        </block>
+
+        <!-- 添加标签 -->
+        <view class="wood-tag wood-tag--add" bindtap="onOpenAddPanel">
+          <view class="tag-hole"></view>
+          <text class="tag-text">+ 添加</text>
+        </view>
+      </view>
+
+      <!-- 空状态 -->
+      <view class="tags-empty" wx:if="{{selectedIngredients.length === 0}}">
+        <text class="tags-empty-icon">✦</text>
+        <text class="tags-empty-text">未识别到食材，请重新拍摄或手动添加</text>
+      </view>
+
+    </view>
+
+    <!-- 底部生成按钮 -->
+    <view class="result-footer">
+      <view
+        class="gen-btn {{canGenerate ? 'gen-btn--active' : ''}}"
+        bindtap="onGenerateRecipes"
+        hover-class="{{canGenerate ? 'gen-btn--hover' : ''}}"
+      >
+        <block wx:if="{{canGenerate}}">
+          <text class="gen-btn-text">生成菜谱</text>
+          <text class="gen-btn-arrow">›</text>
+        </block>
+        <block wx:else>
+          <text class="gen-btn-text-off">选择食材后生成</text>
+        </block>
+      </view>
+    </view>
+
+  </block>
+
+  <!-- ========== 添加食材弹窗 ========== -->
+  <block wx:if="{{showAddPanel}}">
+    <view class="add-mask" bindtap="onCloseAddPanel"></view>
+    <view class="add-panel">
+      <view class="panel-head">
+        <view class="panel-handle-bar"></view>
+        <view class="panel-title-row">
+          <text class="panel-title">添加食材</text>
+          <view class="panel-close-btn" bindtap="onCloseAddPanel">×</view>
+        </view>
+      </view>
+      <view class="panel-search-row">
+        <text class="panel-search-icon">✦</text>
+        <input
+          class="panel-input"
+          placeholder="搜索食材名称"
+          placeholder-class="panel-placeholder"
+          value="{{addInputValue}}"
+          bindinput="onAddInput"
+          bindconfirm="onConfirmAdd"
+          focus="{{showAddPanel}}"
+        />
+      </view>
+      <scroll-view class="suggestions" scroll-y wx:if="{{suggestions.length > 0}}">
+        <block wx:for="{{suggestions}}" wx:key="*this">
+          <view class="suggestion-item" bindtap="onSelectSuggestion" data-name="{{item}}">
+            <view class="suggestion-dot"></view>
+            <text class="suggestion-name">{{item}}</text>
+          </view>
+        </block>
+      </scroll-view>
+      <view class="panel-tip" wx:if="{{!addInputValue}}">
+        <text>输入食材名称，自动匹配数据库</text>
+      </view>
+    </view>
+  </block>
+
+  <!-- ========== 食材名称映射选择面板 ========== -->
+  <block wx:if="{{showMappingPanel}}">
+    <view class="add-mask" bindtap="onSkipMapping"></view>
+    <view class="add-panel">
+      <view class="panel-head">
+        <view class="panel-handle-bar"></view>
+        <view class="panel-title-row">
+          <text class="panel-title">食材名称映射</text>
+          <view class="panel-close-btn" bindtap="onSkipMapping">×</view>
+        </view>
+      </view>
+      <view class="mapping-source-wrap">
+        <text class="mapping-source-label">识别到：</text>
+        <text class="mapping-source-name">{{mappingSource}}</text>
+        <text class="mapping-source-tip">（不在食材库中，请选择对应食材）</text>
+      </view>
+      <scroll-view class="suggestions" scroll-y wx:if="{{mappingCandidates.length > 0}}">
+        <block wx:for="{{mappingCandidates}}" wx:key="*this">
+          <view class="suggestion-item" bindtap="onSelectMappingCandidate" data-name="{{item.name}}">
+            <view class="suggestion-dot"></view>
+            <text class="suggestion-name">{{item.name}}</text>
+            <text class="suggestion-category" wx:if="{{item.category}}">{{item.category}}</text>
+          </view>
+        </block>
+      </scroll-view>
+      <view class="panel-tip" wx:if="{{mappingCandidates.length === 0}}">
+        <text>未找到相关食材，可跳过或手动添加</text>
+      </view>
+      <view class="mapping-skip-btn" bindtap="onSkipMapping">
+        <text>跳过，暂不添加</text>
+      </view>
+    </view>
+  </block>
+
+</view>

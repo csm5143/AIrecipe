@@ -1,0 +1,109 @@
+<view class="page">
+  <scroll-view class="page-scroll" scroll-y>
+
+    <!-- 问题类型 -->
+    <view class="section">
+      <view class="section-title">
+        <text class="section-title-text">问题类型</text>
+        <text class="section-title-required">*</text>
+      </view>
+      <view class="type-grid">
+        <view
+          wx:for="{{typeList}}"
+          wx:key="value"
+          class="type-item {{selectedType === item.value ? 'type-item--active' : ''}}"
+          bindtap="onSelectType"
+          data-type="{{item.value}}"
+        >
+          <text class="type-item-text">{{item.label}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 反馈内容 -->
+    <view class="section">
+      <view class="section-title">
+        <text class="section-title-text">反馈内容</text>
+        <text class="section-title-required">*</text>
+      </view>
+      <view class="textarea-wrapper">
+        <textarea
+          class="textarea"
+          placeholder="请详细描述您遇到的问题，我们会尽快处理..."
+          placeholder-class="textarea-placeholder"
+          maxlength="500"
+          bindinput="onContentInput"
+          value="{{content}}"
+        />
+        <view class="textarea-counter">
+          <text>{{contentLength}}/500</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 上传图片 -->
+    <view class="section">
+      <view class="section-title">
+        <text class="section-title-text">上传截图</text>
+        <text class="section-title-optional">（选填，最多3张）</text>
+      </view>
+      <view class="image-list">
+        <view
+          wx:for="{{imageList}}"
+          wx:key="*this"
+          class="image-item"
+        >
+          <image
+            class="image-preview"
+            src="{{item}}"
+            mode="aspectFill"
+            bindtap="onPreviewImage"
+            data-index="{{index}}"
+          />
+          <view class="image-remove" bindtap="onRemoveImage" data-index="{{index}}">
+            <image src="/assets/减号.png" mode="aspectFit" />
+          </view>
+        </view>
+        <view
+          wx:if="{{imageList.length < 3}}"
+          class="image-add"
+          bindtap="onChooseImage"
+        >
+          <image src="/assets/添加.png" mode="aspectFit" />
+          <text class="image-add-text">添加图片</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 联系方式 -->
+    <view class="section">
+      <view class="section-title">
+        <text class="section-title-text">联系方式</text>
+        <text class="section-title-optional">（选填，方便我们联系您）</text>
+      </view>
+      <view class="input-wrapper">
+        <input
+          class="input"
+          type="text"
+          placeholder="请输入手机号或微信号"
+          placeholder-class="input-placeholder"
+          bindinput="onContactInput"
+          value="{{contact}}"
+        />
+      </view>
+    </view>
+
+    <!-- 提交按钮 -->
+    <view class="submit-section">
+      <button
+        class="submit-btn {{isSubmitting ? 'submit-btn--disabled' : ''}}"
+        bindtap="onSubmit"
+        disabled="{{isSubmitting}}"
+      >
+        <text wx:if="{{!isSubmitting}}">提交反馈</text>
+        <text wx:if="{{isSubmitting}}">提交中...</text>
+      </button>
+    </view>
+
+  </scroll-view>
+</view>

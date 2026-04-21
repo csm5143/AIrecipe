@@ -1,0 +1,64 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/search/index",
+    "pages/scan/index",
+    "pages/ingredients/index",
+    "pages/basket/index",
+    "pages/recipes/list",
+    "pages/recipes/detail",
+    "pages/custom/index",
+    "pages/mine/index",
+    "pages/collections/index",
+    "pages/collection-detail/index"
+  ],
+  "subpackages": [
+    {
+      "root": "subpackages/lowfreq",
+      "name": "lowfreq",
+      "pages": [
+        "discover-list/index",
+        "fitness/index",
+        "fitness-menu/index",
+        "kids/index",
+        "kids-menu/index",
+        "daily/index",
+        "login/index",
+        "feedback/index"
+      ]
+    }
+  ],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "",
+    "navigationBarBackgroundColor": "#ffffff"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#8B7355",
+    "selectedColor": "#E2A650",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/custom/index",
+        "text": "定制"
+      },
+      {
+        "pagePath": "pages/collections/index",
+        "text": "收藏"
+      },
+      {
+        "pagePath": "pages/mine/index",
+        "text": "我的"
+      }
+    ]
+  },
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents",
+  "cloud": true
+}

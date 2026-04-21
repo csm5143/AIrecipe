@@ -1,0 +1,94 @@
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+  background: #ffffff;
+  box-shadow: 0 -1rpx 0 rgba(0, 0, 0, 0.06);
+}
+
+.tab-bar-inner {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 112rpx;
+  padding: 8rpx 12rpx 12rpx;
+  box-sizing: border-box;
+}
+
+.tab-bar-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+  color: #9ca3af;
+}
+
+.tab-bar-item--on {
+  color: #111111;
+}
+
+.tab-bar-icon {
+  min-height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-bar-text {
+  font-size: 20rpx;
+  line-height: 1;
+  font-weight: 500;
+}
+
+/* PNG 图标：分别改下面四个类的 width/height 即可单独调大小 */
+.tab-icon {
+  display: block;
+  flex-shrink: 0;
+}
+
+.tab-icon--home {
+  width: 44rpx;
+  height: 44rpx;
+}
+
+.tab-icon--fav {
+  width: 44rpx;
+  height: 44rpx;
+}
+
+.tab-icon--mine {
+  width: 44rpx;
+  height: 44rpx;
+}
+
+/* —— 定制：四宫格（样式不变；改 tab-icon--custom 可单独调格子区域大小）—— */
+.ico-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 5rpx;
+  box-sizing: border-box;
+}
+
+.tab-icon--custom {
+  width: 38rpx;
+  height: 38rpx;
+}
+
+.ico-grid__cell {
+  border-radius: 5rpx;
+  border: 3rpx solid #9ca3af;
+  box-sizing: border-box;
+  background: transparent;
+}
+
+.tab-bar-item--on .ico-grid__cell {
+  border-color: #111111;
+  background: #111111;
+}

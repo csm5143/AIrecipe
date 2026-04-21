@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "推荐菜谱",
+  "disableScroll": true,
+  "usingComponents": {
+    "action-toast": "/components/action-toast/index"
+  }
+}
+

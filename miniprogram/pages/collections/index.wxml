@@ -1,0 +1,76 @@
+<view class="page">
+  <!-- 可滚动容器 -->
+  <scroll-view class="scroll-container" scroll-y enable-back-to-top>
+    <!-- 标题栏 -->
+    <view class="header">
+      <text class="header-title">我的收藏</text>
+      <view class="header-actions">
+        <view class="add-btn" bindtap="onAddCollection">
+          <image class="add-btn-icon" src="/assets/添加.png" mode="aspectFit" />
+          <text class="add-btn-text">新建</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 加载状态 -->
+    <view wx:if="{{isLoading}}" class="loading-state">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:elif="{{showEmpty}}" class="empty-state">
+      <image class="empty-icon" src="/assets/收藏-选中.png" mode="aspectFit" />
+      <text class="empty-title">还没有收藏夹</text>
+      <text class="empty-text">点击右上角"新建"创建你的第一个收藏夹</text>
+    </view>
+
+    <!-- 收藏夹列表（网格布局） -->
+    <view wx:else class="collections-grid">
+      <view
+        wx:for="{{collections}}"
+        wx:key="id"
+        class="collection-card"
+        bindtap="onCollectionTap"
+        bindlongpress="onCollectionLongPress"
+        data-id="{{item.id}}"
+        data-name="{{item.name}}"
+        data-isdefault="{{item.isDefault}}"
+      >
+        <!-- 封面图 -->
+        <view class="collection-cover">
+          <image
+            wx:if="{{item.coverImage}}"
+            class="collection-cover-img"
+            src="{{item.coverImage}}"
+            mode="aspectFill"
+          />
+          <view wx:else class="collection-cover-placeholder">
+            <image class="collection-cover-default" src="/assets/收藏-选中.png" mode="aspectFit" />
+          </view>
+
+          <!-- 默认标签 -->
+          <view wx:if="{{item.isDefault}}" class="collection-badge">
+            <text class="collection-badge-text">默认</text>
+          </view>
+
+          <!-- 菜品数量 -->
+          <view class="collection-count">
+            <text class="collection-count-text">{{item.recipeCount}}道菜</text>
+          </view>
+        </view>
+
+        <!-- 收藏夹信息 -->
+        <view class="collection-info">
+          <text class="collection-name">{{item.name}}</text>
+          <text wx:if="{{item.description}}" class="collection-desc">{{item.description}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 底部提示 -->
+    <view wx:if="{{!showEmpty && !isLoading}}" class="page-tip">
+      <text class="page-tip-text">长按收藏夹可编辑或删除</text>
+    </view>
+  </scroll-view>
+</view>

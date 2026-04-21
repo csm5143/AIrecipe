@@ -1,0 +1,77 @@
+<view class="page">
+  <view class="toolbar">
+    <view class="search-row">
+      <view class="input-shell">
+        <image class="input-shell__icon" src="/assets/搜索.png" mode="aspectFit" />
+        <input
+          class="input-shell__field"
+          type="text"
+          value="{{keyword}}"
+          focus="{{inputFocus}}"
+          placeholder="今天想吃点什么？"
+          placeholder-class="input-shell__ph"
+          confirm-type="search"
+          bindinput="onInput"
+          bindconfirm="onConfirmSearch"
+        />
+        <view wx:if="{{keyword}}" class="input-shell__clear" catchtap="onClearInput">
+          <text class="input-shell__clear-x">×</text>
+        </view>
+      </view>
+      <view class="search-action" bindtap="onTapSearchBtn">搜索</view>
+    </view>
+  </view>
+
+  <block wx:if="{{hasKeyword}}">
+    <scroll-view class="panel suggest-list" scroll-y enhanced show-scrollbar="{{false}}">
+      <view
+        wx:for="{{suggestions}}"
+        wx:key="id"
+        class="suggest-item"
+        bindtap="onPickSuggestion"
+        data-name="{{item.name}}"
+      >
+        <text class="suggest-item__text">{{item.name}}</text>
+      </view>
+      <view wx:if="{{!suggestions.length}}" class="suggest-empty">暂无相关菜品，换个词试试</view>
+    </scroll-view>
+  </block>
+
+  <scroll-view wx:else class="panel main-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="block">
+      <view class="block__head">
+        <text class="block__title">搜索历史</text>
+        <text wx:if="{{history.length}}" class="block__action" bindtap="onClearHistory">清空</text>
+      </view>
+      <view wx:if="{{history.length}}" class="tag-cloud">
+        <view
+          wx:for="{{history}}"
+          wx:key="*this"
+          class="tag"
+          bindtap="onTapHistoryTag"
+          data-word="{{item}}"
+        >
+          {{item}}
+        </view>
+      </view>
+      <view wx:else class="hint-muted">暂无搜索历史</view>
+    </view>
+
+    <view class="block">
+      <view class="block__head">
+        <text class="block__title">热门搜索</text>
+      </view>
+      <view class="tag-cloud">
+        <view
+          wx:for="{{hotList}}"
+          wx:key="*this"
+          class="tag"
+          bindtap="onTapHotTag"
+          data-word="{{item}}"
+        >
+          {{item}}
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</view>

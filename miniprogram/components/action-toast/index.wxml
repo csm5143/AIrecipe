@@ -1,0 +1,20 @@
+<view class="action-toast {{visible ? 'action-toast--show' : ''}}" catchtap="onClose">
+  <view class="action-toast__content {{showButton ? 'action-toast__content--with-button' : ''}}" catchtap="{{null}}">
+    <view class="action-toast__icon-wrap" wx:if="{{iconType}}">
+      <text wx:if="{{iconType === 'warning'}}" class="icon-emoji">⚠️</text>
+      <image
+        wx:else
+        class="icon-image"
+        src="{{iconType === 'success' ? '/assets/成功.png' : '/assets/删除.png'}}"
+        mode="aspectFit"
+      />
+    </view>
+    <view class="action-toast__body {{!showButton ? 'action-toast__body--centered' : ''}}">
+      <view class="action-toast__title">{{message}}</view>
+      <view class="action-toast__subtitle" wx:if="{{subtitle}}">{{subtitle}}</view>
+    </view>
+    <view class="action-toast__button" wx:if="{{showButton}}" catchtap="onButtonTap">
+      {{buttonText}}
+    </view>
+  </view>
+</view>

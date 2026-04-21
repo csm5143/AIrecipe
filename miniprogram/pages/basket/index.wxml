@@ -1,0 +1,141 @@
+<view class="page">
+  <scroll-view class="basket-scroll" scroll-y enhanced bounces="{{true}}">
+    <view class="content">
+
+      <!-- 统计栏 -->
+      <view class="stats-bar" wx:if="{{recipes.length > 0}}">
+        <view class="stat-item">
+          <text class="stat-num">{{recipeCount}}</text>
+          <text class="stat-label">道菜谱</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-num">{{totalCount}}</text>
+          <text class="stat-label">种食材</text>
+        </view>
+      </view>
+
+      <!-- 操作栏：合并 / 复制 / 清空 -->
+      <view class="action-bar" wx:if="{{recipes.length > 0}}">
+        <view
+          class="action-btn {{showMerged ? 'active' : ''}}"
+          bindtap="onToggleMerge"
+        >
+          {{showMerged ? '查看分组' : '合并食材'}}
+        </view>
+        <view class="action-btn" bindtap="onCopyBasket">复制清单</view>
+        <view class="action-btn danger" bindtap="onClearAll">清空</view>
+      </view>
+
+      <!-- 合并清单视图 -->
+      <block wx:if="{{showMerged && mergedTotalCount > 0}}">
+        <view class="merged-header">
+          <view class="merged-title">合并后去重清单</view>
+          <view class="merged-count">共 {{mergedTotalCount}} 种食材</view>
+        </view>
+        <view class="merged-list">
+          <block wx:if="{{mergedCoreList.length > 0}}">
+            <view class="merged-section-label">核心食材</view>
+            <view wx:for="{{mergedCoreList}}" wx:key="name" class="merged-row">
+              <view class="merged-dot merged-dot-core"></view>
+              <text class="merged-name">{{item.name}}</text>
+              <text class="merged-amount">{{item.amount}}</text>
+            </view>
+          </block>
+          <block wx:if="{{mergedSeasoningList.length > 0}}">
+            <view class="merged-section-divider" wx:if="{{mergedCoreList.length > 0}}"></view>
+            <view class="merged-section-label merged-section-label-sub">调料 / 辅料</view>
+            <view wx:for="{{mergedSeasoningList}}" wx:key="name" class="merged-row">
+              <view class="merged-dot merged-dot-seasoning"></view>
+              <text class="merged-name">{{item.name}}</text>
+              <text class="merged-amount">{{item.amount}}</text>
+            </view>
+          </block>
+        </view>
+        <view class="merged-copy-btn" bindtap="onCopyMerged">复制合并清单</view>
+      </block>
+
+      <!-- 空状态 -->
+      <view wx:if="{{recipes.length === 0}}" class="empty-state">
+        <image class="empty-icon" src="/assets/菜篮.png" mode="aspectFit" />
+        <view class="empty-title">小菜篮是空的</view>
+        <view class="empty-tip">去菜谱详情页，把想做的菜加入小菜篮吧</view>
+      </view>
+
+      <!-- 菜谱列表 -->
+      <block wx:elif="{{!showMerged}}">
+        <view
+          wx:for="{{recipes}}"
+          wx:key="recipeId"
+          class="recipe-card"
+        >
+          <view class="recipe-header">
+            <view class="recipe-header-main">
+              <view
+                class="recipe-expand-hit"
+                bindtap="onToggleRecipe"
+                data-id="{{item.recipeId}}"
+              >
+                <view class="recipe-expand-arrow {{expandedIds.indexOf(item.recipeId) !== -1 ? 'expanded' : ''}}">
+                  ›
+                </view>
+              </view>
+              <view class="recipe-info">
+                <text class="recipe-name">{{item.recipeName}}</text>
+                <text class="recipe-ingredient-count">{{item.ingredients.length}} 种食材</text>
+              </view>
+            </view>
+            <view class="recipe-header-tools">
+              <text
+                class="recipe-remove-list-btn"
+                catchtap="onRemoveRecipe"
+                data-id="{{item.recipeId}}"
+                data-name="{{item.recipeName}}"
+              >
+                删除清单
+              </text>
+              <image
+                class="recipe-go-img"
+                src="/assets/右箭头.png"
+                mode="aspectFit"
+                catchtap="onViewRecipeDetail"
+                data-id="{{item.recipeId}}"
+              />
+            </view>
+          </view>
+
+          <view
+            class="ingredient-list {{expandedIds.indexOf(item.recipeId) !== -1 ? 'visible' : ''}}"
+          >
+            <view
+              wx:for="{{item.ingredients}}"
+              wx:for-item="ing"
+              wx:key="name"
+              class="ingredient-row"
+            >
+              <view class="ingredient-row-left">
+                <view class="ingredient-dot-wrap">
+                  <view class="ingredient-dot"></view>
+                </view>
+                <text class="ingredient-name">{{ing.name}}</text>
+              </view>
+              <view class="ingredient-row-right">
+                <text class="ingredient-amount">{{ing.amount}}</text>
+                <image
+                  class="ingredient-pass-img"
+                  src="/assets/通过.png"
+                  mode="aspectFit"
+                  catchtap="onRemoveIngredient"
+                  data-recipe-id="{{item.recipeId}}"
+                  data-ingredient-name="{{ing.name}}"
+                />
+              </view>
+            </view>
+          </view>
+        </view>
+      </block>
+
+      <view class="scroll-bottom-spacer"></view>
+    </view>
+  </scroll-view>
+</view>

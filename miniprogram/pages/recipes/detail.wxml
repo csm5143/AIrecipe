@@ -1,0 +1,164 @@
+<view class="page">
+  <scroll-view class="detail-scroll" scroll-y enhanced bounces="{{false}}">
+    <view class="content">
+      <view class="hero" wx:if="{{coverUrl}}">
+        <image class="hero-img" src="{{coverUrl}}" mode="aspectFill" bindtap="onPreviewCover" />
+        <view class="hero-mask"></view>
+        <view class="hero-title-wrap">
+          <text class="hero-title">{{recipeName}}</text>
+        </view>
+      </view>
+
+      <view class="title-card" wx:else>
+        <text class="title-only">{{recipeName}}</text>
+      </view>
+
+      <view class="meta-card" wx:if="{{!isFitnessMeal && !isChildrenMeal}}">
+        <view class="meta-chips">
+          <text wx:if="{{mealTimeLabel}}" class="chip chip-meal">{{mealTimeLabel}}</text>
+          <text wx:if="{{primaryCategoryLabel}}" class="chip chip-type">{{primaryCategoryLabel}}</text>
+          <block wx:for="{{secondaryCategoryLabels}}" wx:key="*this">
+            <text class="chip chip-sub">{{item}}</text>
+          </block>
+        </view>
+        <view class="meta-row">
+          <text wx:if="{{timeCost != null}}" class="meta-item">⏱ {{timeCost}} 分钟</text>
+          <text class="meta-item">难度：{{difficultyLabel}}</text>
+          <text wx:if="{{calories}}" class="meta-item calories">🔥 {{calories}}/份</text>
+        </view>
+      </view>
+
+      <view class="section">
+        <view class="section-title-row">
+          <text class="section-title">食材清单</text>
+          <view class="basket-add-btn {{isInBasket ? 'basket-add-btn--added' : ''}}" bindtap="onAddAllToBasket">
+            <image
+              class="basket-add-icon-img"
+              src="{{isInBasket ? '/assets/添加.png' : '/assets/添加.png'}}"
+              mode="aspectFit"
+            />
+            <text class="basket-add-text">{{isInBasket ? '已加入' : '小菜篮'}}</text>
+          </view>
+        </view>
+        <view class="ingredient-list">
+          <block wx:for="{{allIngredients}}" wx:key="name">
+            <view class="ingredient-row">
+              <text class="ingredient-name">{{item.name}}</text>
+              <text class="ingredient-amount">{{item.amount}}</text>
+            </view>
+          </block>
+        </view>
+      </view>
+
+      <view class="section" wx:if="{{showIngredientCompare}}">
+        <view class="section-title">与我的食材对比</view>
+
+        <!-- 进度摘要：仅统计核心食材 -->
+        <view class="compare-summary">
+          <text class="compare-summary-label">核心</text>
+          <view class="compare-progress-bar">
+            <view
+              class="compare-progress-fill"
+              style="width: {{missingCore.length > 0 ? (ownedCore.length * 100 / (ownedCore.length + missingCore.length)) : 100}}%"
+            />
+          </view>
+          <text class="compare-summary-text">
+            {{ownedCore.length}} / {{ownedCore.length + missingCore.length}}
+          </text>
+          
+        </view>
+
+        <!-- 已备：核心 + 可选调料合并一行 -->
+        <view class="compare-row" wx:if="{{ownedCore.length || ownedOptional.length}}">
+          <text class="compare-label compare-label--owned">已备</text>
+          <view class="compare-tags">
+            <view
+              wx:for="{{ownedCore}}"
+              wx:key="*this"
+              class="compare-tag compare-tag--owned"
+            >{{item}}</view>
+            <view
+              wx:for="{{ownedOptional}}"
+              wx:key="*this"
+              class="compare-tag compare-tag--optional"
+            >{{item}}</view>
+          </view>
+        </view>
+
+        <!-- 缺少：仅核心 -->
+        <view class="compare-row" wx:if="{{missingCore.length}}">
+          <text class="compare-label compare-label--missing">缺少</text>
+          <view class="compare-tags">
+            <view
+              wx:for="{{missingCore}}"
+              wx:key="*this"
+              class="compare-tag compare-tag--missing"
+            >{{item}}</view>
+          </view>
+        </view>
+
+        <!-- 可选：还缺的调料 -->
+        <view class="compare-row" wx:if="{{missingOptional.length}}">
+          <text class="compare-label compare-label--optional">可选</text>
+          <view class="compare-tags">
+            <view
+              wx:for="{{missingOptional}}"
+              wx:key="*this"
+              class="compare-tag compare-tag--optional-miss"
+            >{{item}}</view>
+          </view>
+        </view>
+
+        <!-- 全部已齐 -->
+        <view class="compare-all-done" wx:if="{{!missingCore.length && !missingOptional.length}}">
+          ✓ 所有食材已备齐
+        </view>
+      </view>
+
+      <view class="section" wx:if="{{steps && steps.length}}">
+        <view class="section-title">制作步骤</view>
+        <block wx:for="{{steps}}" wx:for-index="idx" wx:key="*this">
+          <view class="step-row">
+            <view class="step-num">{{idx + 1}}</view>
+            <text class="step-text">{{item}}</text>
+          </view>
+        </block>
+      </view>
+
+      <view class="scroll-bottom-spacer"></view>
+    </view>
+  </scroll-view>
+
+  <!-- 底部收藏分享 -->
+  <view class="bottom-bar safe-bottom">
+    <button
+      class="action-btn"
+      bindtap="onToggleFavorite"
+      bindlongpress="onFavoriteLongPress"
+    >
+      <image
+        class="action-btn-icon-img"
+        src="{{isFavorited ? '/assets/收藏.png' : '/assets/取消收藏.png'}}"
+        mode="aspectFit"
+      />
+      <text class="action-btn-text">{{isFavorited ? '已收藏' : '收藏'}}</text>
+    </button>
+    <button class="action-btn" bindtap="onShare">
+      <image class="action-btn-icon-img" src="/assets/分享.png" mode="aspectFit" />
+      <text class="action-btn-text">分享</text>
+    </button>
+  </view>
+
+  <!-- 轻量级提示组件 -->
+  <action-toast
+    show="{{toastShow}}"
+    message="{{toastMessage}}"
+    type="{{toastType}}"
+    iconType="{{toastIcon}}"
+    showButton="{{toastShowButton}}"
+    buttonText="{{toastButtonText}}"
+    duration="{{toastDuration}}"
+    subtitle="{{toastSubtitle}}"
+    bind:buttontap="onToastButtonTap"
+  />
+</view>

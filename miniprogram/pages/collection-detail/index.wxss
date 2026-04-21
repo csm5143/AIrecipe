@@ -1,0 +1,422 @@
+.page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8f0fe 100%);
+  padding-bottom: 120rpx;
+}
+
+/* ========== 顶部导航栏 ========== */
+.nav-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 112rpx;
+  padding: 0 32rpx;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-bottom: 1rpx solid rgba(0, 0, 0, 0.06);
+}
+
+.nav-left-area {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+.nav-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #111111;
+  letter-spacing: 0.5rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.nav-count {
+  flex-shrink: 0;
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #8e8e93;
+  background: #f0f0f5;
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+}
+
+.nav-more {
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nav-more-icon {
+  font-size: 48rpx;
+  font-weight: 300;
+  color: #111111;
+  line-height: 1;
+}
+
+/* ========== 加载状态 ========== */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 200rpx 0;
+  gap: 24rpx;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid #f0f0f0;
+  border-top-color: #E2A650;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  font-size: 26rpx;
+  color: #8e8e93;
+}
+
+/* ========== 空状态 ========== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 160rpx 48rpx;
+  gap: 20rpx;
+}
+
+.empty-icon {
+  width: 160rpx;
+  height: 160rpx;
+  opacity: 0.6;
+}
+
+.empty-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #3c3c43;
+}
+
+.empty-text {
+  font-size: 26rpx;
+  color: #8e8e93;
+  line-height: 1.6;
+  max-width: 400rpx;
+}
+
+.empty-btn {
+  margin-top: 24rpx;
+  padding: 20rpx 48rpx;
+  background: linear-gradient(135deg, #E2A650 0%, #f5c176 100%);
+  border-radius: 999rpx;
+  box-shadow: 0 6rpx 16rpx rgba(226, 166, 80, 0.25);
+}
+
+.empty-btn-text {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* ========== 菜谱列表 ========== */
+.recipes-section {
+  padding: 24rpx;
+}
+
+.recipes-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20rpx;
+}
+
+.recipe-card {
+  background: #ffffff;
+  border-radius: 20rpx;
+  overflow: hidden;
+  box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.recipe-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+}
+
+/* 封面容器 */
+.recipe-cover-wrap {
+  position: relative;
+  width: 100%;
+  height: 260rpx;
+  overflow: hidden;
+}
+
+.recipe-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.recipe-cover-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #f0f0f5 0%, #e8e8ed 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.recipe-cover-text {
+  font-size: 24rpx;
+  color: #aeaeb2;
+}
+
+/* 菜名 + 难度行 */
+.recipe-info {
+  padding: 10rpx 20rpx 10rpx;
+}
+
+.recipe-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.recipe-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #111111;
+  line-height: 1.6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  flex: 1;
+  min-width: 0;
+  margin-top: 12rpx;
+  margin-bottom: 12rpx;
+}
+
+
+/* ========== 底部提示 ========== */
+.page-tip {
+  padding: 32rpx 24rpx 48rpx;
+  text-align: center;
+}
+
+.page-tip-text {
+  font-size: 24rpx;
+  color: #aeaeb2;
+}
+
+/* ========== 编辑弹窗 ========== */
+.edit-modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.edit-modal-content {
+  width: 100%;
+  max-height: 80vh;
+  background: #ffffff;
+  border-radius: 32rpx 32rpx 0 0;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.edit-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx 32rpx 24rpx;
+  border-bottom: 1rpx solid #f0f0f5;
+}
+
+.edit-modal-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #111111;
+}
+
+.edit-modal-close {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-modal-close-icon {
+  font-size: 40rpx;
+  font-weight: 300;
+  color: #8e8e93;
+  line-height: 1;
+}
+
+.edit-modal-body {
+  flex: 1;
+  padding: 32rpx;
+  overflow-y: auto;
+}
+
+.edit-item {
+  margin-bottom: 32rpx;
+}
+
+.edit-label {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #111111;
+  margin-bottom: 16rpx;
+}
+
+.edit-cover-area {
+  width: 100%;
+  height: 320rpx;
+  border-radius: 20rpx;
+  overflow: hidden;
+}
+
+.edit-cover-preview {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.edit-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.edit-cover-replace {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20rpx;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-cover-replace-text {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.edit-cover-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #f0f0f5 0%, #e8e8ed 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx dashed #c7c7cc;
+}
+
+.edit-cover-placeholder-text {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #8e8e93;
+}
+
+.edit-input {
+  width: 100%;
+  height: 88rpx;
+  padding: 0 24rpx;
+  background: #f5f7fa;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  color: #111111;
+}
+
+.edit-textarea {
+  width: 100%;
+  min-height: 160rpx;
+  padding: 20rpx 24rpx;
+  background: #f5f7fa;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  color: #111111;
+  line-height: 1.6;
+}
+
+.edit-modal-footer {
+  display: flex;
+  gap: 20rpx;
+  padding: 24rpx 32rpx 48rpx;
+  border-top: 1rpx solid #f0f0f5;
+}
+
+.edit-btn {
+  flex: 1;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.edit-btn-cancel {
+  background: #f5f7fa;
+  color: #636366;
+}
+
+.edit-btn-confirm {
+  background: linear-gradient(135deg, #E2A650 0%, #f5c176 100%);
+  color: #ffffff;
+  box-shadow: 0 6rpx 16rpx rgba(226, 166, 80, 0.25);
+}

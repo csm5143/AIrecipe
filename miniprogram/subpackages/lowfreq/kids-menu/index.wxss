@@ -1,0 +1,472 @@
+/** pages/custom/fitness-menu/index.wxss **/
+
+.page {
+  min-height: 100vh;
+  background: #f5f5f7;
+}
+
+.page-scroll {
+  min-height: 100vh;
+  padding-bottom: 60rpx;
+}
+
+/* ============================== */
+/* 顶部概览卡片                   */
+/* ============================== */
+.overview-card {
+  margin: 24rpx;
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
+}
+
+.overview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.overview-title {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+.overview-icon {
+  width: 80rpx;
+  height: 80rpx;
+  flex-shrink: 0;
+}
+
+.overview-title-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.overview-goal {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.2;
+}
+
+.overview-subtitle {
+  font-size: 24rpx;
+  color: #8e8e93;
+  margin-top: 4rpx;
+}
+
+.overview-edit {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 10rpx 20rpx 10rpx 14rpx;
+  border: 1.5rpx solid #d1d1d6;
+  border-radius: 50rpx;
+  gap: 6rpx;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.overview-edit--hover {
+  background: #f5f5f7;
+  border-color: #aeaeb2;
+}
+
+.edit-icon {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+.edit-text {
+  font-size: 24rpx;
+  color: #3c3c43;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.overview-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.overview-tag {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 10rpx 16rpx;
+  background: #f8f8f8;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  color: #3c3c43;
+}
+
+.overview-tag--warning {
+  background: #FFF3E0;
+  color: #E65100;
+}
+
+.overview-tag--safe {
+  background: #E8F5E9;
+  color: #2E7D32;
+}
+
+.tag-icon {
+  width: 26rpx;
+  height: 26rpx;
+}
+
+/* ============================== */
+/* 健身餐推荐区域                 */
+/* ============================== */
+.meals-section {
+  margin: 0 24rpx 24rpx;
+  padding: 28rpx 24rpx 32rpx;
+  background: #ffffff;
+  border-radius: 24rpx;
+  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
+}
+
+.section-header {
+  margin-bottom: 24rpx;
+}
+
+.section-title-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: 0.5rpx;
+}
+
+.refresh-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 10rpx 20rpx 10rpx 14rpx;
+  border: 1.5rpx solid #d1d1d6;
+  border-radius: 50rpx;
+  gap: 6rpx;
+}
+
+.refresh-btn--hover {
+  background: #f5f5f7;
+  border-color: #aeaeb2;
+}
+
+.refresh-icon {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+.refresh-text {
+  font-size: 24rpx;
+  color: #3c3c43;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.section-sub {
+  display: block;
+  font-size: 22rpx;
+  color: #8e8e93;
+  margin-top: 10rpx;
+  line-height: 1.45;
+}
+
+/* ============================== */
+/* 早/午/晚餐切换标签             */
+/* ============================== */
+.meal-tabs {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  margin-bottom: 28rpx;
+  padding-bottom: 8rpx;
+  border-bottom: 1rpx solid #ececec;
+}
+
+.meal-tab {
+  position: relative;
+  flex: 1;
+  text-align: center;
+  padding-bottom: 16rpx;
+  font-size: 28rpx;
+  color: #aeaeb2;
+}
+
+.meal-tab--active {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.meal-tab-line {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 48rpx;
+  height: 6rpx;
+  margin-left: -24rpx;
+  background: #1a1a1a;
+  border-radius: 3rpx;
+}
+
+/* ============================== */
+/* 横向滑动餐品卡片               */
+/* ============================== */
+.meal-h-scroll {
+  width: 100%;
+  margin-top: 4rpx;
+}
+
+.meal-h-track {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 20rpx;
+  padding: 4rpx 0 16rpx;
+}
+
+.meal-h-card {
+  flex-shrink: 0;
+  width: 280rpx;
+  background: #ffffff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+  display: block;
+  box-sizing: border-box;
+}
+
+.meal-h-card--hover {
+  opacity: 0.92;
+}
+
+.meal-h-media {
+  position: relative;
+  width: 100%;
+  height: 240rpx;
+  background: #f0f0f2;
+  border-radius: 16rpx 16rpx 0 0;
+  overflow: hidden;
+}
+
+.meal-h-cover-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.meal-h-fav {
+  position: absolute;
+  top: 12rpx;
+  right: 12rpx;
+  width: 48rpx;
+  height: 48rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.08);
+}
+
+.meal-h-fav-icon {
+  width: 32rpx;
+  height: 32rpx;
+}
+
+.meal-h-footer {
+  padding: 16rpx 14rpx 18rpx;
+  background: #ffffff;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.meal-h-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+  line-height: 1.4;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  word-break: break-word;
+}
+
+.empty-hint {
+  text-align: center;
+  padding: 40rpx 0;
+  font-size: 26rpx;
+  color: #aeaeb2;
+  line-height: 1.6;
+}
+
+/* ============================== */
+/* 营养小贴士卡片                 */
+/* ============================== */
+.tips-card {
+  margin: 0 24rpx 24rpx;
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 28rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
+}
+
+.tips-header-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
+.tips-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.tips-refresh {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tips-refresh--hover {
+  background: #f0f0f5;
+}
+
+.tips-refresh-icon {
+  width: 40rpx;
+  height: 40rpx;
+}
+
+.tips-list-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.tip-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 20rpx;
+  padding: 20rpx;
+  background: #fafafa;
+  border-radius: 16rpx;
+}
+
+.tip-row__icon-wrap {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, #f0f0f5, #e8e8ec);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tip-row__icon {
+  width: 48rpx;
+  height: 48rpx;
+}
+
+.tip-row__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.tip-row__title-line {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.tip-row__badge {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #e65100;
+  background: #fff3e0;
+  border-radius: 8rpx;
+  padding: 4rpx 12rpx;
+  line-height: 1.2;
+}
+
+.tip-row__label {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.3;
+}
+
+.tip-row__value {
+  font-size: 24rpx;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* ============================== */
+/* 全局空状态                     */
+/* ============================== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 0 120rpx;
+}
+
+.empty-icon {
+  width: 140rpx;
+  height: 140rpx;
+  opacity: 0.4;
+  margin-bottom: 24rpx;
+}
+
+.empty-text {
+  font-size: 30rpx;
+  color: #666;
+  margin-bottom: 8rpx;
+}
+
+.empty-subtext {
+  font-size: 24rpx;
+  color: #aeaeb2;
+  margin-bottom: 32rpx;
+}
+
+.empty-btn {
+  padding: 16rpx 48rpx;
+  background: #1a1a1a;
+  border-radius: 50rpx;
+  font-size: 28rpx;
+  color: #fff;
+  font-weight: 600;
+}

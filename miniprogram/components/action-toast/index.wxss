@@ -1,0 +1,124 @@
+.action-toast {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.action-toast--show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.action-toast__content {
+  position: fixed;
+  bottom: 180rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffff;
+  padding: 20rpx 40rpx;
+  border-radius: 48rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  max-width: 900rpx;
+  min-width: 450rpx;
+  opacity: 0;
+  transform: translateX(-50%) translateY(20rpx);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* 有按钮时，左对齐（图标+文字左对齐，按钮在右） */
+.action-toast__content--with-button {
+  justify-content: flex-start;
+}
+
+.action-toast--show .action-toast__content {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.action-toast__icon-wrap {
+  width: 40rpx;
+  height: 40rpx;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-image {
+  width: 40rpx;
+  height: 40rpx;
+  flex-shrink: 0;
+}
+
+.icon-emoji {
+  font-size: 36rpx;
+  line-height: 40rpx;
+  flex-shrink: 0;
+}
+
+.action-toast__body {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* 无按钮时，body 居中显示 */
+.action-toast__body--centered {
+  flex: 0 0 auto;
+}
+
+.action-toast__title {
+  font-size: 28rpx;
+  line-height: 40rpx;
+  color: #333333;
+  text-align: center;
+  font-weight: 500;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.action-toast__subtitle {
+  font-size: 24rpx;
+  line-height: 32rpx;
+  color: #999999;
+  text-align: center;
+  margin-left: 8rpx;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.action-toast__button {
+  padding: 12rpx 32rpx;
+  background: #E2A650;
+  border-radius: 32rpx;
+  font-size: 26rpx;
+  color: #ffffff;
+  font-weight: 500;
+  text-align: center;
+  margin-left: 20rpx;
+  flex-shrink: 0;
+}

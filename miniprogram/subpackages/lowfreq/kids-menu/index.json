@@ -1,0 +1,6 @@
+{
+  "usingComponents": {
+    "action-toast": "/components/action-toast/index"
+  },
+  "navigationBarTitleText": "宝宝专属菜单"
+}

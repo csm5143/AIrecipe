@@ -1,0 +1,85 @@
+/**app.wxss**/
+/* =========
+ * 全局主题（更“有食欲”的暖色系）
+ * - 使用 CSS 变量 + fallback：老环境会使用第一行的固定色值
+ * ========= */
+
+page {
+  background: #fbf4e6;
+  background: var(--app-bg, #fbf4e6);
+  color: #374151;
+  color: var(--text, #374151);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+page {
+  /* 日式奶油暖：米白底 + 蜂蜜杏 + 焦糖阴影（低饱和、柔和耐看） */
+  --app-bg: #fbf4e6;
+  --surface: #fffdf8;
+  --surface-2: #f6e8d6;
+
+  --text-strong: #2d241b;
+  --text: #4a3b2a;
+  --muted: #7a6a58;
+
+  --border: rgba(90, 60, 30, 0.1);
+  --shadow-sm: 0 6rpx 16rpx rgba(125, 90, 50, 0.08);
+  --shadow: 0 14rpx 34rpx rgba(125, 90, 50, 0.1);
+
+  --primary: #e2a650; /* 蜂蜜杏（主色） */
+  --primary-strong: #c7862d; /* 焦糖（强调） */
+  --accent: #d46a4c; /* 柔和番茄棕（点缀） */
+
+  --success: #4faa6a;
+  --warning: #d6a14a;
+}
+
+/* 常用容器/卡片/按钮，尽量复用，减少各页面重复定义 */
+.app-page {
+  min-height: 100vh;
+  background: #fbf4e6;
+  background: var(--app-bg, #fbf4e6);
+}
+
+.card {
+  background-color: #fffdf8;
+  background-color: var(--surface, #fffdf8);
+  border: 1rpx solid rgba(15, 23, 42, 0.04);
+  border: 1rpx solid var(--border, rgba(15, 23, 42, 0.04));
+  border-radius: 24rpx;
+  box-shadow: 0 14rpx 34rpx rgba(125, 90, 50, 0.1);
+  box-shadow: var(--shadow, 0 14rpx 34rpx rgba(125, 90, 50, 0.1));
+}
+
+.btn-primary {
+  background-color: #e2a650;
+  background-color: var(--primary, #e2a650);
+  color: #ffffff;
+  border-radius: 999rpx;
+}
+
+.chip {
+  background-color: #f6e8d6;
+  background-color: var(--surface-2, #f6e8d6);
+  color: #c7862d;
+  color: var(--primary-strong, #c7862d);
+  border-radius: 999rpx;
+}
+
+.chip--active {
+  background-color: #e2a650;
+  background-color: var(--primary, #e2a650);
+  color: #ffffff;
+}
+
+/* 保留原有 .container（如果有历史页面还在用） */
+.container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 200rpx 0;
+  box-sizing: border-box;
+} 

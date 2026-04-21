@@ -1,0 +1,149 @@
+<view class="page">
+
+  <!-- 背景装饰 -->
+  <view class="bg-decoration">
+    <view class="bg-circle bg-circle--1"></view>
+    <view class="bg-circle bg-circle--2"></view>
+    <view class="bg-circle bg-circle--3"></view>
+  </view>
+
+  <view class="login-container">
+    
+    <!-- 顶部品牌：仅 Logo + 一句说明，避免与 Logo 内文案重复 -->
+    <view class="brand-section">
+      <view class="brand-logo-wrap">
+        <image class="brand-logo" src="https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/%E7%B3%BB%E7%BB%9F%E5%9B%BE%E7%89%87/%E5%90%83%E4%BA%86%E4%B9%884.png" mode="aspectFit" />
+        <view class="brand-logo-glow"></view>
+      </view>
+      <view class="brand-tagline">AI 智能菜谱 · 让做饭更简单</view>
+    </view>
+
+    <!-- 已登录状态 -->
+    <block wx:if="{{hasLogin}}">
+      <view class="logged-in-section">
+        <!-- 用户卡片 -->
+        <view class="user-card">
+          <view class="user-card-header">
+            <view class="user-avatar-large">
+              <button class="avatar-btn-large" open-type="{{isGuest ? '' : 'chooseAvatar'}}" bindchooseavatar="onChooseAvatar">
+                <image 
+                  class="avatar-img-large" 
+                  src="{{isGuest ? guestAvatarUrl : (avatarUrl || guestAvatarUrl)}}" 
+                  mode="aspectFill" 
+                />
+                <view wx:if="{{!isGuest}}" class="avatar-edit-badge">
+                  <image src="/assets/相机2.png" mode="aspectFit" />
+                </view>
+              </button>
+            </view>
+          </view>
+          <view class="user-card-body">
+            <view class="user-nickname">{{nickname}}</view>
+            <view class="user-login-badge {{isGuest ? 'user-login-badge--guest' : ''}}">
+              <view class="badge-dot"></view>
+              <text class="badge-text">{{isGuest ? '游客' : '已登录'}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 功能菜单 -->
+        <view class="menu-card" wx:if="{{!isGuest}}">
+          <view class="menu-item" bindtap="onShowNicknameInput">
+            <view class="menu-item-left">
+              <view class="menu-item-icon menu-item-icon--edit">
+                <image src="/assets/修改.png" mode="aspectFit" />
+              </view>
+              <text class="menu-item-text">修改昵称</text>
+            </view>
+            <view class="menu-item-right">
+              <text class="menu-item-value">{{nickname}}</text>
+              <text class="menu-arrow">›</text>
+            </view>
+          </view>
+          
+          <view class="menu-divider"></view>
+          
+          <view class="menu-item" bindtap="onLogout">
+            <view class="menu-item-left">
+              <view class="menu-item-icon menu-item-icon--logout">
+                <image src="/assets/删除.png" mode="aspectFit" />
+              </view>
+              <text class="menu-item-text menu-item-text--danger">退出当前账号</text>
+            </view>
+            <text class="menu-arrow">›</text>
+          </view>
+        </view>
+
+        <!-- 游客：仅退出为游客 -->
+        <view class="menu-card" wx:if="{{isGuest}}">
+          <view class="menu-item" bindtap="onLogout">
+            <view class="menu-item-left">
+              <view class="menu-item-icon menu-item-icon--logout">
+                <image src="/assets/删除.png" mode="aspectFit" />
+              </view>
+              <text class="menu-item-text menu-item-text--danger">退出游客身份</text>
+            </view>
+            <text class="menu-arrow">›</text>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <!-- 未登录：参考主流小程序 — Logo + 主按钮 + 游客，协议置于底部 -->
+    <block wx:else>
+      <view class="login-sheet">
+        <button
+          class="btn-wechat {{!isAgreed ? 'btn-wechat--locked' : ''}}"
+          bindtap="onQuickLogin"
+        >
+          <image class="btn-wechat-icon" src="/assets/微信.png" mode="aspectFit" />
+          <text>微信一键登录</text>
+        </button>
+
+        <view class="guest-entry" bindtap="onSkip">游客登录</view>
+
+        <!-- 协议置于底部 -->
+        <view class="agreement-row" bindtap="onToggleAgreement">
+          <view class="agreement-checkbox {{isAgreed ? 'checked' : ''}}">
+            <image wx:if="{{isAgreed}}" class="check-icon" src="/assets/选中2.png" mode="aspectFit" />
+            <image wx:else class="check-icon" src="/assets/未选中圆圈.png" mode="aspectFit" />
+          </view>
+          <view class="agreement-inline">
+            <text class="agreement-plain">我已阅读并同意</text>
+            <text class="agreement-link" catchtap="onViewAgreement">《用户协议》</text>
+            <text class="agreement-plain">和</text>
+            <text class="agreement-link" catchtap="onViewPrivacy">《隐私政策》</text>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <!-- 昵称编辑弹窗 -->
+    <view wx:if="{{showNicknameInput}}" class="modal-overlay" catchtouchmove="preventTouchMove">
+      <view class="modal-mask" bindtap="onCancelNickname"></view>
+      <view class="modal-box">
+        <view class="modal-header">
+          <text class="modal-title">修改昵称</text>
+          <view class="modal-close" bindtap="onCancelNickname">×</view>
+        </view>
+        <view class="modal-body">
+          <input
+            class="modal-input"
+            type="nickname"
+            placeholder="请输入昵称"
+            value="{{tempNickname}}"
+            bindinput="onNicknameInput"
+            focus="{{true}}"
+            maxlength="20"
+          />
+        </view>
+        <view class="modal-footer">
+          <view class="modal-btn-cancel" bindtap="onCancelNickname">取消</view>
+          <view class="modal-btn-confirm" bindtap="onConfirmNickname">确认修改</view>
+        </view>
+      </view>
+    </view>
+
+  </view>
+
+</view>

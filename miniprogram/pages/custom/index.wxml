@@ -1,0 +1,132 @@
+<view class="page">
+  <scroll-view class="page-scroll" scroll-y enhanced bounces="{{true}}">
+    <view class="content">
+      <view class="header">
+        <view class="title">定制我的餐食</view>
+        <view class="subtitle">选择适合你的美食方案</view>
+      </view>
+
+      <!-- 小菜篮 -->
+      <view class="basket-card" bindtap="onGoToBasket">
+        <view class="basket-card-left">
+          <image class="basket-icon" src="/assets/菜篮.png" mode="aspectFit" />
+        </view>
+        <view class="basket-card-body">
+          <view class="basket-card-title">小菜篮</view>
+          <view wx:if="{{basketCount > 0}}" class="basket-card-desc">
+            {{basketRecipeCount}} 道菜谱 · {{basketCount}} 种食材
+          </view>
+          <view wx:else class="basket-card-desc basket-card-desc--empty">
+            点击管理你的食材清单
+          </view>
+        </view>
+        <view class="basket-card-arrow">›</view>
+      </view>
+
+      <!-- 横向菜单卡片流 -->
+      <view class="menu-stream-section">
+        <view class="section-title">发现菜谱</view>
+        <scroll-view
+          class="menu-scroll"
+          scroll-x
+          enhanced
+          bounces="{{false}}"
+          scroll-with-animation="{{true}}"
+          show-scrollbar="{{false}}"
+        >
+          <view class="menu-track">
+            <view
+              wx:for="{{menuCards}}"
+              wx:key="id"
+              class="menu-card-wrap"
+              bindtap="onMenuCardTap"
+              data-index="{{index}}"
+            >
+              <view class="menu-card">
+                <image
+                  class="menu-card-cover"
+                  src="{{item.cover}}"
+                  mode="aspectFill"
+                />
+                <view class="menu-card-tag">
+                  <text class="menu-card-tag__title">{{item.labelTitle}}</text>
+                  <text wx:if="{{item.labelExtra}}" class="menu-card-tag__extra">{{item.labelExtra}}</text>
+                </view>
+                <view class="menu-card-footer">
+                  <text class="menu-card-desc">{{item.description}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+
+      <!-- 健身减脂餐入口 -->
+      <view class="section-title">健身减脂餐</view>
+      <view class="fitness-banner" bindtap="onGoToFitness">
+        <image
+          class="fitness-bg"
+          src="https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/%E8%8F%9C%E5%93%81/%E5%81%A5%E8%BA%AB%E9%A4%901.png"
+          mode="aspectFill"
+        />
+        <view class="fitness-overlay"></view>
+        <view class="fitness-content">
+          <view class="fitness-title">健身减脂餐定制</view>
+          <view class="fitness-subtitle">高蛋白低卡 · 适配你的食材 · 轻松吃瘦</view>
+        </view>
+        <view class="fitness-action">
+          <text>点击定制</text>
+          <text class="fitness-arrow">→</text>
+        </view>
+      </view>
+
+      <!-- 儿童营养餐入口 -->
+      <view class="section-title">儿童营养餐</view>
+      <view class="kids-banner" bindtap="onGoToKids">
+        <image
+          class="kids-bg"
+          src="https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/%E8%8F%9C%E5%93%81/%E5%84%BF%E7%AB%A5%E9%A4%901.png"
+          mode="aspectFill"
+        />
+        <view class="kids-content">
+          <view class="kids-title">儿童营养餐定制</view>
+          <view class="kids-subtitle">营养均衡 · 宝宝爱吃 · 家常易做</view>
+        </view>
+        <view class="kids-decor">
+          <text class="kids-star">★</text>
+        </view>
+        <view class="kids-action">
+          <text>点击定制</text>
+          <text class="kids-arrow">→</text>
+        </view>
+      </view>
+
+      <!-- 【已注释】一日菜谱规划入口 -->
+      <!--
+      <view class="section-title">一日菜谱规划</view>
+      <view class="daily-plan-container">
+        <view class="daily-card daily-card--left" bindtap="onGoToDailyPlan">
+          <image class="daily-bg" src="https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/%E8%8F%9C%E5%93%81/%E4%B8%80%E6%97%A5%E8%8F%9C%E8%B0%B1%E8%A7%84%E5%88%921.jpg" mode="aspectFill" />
+          <view class="daily-overlay"></view>
+          <view class="daily-content">
+            <view class="daily-title">一键搞定三餐</view>
+            <view class="daily-subtitle">每天不重样</view>
+          </view>
+          <view class="daily-btn"><text>去规划</text></view>
+        </view>
+        <view class="daily-card daily-card--right" bindtap="onGoToDailyCustom">
+          <image class="daily-bg" src="https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/%E8%8F%9C%E5%93%81/%E4%B8%80%E6%97%A5%E8%8F%9C%E8%B0%B1%E8%A7%84%E5%88%922.jpg" mode="aspectFill" />
+          <view class="daily-overlay"></view>
+          <view class="daily-content">
+            <view class="daily-title">自定义三餐搭配</view>
+            <view class="daily-subtitle">适配你的食材</view>
+          </view>
+          <view class="daily-btn"><text>去搭配</text></view>
+        </view>
+      </view>
+      -->
+
+
+    </view>
+  </scroll-view>
+</view>

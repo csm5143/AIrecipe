@@ -1,0 +1,150 @@
+<view class="page {{showEditModal ? 'modal-open' : ''}}">
+  <!-- 可滚动容器 -->
+  <scroll-view class="page-scroll" scroll-y enable-back-to-top>
+    <!-- 自定义顶部导航栏 -->
+    <view class="nav-bar">
+      <view class="nav-left-area">
+        <text class="nav-title">{{collectionName}}</text>
+        <text class="nav-count">{{recipeCount}}道菜</text>
+      </view>
+      <view class="nav-more" bindtap="onShowMoreActions">
+        <text class="nav-more-icon">⋯</text>
+      </view>
+    </view>
+
+    <!-- 加载状态 -->
+    <view wx:if="{{isLoading}}" class="loading-state">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:elif="{{isEmpty}}" class="empty-state">
+      <image class="empty-icon" src="/assets/菜篮.png" mode="aspectFit" />
+      <text class="empty-title">收藏夹还是空的</text>
+      <text class="empty-text">去菜谱列表添加你喜欢的菜品吧</text>
+      <view class="empty-btn" bindtap="onAddMore">
+        <text class="empty-btn-text">去添加</text>
+      </view>
+    </view>
+
+    <!-- 菜谱列表（双列网格） -->
+    <view wx:else class="recipes-section">
+      <view class="recipes-grid">
+        <view
+          wx:for="{{recipes}}"
+          wx:key="id"
+          class="recipe-card"
+          bindtap="onRecipeTap"
+          bindlongpress="onRecipeLongPress"
+          data-id="{{item.id}}"
+          data-name="{{item.name}}"
+        >
+          <!-- 封面图 -->
+          <view class="recipe-cover-wrap">
+            <image
+              wx:if="{{item.coverImage}}"
+              class="recipe-cover"
+              src="{{item.coverImage}}"
+              mode="aspectFill"
+            />
+            <view wx:else class="recipe-cover-placeholder">
+              <text class="recipe-cover-text">配图待导入</text>
+            </view>
+            <!-- 难度标签 -->
+            <view class="difficulty-badge difficulty-{{item.difficulty}}">
+              <text class="difficulty-text">
+                {{item.difficultyLabel}}
+              </text>
+            </view>
+          </view>
+
+          <!-- 菜名 -->
+          <view class="recipe-name">{{item.name}}</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 底部提示 -->
+    <view wx:if="{{!isEmpty && !isLoading}}" class="page-tip">
+      <text class="page-tip-text">长按菜品可移除</text>
+    </view>
+  </scroll-view>
+
+  <!-- 编辑收藏夹弹窗（居中悬浮） -->
+  <view wx:if="{{showEditModal}}" class="edit-modal-mask" bindtap="onCloseEditModal">
+    <view class="edit-modal-content" catchtap="onEditModalContentTap">
+      <view class="edit-modal-header">
+        <text class="edit-modal-title">编辑收藏夹</text>
+        <view class="edit-modal-close" bindtap="onCloseEditModal">
+          <text class="edit-modal-close-icon">✕</text>
+        </view>
+      </view>
+
+      <scroll-view class="edit-modal-body" scroll-y>
+        <!-- 封面设置 -->
+        <view class="edit-item">
+          <text class="edit-label">封面图片</text>
+          <view class="edit-cover-area">
+            <view wx:if="{{editCoverImage}}" class="edit-cover-preview">
+              <image class="edit-cover-img" src="{{editCoverImage}}" mode="aspectFill" />
+              <view class="edit-cover-replace" bindtap="onChooseCover">
+                <text class="edit-cover-replace-text">更换</text>
+              </view>
+            </view>
+            <view wx:else class="edit-cover-placeholder" bindtap="onChooseCover">
+              <text class="edit-cover-placeholder-text">选择封面</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 名称输入 -->
+        <view class="edit-item">
+          <text class="edit-label">收藏夹名称</text>
+          <input
+            class="edit-input"
+            value="{{editName}}"
+            placeholder="请输入名称"
+            maxlength="20"
+            bindinput="onEditNameInput"
+            adjust-position="{{false}}"
+          />
+        </view>
+
+        <!-- 简介输入 -->
+        <view class="edit-item">
+          <text class="edit-label">简介（可选）</text>
+          <textarea
+            class="edit-textarea"
+            value="{{editDesc}}"
+            placeholder="添加一句话描述"
+            maxlength="100"
+            auto-height
+            bindinput="onEditDescInput"
+            adjust-position="{{false}}"
+          />
+        </view>
+      </scroll-view>
+
+      <view class="edit-modal-footer">
+        <view class="edit-btn edit-btn-cancel" bindtap="onCloseEditModal">
+          <text>取消</text>
+        </view>
+        <view class="edit-btn edit-btn-confirm" bindtap="onSaveEdit">
+          <text>保存</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 轻量级提示组件 -->
+  <action-toast
+    show="{{toastShow}}"
+    message="{{toastMessage}}"
+    type="{{toastType}}"
+    showButton="{{toastShowButton}}"
+    buttonText="{{toastButtonText}}"
+    duration="{{toastDuration}}"
+    bind:buttontap="onToastButtonTap"
+  />
+</view>

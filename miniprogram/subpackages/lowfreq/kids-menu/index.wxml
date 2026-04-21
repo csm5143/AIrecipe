@@ -1,0 +1,162 @@
+<view class="page">
+  <scroll-view class="page-scroll" scroll-y enhanced bounces="{{true}}">
+
+    <!-- 顶部概览卡片：已保存定制方案时显示 -->
+    <view class="overview-card" wx:if="{{hasSettings}}">
+      <view class="overview-header">
+        <view class="overview-title">
+          <image class="overview-icon" src="{{overviewGoalIcon}}" mode="aspectFit" />
+          <view class="overview-title-text">
+            <text class="overview-goal">{{childrenStage.stageLabel}} · 宝宝餐方案</text>
+            <text class="overview-subtitle">{{mealTimesLabel}}</text>
+          </view>
+        </view>
+        <view class="overview-edit" bindtap="onEditSettings" hover-class="overview-edit--hover">
+          <image src="/assets/更多.png" mode="aspectFit" class="edit-icon" />
+          <text class="edit-text">修改</text>
+        </view>
+      </view>
+      <view class="overview-tags">
+        <view class="overview-tag overview-tag--safe" wx:if="{{excludedAllergies.length === 0}}">
+          <image src="/assets/通过.png" mode="aspectFit" class="tag-icon" />
+          <text>无过敏</text>
+        </view>
+        <view class="overview-tag overview-tag--warning" wx:if="{{excludedAllergies.length > 0}}">
+          <image src="/assets/不要.png" mode="aspectFit" class="tag-icon" />
+          <text>已排除{{excludedAllergies.length}}种过敏原</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 今日宝宝餐推荐 -->
+    <view class="meals-section" wx:if="{{totalMealCount > 0}}">
+      <view class="section-header">
+        <view class="section-title-row">
+          <text class="section-title">今日宝宝餐推荐</text>
+          <view class="refresh-btn" bindtap="onRefreshBatch" hover-class="refresh-btn--hover">
+            <image class="refresh-icon" src="/assets/更换.png" mode="aspectFit" />
+            <text class="refresh-text">换一批</text>
+          </view>
+        </view>
+        <text class="section-sub">{{goalStrategyLine}}</text>
+      </view>
+
+      <!-- 早/午/晚餐切换 -->
+      <view class="meal-tabs">
+        <view
+          wx:if="{{showTabBreakfast}}"
+          class="meal-tab {{mealTabKey === 'breakfast' ? 'meal-tab--active' : ''}}"
+          bindtap="onMealTabTap"
+          data-key="breakfast"
+        >
+          <text>早餐</text>
+          <view class="meal-tab-line" wx:if="{{mealTabKey === 'breakfast'}}"></view>
+        </view>
+        <view
+          wx:if="{{showTabLunch}}"
+          class="meal-tab {{mealTabKey === 'lunch' ? 'meal-tab--active' : ''}}"
+          bindtap="onMealTabTap"
+          data-key="lunch"
+        >
+          <text>午餐</text>
+          <view class="meal-tab-line" wx:if="{{mealTabKey === 'lunch'}}"></view>
+        </view>
+        <view
+          wx:if="{{showTabDinner}}"
+          class="meal-tab {{mealTabKey === 'dinner' ? 'meal-tab--active' : ''}}"
+          bindtap="onMealTabTap"
+          data-key="dinner"
+        >
+          <text>晚餐</text>
+          <view class="meal-tab-line" wx:if="{{mealTabKey === 'dinner'}}"></view>
+        </view>
+      </view>
+
+      <!-- 横向滑动餐品卡片 -->
+      <scroll-view class="meal-h-scroll" scroll-x enhanced>
+        <view class="meal-h-track">
+          <view
+            class="meal-h-card"
+            wx:for="{{currentTabMeals}}"
+            wx:key="id"
+            data-id="{{item.id}}"
+            bindtap="onCardTap"
+            hover-class="meal-h-card--hover"
+          >
+            <view class="meal-h-media">
+              <image
+                class="meal-h-cover-img"
+                src="{{item.coverImage || '/assets/儿童餐.png'}}"
+                mode="aspectFill"
+                binderror="onCoverImgError"
+                data-index="{{index}}"
+              />
+              <view class="meal-h-fav" data-id="{{item.id}}" catchtap="onFavTap">
+                <image
+                  class="meal-h-fav-icon"
+                  src="{{item.isFavorite ? '/assets/选中.png' : '/assets/单选未选中.png'}}"
+                  mode="aspectFit"
+                />
+              </view>
+            </view>
+            <view class="meal-h-footer">
+              <text class="meal-h-title">{{item.name}}</text>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
+
+      <!-- 空状态 -->
+      <view class="empty-hint" wx:if="{{currentTabMeals.length === 0}}">
+        <text>该时段暂无符合条件的一餐，可在设置中勾选对应用餐时段</text>
+      </view>
+    </view>
+
+    <!-- 儿童营养小贴士 -->
+    <view class="tips-card" wx:if="{{hasSettings}}">
+      <view class="tips-header-row">
+        <text class="tips-title">儿童营养小贴士</text>
+        <view class="tips-refresh" bindtap="onRefreshNutritionTips" hover-class="tips-refresh--hover">
+          <image class="tips-refresh-icon" src="/assets/刷新.png" mode="aspectFit" />
+        </view>
+      </view>
+      <view class="tips-list-vertical">
+        <view class="tip-row" wx:for="{{nutritionTips}}" wx:key="label">
+          <view class="tip-row__icon-wrap">
+            <image class="tip-row__icon" src="{{item.icon}}" mode="aspectFit" />
+          </view>
+          <view class="tip-row__body">
+            <view class="tip-row__title-line">
+              <text class="tip-row__badge">{{item.highlight}}</text>
+              <text class="tip-row__label">{{item.label}}</text>
+            </view>
+            <text class="tip-row__value">{{item.value}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 未设置 / 无匹配餐品 -->
+    <view class="empty-state" wx:if="{{!hasSettings || totalMealCount === 0}}">
+      <image src="/assets/菜篮.png" mode="aspectFit" class="empty-icon" />
+      <text class="empty-text" wx:if="{{!hasSettings}}">还没有设置宝宝成长阶段</text>
+      <text class="empty-text" wx:elif="{{totalMealCount === 0}}">暂无符合当前阶段的宝宝餐</text>
+      <text class="empty-subtext" wx:if="{{!hasSettings}}">完成一次定制后，下次从「定制」页将直接进入宝宝餐方案</text>
+      <text class="empty-subtext" wx:elif="{{totalMealCount === 0}}">可在「修改」中调整过敏原或用餐时段</text>
+      <view class="empty-btn" bindtap="onEditSettings">
+        <text>{{hasSettings ? '去修改' : '去设置'}}</text>
+      </view>
+    </view>
+
+  </scroll-view>
+
+  <!-- 轻量级提示组件 -->
+  <action-toast
+    show="{{toastShow}}"
+    message="{{toastMessage}}"
+    type="{{toastType}}"
+    showButton="{{toastShowButton}}"
+    buttonText="{{toastButtonText}}"
+    bind:buttontap="onToastButtonTap"
+  />
+</view>

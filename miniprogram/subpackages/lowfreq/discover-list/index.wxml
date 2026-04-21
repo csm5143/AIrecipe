@@ -1,0 +1,98 @@
+<view class="page">
+  <!-- 顶部统计 -->
+  <view class="header">
+    <view class="header-left">
+      <text class="header-title">{{title}}</text>
+      <text class="header-count">共 {{recipes.length}} 道</text>
+    </view>
+  </view>
+
+  <scroll-view class="page-scroll" scroll-y enhanced bounces="{{false}}">
+    <!-- 瀑布流容器 -->
+    <view class="waterfall-container" wx:if="{{recipes.length > 0}}">
+      <!-- 左列 -->
+      <view class="waterfall-col waterfall-col-left">
+        <view
+          wx:for="{{leftColRecipes}}"
+          wx:key="id"
+          class="waterfall-item"
+          bindtap="onRecipeTap"
+          data-id="{{item.id}}"
+        >
+          <view class="item-image-wrap">
+            <image
+              class="item-image"
+              mode="widthFix"
+              src="{{item.coverImage}}"
+              binderror="onImageError"
+              data-index="{{item._index}}"
+              lazy-load="{{true}}"
+            />
+            <view wx:if="{{item.calories}}" class="item-calories">
+              <text>{{item.calories}}</text>
+            </view>
+          </view>
+          <view class="item-content">
+            <text class="item-title">{{item.name}}</text>
+            <view class="item-meta">
+              <view wx:if="{{item.timeCost != null}}" class="item-time">
+                <text class="meta-icon">⏱</text>
+                <text>{{item.timeCost}}分钟</text>
+              </view>
+              <view class="item-difficulty {{item.difficultyClass}}">
+                <text>{{item.difficultyLabel}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 右列 -->
+      <view class="waterfall-col waterfall-col-right">
+        <view
+          wx:for="{{rightColRecipes}}"
+          wx:key="id"
+          class="waterfall-item"
+          bindtap="onRecipeTap"
+          data-id="{{item.id}}"
+        >
+          <view class="item-image-wrap">
+            <image
+              class="item-image"
+              mode="widthFix"
+              src="{{item.coverImage}}"
+              binderror="onImageError"
+              data-index="{{item._index}}"
+              lazy-load="{{true}}"
+            />
+            <view wx:if="{{item.calories}}" class="item-calories">
+              <text>{{item.calories}}</text>
+            </view>
+          </view>
+          <view class="item-content">
+            <text class="item-title">{{item.name}}</text>
+            <view class="item-meta">
+              <view wx:if="{{item.timeCost != null}}" class="item-time">
+                <text class="meta-icon">⏱</text>
+                <text>{{item.timeCost}}分钟</text>
+              </view>
+              <view class="item-difficulty {{item.difficultyClass}}">
+                <text>{{item.difficultyLabel}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:if="{{recipes.length === 0}}" class="empty">
+      <text>暂无可展示菜品</text>
+    </view>
+
+    <!-- 底部提示 -->
+    <view wx:if="{{recipes.length > 0}}" class="list-footer">
+      <text>— 已加载全部菜谱 —</text>
+    </view>
+  </scroll-view>
+</view>

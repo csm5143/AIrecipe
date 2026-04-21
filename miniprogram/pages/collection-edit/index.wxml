@@ -1,0 +1,82 @@
+<!--
+  收藏夹编辑页
+  编辑收藏夹的名称、封面、简介
+-->
+
+<view class="page">
+  <scroll-view class="page-scroll" scroll-y enhanced bounces="{{true}}">
+    <view class="content">
+      <!-- 封面预览 -->
+      <view class="cover-section">
+        <view class="cover-preview" bindtap="onChangeCover">
+          <image
+            wx:if="{{collection.coverImage}}"
+            class="preview-img"
+            src="{{collection.coverImage}}"
+            mode="aspectFill"
+          />
+          <view wx:else class="preview-placeholder">
+            <text class="preview-icon">📷</text>
+            <text class="preview-text">点击更换封面</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 编辑表单 -->
+      <view class="form-section">
+        <view class="form-item">
+          <view class="form-label">收藏夹名称</view>
+          <input
+            class="form-input"
+            value="{{collection.name}}"
+            placeholder="请输入收藏夹名称"
+            maxlength="20"
+            bindinput="onNameInput"
+          />
+          <text class="form-hint">{{nameLength}}/20</text>
+        </view>
+
+        <view class="form-item">
+          <view class="form-label">简介（选填）</view>
+          <textarea
+            class="form-textarea"
+            value="{{collection.description}}"
+            placeholder="介绍一下这个收藏夹吧～"
+            maxlength="50"
+            bindinput="onDescInput"
+          ></textarea>
+          <text class="form-hint">{{descLength}}/50</text>
+        </view>
+      </view>
+
+      <!-- 统计信息 -->
+      <view class="stats-section">
+        <view class="stat-item">
+          <text class="stat-value">{{collection.recipeCount}}</text>
+          <text class="stat-label">收藏菜品</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-value">{{createdDate}}</text>
+          <text class="stat-label">创建时间</text>
+        </view>
+      </view>
+
+      <!-- 保存按钮 -->
+      <view class="save-section">
+        <view
+          class="save-btn {{hasChanges ? 'active' : ''}}"
+          bindtap="onSave"
+        >
+          保存修改
+        </view>
+      </view>
+
+      <!-- 删除按钮（仅非默认收藏夹） -->
+      <view wx:if="{{!collection.isDefault}}" class="danger-section">
+        <view class="delete-btn" bindtap="onDeleteCollection">
+          删除收藏夹
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</view>

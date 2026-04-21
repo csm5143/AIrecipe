@@ -1,0 +1,237 @@
+<scroll-view
+  class="page-scroll"
+  scroll-y="true"
+  enhanced="true"
+  bounces="false"
+  lower-threshold="80"
+  scroll-top="{{scrollTop}}"
+  bindscrolltolower="onRecipesScrollToLower"
+>
+  <view class="page">
+    <!-- 搜索框 -->
+    <view class="search-bar">
+      <view class="search-input-wrap">
+        <input
+          class="search-input"
+          type="text"
+          placeholder="搜索菜谱名称..."
+          value="{{searchKeyword}}"
+          bindinput="onSearchInput"
+          bindconfirm="onSearchConfirm"
+          confirm-type="search"
+          placeholder-class="search-placeholder"
+        />
+        <view wx:if="{{searchKeyword}}" class="search-clear" bindtap="onClearSearch">
+          <text class="clear-icon">×</text>
+        </view>
+        <view class="search-btn {{searchKeyword ? 'search-btn-active' : ''}}" bindtap="onSearchTap">
+          <text class="search-btn-text">搜索</text>
+        </view>
+      </view>
+    </view>
+
+      <view class="header">
+        <view class="tags">
+          <block wx:if="{{userIngredients && userIngredients.length}}">
+            <block wx:if="{{showSelectedIngredients}}">
+              <block wx:for="{{userIngredients}}" wx:key="*this">
+                <view class="tag">{{item}}</view>
+              </block>
+            </block>
+            <block wx:else>
+              <view class="collapsed-tags">
+                <block wx:for="{{userIngredients}}" wx:for-index="idx" wx:key="*this">
+                  <view wx:if="{{idx < 5}}" class="tag tag-mini">{{item}}</view>
+                </block>
+                <view class="summary-text">
+                  已选 {{effectiveIngredientCount || userIngredients.length}} 种食材
+                </view>
+              </view>
+            </block>
+          </block>
+        </view>
+      </view>
+
+    <view class="filters">
+      <view class="filter-group meal-time-group">
+        <view class="filter-title">用餐时段</view>
+        <view class="meal-time-tags">
+          <block wx:for="{{mealTimeOptions}}" wx:key="value">
+            <view
+              class="meal-time-item {{item.selected ? 'active' : ''}}"
+              data-value="{{item.value}}"
+              data-type="mealTime"
+              bindtap="onFilterTap"
+            >
+              <view class="meal-time-icon-wrap">
+                <image
+                  wx:if="{{item.icon || item.iconUnselected}}"
+                  class="meal-time-icon"
+                  src="{{item.iconUnselected && !item.selected ? item.iconUnselected : item.icon}}"
+                  mode="aspectFit"
+                />
+              </view>
+              <text class="meal-time-label">{{item.label}}</text>
+            </view>
+          </block>
+        </view>
+      </view>
+
+      <!-- 菜品类型：横向滑动，图标在上、名称在下，底部指示器居中 -->
+      <view class="filter-group dish-type-group">
+        <view class="filter-title">菜品类型</view>
+        <scroll-view
+          class="dish-type-scroll"
+          scroll-x="true"
+          scroll-into-view="{{dishTypeScrollIntoView}}"
+          scroll-with-animation="true"
+          enhanced="true"
+          show-scrollbar="false"
+          bindscroll="onDishTypeScroll"
+        >
+          <view class="dish-type-pages">
+            <block wx:for="{{dishTypePages}}" wx:key="index">
+              <view class="dish-type-page" id="dish-type-page-{{index}}">
+                <view class="dish-type-grid">
+                  <block wx:for="{{item}}" wx:for-item="typeItem" wx:key="value">
+                    <view
+                      class="dish-type-item {{typeItem.selected ? 'active' : ''}}"
+                      data-value="{{typeItem.value}}"
+                      data-type="dishType"
+                      bindtap="onFilterTap"
+                    >
+                      <view class="dish-type-icon-wrap {{typeItem.value === 'cold' || typeItem.value === 'boiled' || typeItem.value === 'braised' || typeItem.value === 'western' ? 'icon-smaller icon-offset-down' : (typeItem.value === 'diet' || typeItem.value === 'soup' || typeItem.value === 'stir_fry' || typeItem.value === 'hotpot' ? 'icon-larger' : '')}}">
+                        <image
+                          wx:if="{{typeItem.icon}}"
+                          class="dish-type-icon {{typeItem.value === 'cold' || typeItem.value === 'boiled' || typeItem.value === 'braised' || typeItem.value === 'western' ? 'icon-smaller icon-offset-down' : (typeItem.value === 'diet' || typeItem.value === 'soup' || typeItem.value === 'stir_fry' || typeItem.value === 'hotpot' ? 'icon-larger' : '')}}"
+                          src="{{typeItem.icon}}"
+                          mode="aspectFit"
+                        />
+                        <view wx:else class="dish-type-icon-placeholder"></view>
+                      </view>
+                      <text class="dish-type-label">{{typeItem.label}}</text>
+                    </view>
+                  </block>
+                </view>
+              </view>
+            </block>
+          </view>
+        </scroll-view>
+        <view class="dish-type-indicator">
+          <block wx:for="{{dishTypePages}}" wx:key="index">
+            <view
+              class="indicator-dot {{currentDishTypePage === index ? 'active' : ''}}"
+              data-index="{{index}}"
+              bindtap="onDishTypePageTap"
+            ></view>
+          </block>
+        </view>
+      </view>
+    </view>
+
+    <view class="recipes-list">
+      <view class="recipes-list-inner">
+        <!-- 调料彩蛋提示 -->
+        <view wx:if="{{seasoningEasterEgg}}" class="seasoning-easter-egg">
+          {{seasoningEasterEgg}}
+        </view>
+
+        <block wx:for="{{displayRecipes}}" wx:key="id">
+          <view class="recipe-card" bindtap="onRecipeTap" data-id="{{item.id}}" data-index="{{index}}">
+            <view wx:if="{{item.coverImage}}" class="recipe-card-cover">
+              <image src="{{item.coverImage}}" mode="aspectFill" binderror="onImageError" data-index="{{index}}" />
+            </view>
+            <view class="info">
+              <view class="info-left">
+                <view class="title-row">
+                  <text class="title">{{item.name}}</text>
+                  <view
+                    wx:if="{{userIngredients && userIngredients.length > 0}}"
+                    class="match-badge {{item.missing === 0 ? 'full' : (item.missing <= 2 ? 'almost' : 'other')}}"
+                  >
+                    <block wx:if="{{item.missing === 0}}">
+                      完全匹配
+                    </block>
+                    <block wx:elif="{{item.missing === 1}}">
+                      差 1 样
+                    </block>
+                    <block wx:elif="{{item.missing === 2}}">
+                      差 2 样
+                    </block>
+                    <block wx:else>
+                      再准备 {{item.missing}} 样
+                    </block>
+                  </view>
+                </view>
+                <view class="meta">
+                  <text wx:if="{{item.timeCost != null}}">{{item.timeCost}} 分钟 · </text>{{item.difficultyLabel}}
+                </view>
+                <view class="category-tags">
+                  <view wx:if="{{item.primaryCategoryLabel}}" class="category-tag category-tag-primary">
+                    {{item.primaryCategoryLabel}}
+                  </view>
+                  <block wx:for="{{item.secondaryCategoryLabels}}" wx:for-item="tagLabel" wx:key="*this">
+                    <view class="category-tag category-tag-secondary">{{tagLabel}}</view>
+                  </block>
+                </view>
+                <view wx:if="{{userIngredients && userIngredients.length > 0}}" class="meta">
+                  你有 {{item.owned}} / {{item.total}} 种食材
+                </view>
+              </view>
+              <view class="info-right">
+                <view class="info-right-content">
+                  <view wx:if="{{item.calories}}" class="calories-info">
+                    🔥 {{item.calories}}/份
+                  </view>
+                  <view 
+                    class="favorite-icon {{item.isFavorite ? 'favorite-icon-filled' : 'favorite-icon-empty'}}"
+                    catchtap="onToggleFavorite"
+                    bindlongpress="onFavoriteLongPress"
+                    data-id="{{item.id}}"
+                    data-index="{{index}}"
+                  >
+                    <image 
+                      class="favorite-icon-img"
+                      src="{{item.isFavorite ? '/assets/收藏.png' : '/assets/取消收藏.png'}}"
+                      mode="aspectFit"
+                    />
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+        </block>
+
+        <view wx:if="{{recipesMoreVisible && !loading}}" class="show-more-wrap">
+          <button class="show-more-btn" bindtap="onToggleRecipeMore">
+            {{recipesMoreText}}
+          </button>
+        </view>
+
+        <view wx:if="{{!displayRecipes.length && !loading}}" class="empty-state">
+          <view class="empty-title">暂时没有符合条件的菜谱</view>
+          <view class="empty-text">试试减少一点筛选条件，或者多选一些食材</view>
+        </view>
+
+        <view wx:if="{{loading || pageLoading}}" class="loading">
+          <view class="loading-spinner"></view>
+          <text class="loading-text">正在加载菜谱...</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</scroll-view>
+
+<!-- 轻量级提示组件 -->
+<action-toast
+  show="{{toastShow}}"
+  message="{{toastMessage}}"
+  type="{{toastType}}"
+  iconType="{{toastIcon}}"
+  showButton="{{toastShowButton}}"
+  buttonText="{{toastButtonText}}"
+  duration="{{toastDuration}}"
+  subtitle="{{toastSubtitle}}"
+  bind:buttontap="onToastButtonTap"
+/>
+

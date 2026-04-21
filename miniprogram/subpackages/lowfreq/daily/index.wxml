@@ -1,0 +1,87 @@
+<view class="page">
+
+  <!-- ============================
+       顶部 Banner（全宽美食大图 + 叠加文字）
+       ============================ -->
+  <view
+    class="banner"
+    bindtap="onBannerTap"
+    data-id="{{bannerRecipe.id}}"
+  >
+    <!-- 全宽美食大图 -->
+    <image
+      class="banner__bg"
+      src="{{bannerRecipe.coverImage}}"
+      mode="aspectFill"
+    />
+    <!-- 暗化 10% 叠加层 -->
+    <view class="banner__overlay"></view>
+
+    <!-- 左上角白色返回箭头 -->
+    <view class="banner__back" catchtap="onBack">
+      <text class="banner__back-arrow">‹</text>
+    </view>
+
+    <!-- 底部渐变（文字衬底） -->
+    <view class="banner__gradient"></view>
+
+    <!-- 右下角标签（毛玻璃胶囊） -->
+    <view class="banner__badge-wrap">
+      <view class="banner__badge">每日推荐</view>
+    </view>
+  </view>
+
+  <!-- ============================
+       菜品列表（左图右文纵向列表）
+       ============================ -->
+  <view class="list-area">
+    <!-- 列表标题 -->
+    <view class="list-header">
+      <text class="list-header__title">为你推荐</text>
+      <text class="list-header__count">共 {{recipeCount}} 道</text>
+    </view>
+
+    <!-- 菜品卡片 -->
+    <view
+      wx:for="{{recipes}}"
+      wx:key="id"
+      class="list-card"
+      bindtap="onRecipeTap"
+      data-id="{{item.id}}"
+      data-index="{{index}}"
+    >
+      <!-- 左侧：正方形圆角封面图 -->
+      <view class="list-card__img-wrap">
+        <image
+          class="list-card__img"
+          src="{{item.coverImage}}"
+          mode="aspectFill"
+          binderror="onImageError"
+          data-index="{{index}}"
+        />
+      </view>
+
+      <!-- 右侧：菜品标题 + 描述 -->
+      <view class="list-card__body">
+        <text class="list-card__name">{{item.name}}</text>
+        <text class="list-card__desc">{{item.description}}</text>
+      </view>
+
+      <!-- 右侧箭头 -->
+      <view class="list-card__arrow">
+        <text>›</text>
+      </view>
+    </view>
+
+    <!-- 底部提示 -->
+    <view class="list-footer">
+      <text>— 仅展示今日精选菜品 —</text>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{recipes.length === 0}}" class="empty-state">
+    <text class="empty-state__text">今日推荐正在准备中\n稍后再来看看吧</text>
+  </view>
+
+</view>

@@ -1,0 +1,46 @@
+<!-- 白底、顶部分割线；首页/收藏/我的为 PNG，定制仍为四宫格 -->
+<view class="tab-bar">
+  <view class="tab-bar-inner">
+    <view
+      wx:for="{{list}}"
+      wx:key="pagePath"
+      class="tab-bar-item {{selected === index ? 'tab-bar-item--on' : ''}}"
+      data-path="{{item.pagePath}}"
+      data-index="{{index}}"
+      bindtap="switchTab"
+    >
+      <view class="tab-bar-icon">
+        <block wx:if="{{index === 0}}">
+          <image
+            class="tab-icon tab-icon--home"
+            src="{{selected === index ? '/assets/首页-选中.png' : '/assets/首页.png'}}"
+            mode="aspectFit"
+          />
+        </block>
+        <block wx:elif="{{index === 1}}">
+          <view class="ico-grid tab-icon--custom">
+            <view class="ico-grid__cell"></view>
+            <view class="ico-grid__cell"></view>
+            <view class="ico-grid__cell"></view>
+            <view class="ico-grid__cell"></view>
+          </view>
+        </block>
+        <block wx:elif="{{index === 2}}">
+          <image
+            class="tab-icon tab-icon--fav"
+            src="{{selected === index ? '/assets/收藏-选中.png' : '/assets/取消收藏.png'}}"
+            mode="aspectFit"
+          />
+        </block>
+        <block wx:else>
+          <image
+            class="tab-icon tab-icon--mine"
+            src="{{selected === index ? '/assets/我的-选中.png' : '/assets/我的.png'}}"
+            mode="aspectFit"
+          />
+        </block>
+      </view>
+      <text class="tab-bar-text">{{item.text}}</text>
+    </view>
+  </view>
+</view>

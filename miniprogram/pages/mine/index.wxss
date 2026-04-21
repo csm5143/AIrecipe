@@ -1,0 +1,279 @@
+.page {
+  height: 100vh;
+  overflow: hidden;
+  background: #f5f5f7;
+}
+
+.page-scroll {
+  height: 100vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.content {
+  padding: 0 28rpx 120rpx;
+  padding-bottom: calc(120rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
+}
+
+/* 云数据库统计区域 */
+.cloud-stats {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 24rpx;
+  padding: 28rpx 24rpx 24rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(102, 126, 234, 0.3);
+}
+
+.stats-title {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  margin-bottom: 20rpx;
+}
+
+.stats-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stats-item {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 8rpx;
+  border-radius: 16rpx;
+  transition: background-color 0.2s;
+}
+
+.stats-item:active {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.stats-num {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+  margin-bottom: 8rpx;
+}
+
+.stats-label {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.stats-divider {
+  width: 1rpx;
+  height: 60rpx;
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.stats-icon {
+  font-size: 40rpx;
+  color: #ffffff;
+  margin-bottom: 8rpx;
+  line-height: 1.2;
+}
+
+.stats-refresh {
+  opacity: 0.9;
+}
+
+.stats-refresh:active {
+  opacity: 1;
+}
+
+.stats-tip {
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  margin-top: 16rpx;
+}
+
+/* 用户信息区域 - 登录状态 */
+.user-section {
+  display: flex;
+  align-items: center;
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  padding: 36rpx 32rpx;
+  margin-bottom: 32rpx;
+  margin-top: 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.06);
+}
+
+.user-section:active {
+  background-color: #fafafa;
+}
+
+.user-avatar {
+  position: relative;
+  width: 100rpx;
+  height: 100rpx;
+  margin-right: 24rpx;
+  flex-shrink: 0;
+}
+
+.avatar-img {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  border: 4rpx solid #f0f0f5;
+}
+
+/* 未登录遮罩 */
+.avatar-unlogin {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.unlogin-icon {
+  font-size: 48rpx;
+  color: #ffffff;
+  font-weight: 300;
+  line-height: 1;
+}
+
+/* 编辑图标（已登录状态显示） */
+.avatar-edit-icon {
+  position: absolute;
+  right: -4rpx;
+  bottom: -4rpx;
+  width: 36rpx;
+  height: 36rpx;
+  background-color: #8e8e93;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+
+.avatar-edit-icon image {
+  width: 20rpx;
+  height: 20rpx;
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #111111;
+  margin-bottom: 6rpx;
+}
+
+.user-name-unlogin {
+  color: #8e8e93;
+}
+
+.user-tip {
+  font-size: 22rpx;
+  color: #8e8e93;
+}
+
+.user-arrow {
+  font-size: 36rpx;
+  color: #c7c7cc;
+  font-weight: 300;
+  margin-left: 16rpx;
+}
+
+/* 功能菜单区域 */
+.menu-section {
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  margin-bottom: 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.06);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 32rpx 28rpx;
+  border-bottom: 1rpx solid #f0f0f5;
+  transition: background-color 0.2s;
+}
+
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-item:active {
+  background-color: #fafafa;
+}
+
+.menu-icon {
+  width: 44rpx;
+  height: 44rpx;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-icon image {
+  width: 100%;
+  height: 100%;
+}
+
+/* 反馈 / 关于我们：彩色图标略放大，与文案行高更协调 */
+.menu-icon--feedback,
+.menu-icon--about {
+  width: 52rpx;
+  height: 52rpx;
+}
+
+.menu-text {
+  flex: 1;
+  font-size: 28rpx;
+  color: #3c3c43;
+}
+
+.menu-badge {
+  background-color: #f7c948;
+  color: #8B7355;
+  font-size: 22rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 999rpx;
+  margin-right: 12rpx;
+  font-weight: 600;
+}
+
+.menu-arrow {
+  font-size: 36rpx;
+  color: #c7c7cc;
+  font-weight: 300;
+}
+
+/* 版本信息 */
+.version-section {
+  text-align: center;
+  padding: 32rpx 0;
+}
+
+.version-text {
+  font-size: 24rpx;
+  color: #8e8e93;
+  margin-bottom: 6rpx;
+}
+
+.version-desc {
+  font-size: 22rpx;
+  color: #c7c7cc;
+}

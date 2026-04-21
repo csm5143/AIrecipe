@@ -1,0 +1,164 @@
+<view class="page">
+  <!-- 顶部固定区域：搜索框 + 分类标签 -->
+  <view class="header">
+    <view class="search-bar">
+      <view class="search-box">
+        <image
+          class="search-icon"
+          src="../../assets/搜索.png"
+          mode="aspectFit"
+        />
+        <input
+          class="search-input"
+          placeholder="搜索食材，例如 鸡腿 / 西兰花"
+          bindinput="onSearchInput"
+          value="{{searchKeyword}}"
+        />
+      </view>
+    </view>
+
+    <scroll-view class="category-tabs" scroll-x="true" scroll-into-view="{{categoryScrollIntoView}}" scroll-with-animation="true" enhanced="true" show-scrollbar="false">
+      <block wx:for="{{categories}}" wx:key="id">
+        <view
+          id="category-{{item.id}}"
+          class="tab-item {{activeCategoryId === item.id ? 'active' : ''}}"
+          data-id="{{item.id}}"
+          bindtap="onCategoryTap"
+        >
+          <image
+            wx:if="{{item.icon}}"
+            class="tab-icon"
+            src="{{item.icon}}"
+            mode="aspectFit"
+          />
+          <text class="tab-text">{{item.name}}</text>
+        </view>
+      </block>
+    </scroll-view>
+  </view>
+
+  <!-- 占位：避免 fixed header 遮挡内容，同时不挤压底部操作栏 -->
+  <view class="header-spacer"></view>
+
+  <!-- 子分类标签（仅在选中主分类时显示） -->
+  <scroll-view wx:if="{{activeCategoryId !== 'all' && subCategories[activeCategoryId]}}" class="subcategory-tabs" scroll-x="true" scroll-into-view="{{subCategoryScrollIntoView}}" scroll-with-animation="true" enhanced="true" show-scrollbar="false">
+    <view
+      wx:for="{{subCategories[activeCategoryId]}}"
+      wx:key="id"
+      id="subcategory-{{item.id}}"
+      class="subcategory-tab {{activeSubCategoryId === item.id ? 'active' : ''}}"
+      data-id="{{item.id}}"
+      bindtap="onSubCategoryTap"
+    >
+      {{item.name}}
+    </view>
+  </scroll-view>
+
+  <!-- 使用 swiper 实现左右滑动切换分类 -->
+  <swiper
+    class="ingredients-swiper"
+    current="{{swiperCurrent}}"
+    bindchange="onSwiperChange"
+    duration="300"
+    easing-function="easeInOutCubic"
+  >
+    <swiper-item wx:for="{{swiperItems}}" wx:key="id">
+      <scroll-view
+        class="ingredients-scroll"
+        scroll-y="true"
+        enhanced="true"
+        bounces="false"
+        show-scrollbar="false"
+        lower-threshold="80"
+        bindscrolltolower="onIngredientsScrollToLower"
+        data-item-id="{{item.id}}"
+      >
+        <view class="ingredients-grid">
+          <block wx:for="{{categoryIngredientsMap[item.id] || []}}" wx:key="name" wx:for-index="idx">
+            <view
+              class="ingredient-card {{item.selected ? 'selected' : ''}} cat-{{item.category}}"
+              bindtap="onToggleIngredient"
+              data-name="{{item.name}}"
+              hover-class="ingredient-card--hover"
+              hover-stay-time="80"
+            >
+              <view class="ingredient-card-name">{{item.name}}</view>
+              <view class="ingredient-card-badge {{item.selected ? 'selected' : ''}}">
+                {{item.selected ? '✓' : '+'}}
+              </view>
+            </view>
+          </block>
+
+          <view wx:if="{{!categoryIngredientsMap[item.id] || !categoryIngredientsMap[item.id].length}}" class="empty-state">
+            {{searchKeyword ? '暂无匹配食材，换个关键词试试' : '该分类暂无食材'}}
+          </view>
+        </view>
+
+        <view wx:if="{{categoryMoreVisibleMap[item.id]}}" class="show-more-wrap">
+          <button class="show-more-btn" bindtap="onToggleIngredientMore" data-item-id="{{item.id}}">
+            {{categoryMoreTextMap[item.id] || '显示更多'}}
+          </button>
+        </view>
+      </scroll-view>
+    </swiper-item>
+  </swiper>
+
+  <view class="bottom-bar">
+    <view class="bottom-left">
+      <view
+        class="selected-cart {{selectedCount ? '' : 'disabled'}}"
+        bindtap="onToggleSelectedPanel"
+      >
+        <image
+          class="cart-icon"
+          src="../../assets/冰柜.png"
+          mode="aspectFill"
+        />
+        <view wx:if="{{selectedCount}}" class="cart-badge">
+          {{selectedCount}}
+        </view>
+      </view>
+      <view class="summary">
+        已选 {{selectedCount}} 种食材
+      </view>
+    </view>
+    <button class="primary-btn" bindtap="onViewRecipes">
+      查看可做菜谱
+    </button>
+  </view>
+
+  <!-- 底部已选食材弹层（类似美团购物车） -->
+  <view
+    wx:if="{{showSelectedPanel}}"
+    class="selected-panel-mask"
+    catchtap="onCloseSelectedPanel"
+  ></view>
+  <view
+    wx:if="{{showSelectedPanel}}"
+    class="selected-panel selected-panel--show"
+    catchtap="noop"
+  >
+    <view class="selected-panel-header">
+      <view class="header-title">
+        已选食材（{{selectedCount}}）
+      </view>
+      <view class="header-close" catchtap="onCloseSelectedPanel">
+        ✕
+      </view>
+    </view>
+    <scroll-view scroll-y="true" class="selected-panel-body" enhanced="true" show-scrollbar="false">
+      <block wx:for="{{selectedIngredients}}" wx:key="*this">
+        <view class="selected-panel-item">
+          <view class="item-name">{{item}}</view>
+          <view class="item-remove" data-name="{{item}}" catchtap="onRemoveSelected">
+            移除
+          </view>
+        </view>
+      </block>
+      <view wx:if="{{!selectedIngredients.length}}" class="selected-panel-empty">
+        还没有选择任何食材
+      </view>
+    </scroll-view>
+  </view>
+</view>
+

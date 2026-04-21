@@ -1,0 +1,408 @@
+.page {
+  min-height: 100vh;
+  background-color: #fbf4e6;
+  background-color: var(--app-bg, #fbf4e6);
+  box-sizing: border-box;
+}
+
+.basket-scroll {
+  min-height: 100vh;
+}
+
+.content {
+  padding: 24rpx 24rpx 0;
+}
+
+/* 统计栏 */
+.stats-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fffdf8;
+  border-radius: 20rpx;
+  padding: 28rpx 40rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(125, 90, 50, 0.07);
+}
+
+.stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.stat-num {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #e2a650;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 24rpx;
+  color: #8e8e93;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 48rpx;
+  background: #f0e6d8;
+}
+
+/* 操作栏 */
+.action-bar {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.action-btn {
+  flex: 1;
+  text-align: center;
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #92400e;
+  background: #f6e8d6;
+  padding: 18rpx 0;
+  border-radius: 999rpx;
+  transition: background 0.15s;
+}
+
+.action-btn.active {
+  background: #e2a650;
+  color: #ffffff;
+}
+
+.action-btn.danger {
+  color: #d4380d;
+  background: #fff1f0;
+}
+
+.action-btn:active {
+  opacity: 0.85;
+}
+
+/* 合并清单视图 */
+.merged-header {
+  background: #fffdf8;
+  border-radius: 20rpx 20rpx 0 0;
+  padding: 24rpx 24rpx 16rpx;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.merged-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.merged-count {
+  font-size: 24rpx;
+  color: #8e8e93;
+}
+
+.merged-list {
+  background: #fffdf8;
+  border-radius: 0 0 20rpx 20rpx;
+  padding: 8rpx 24rpx 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.merged-section-label {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #92400e;
+  letter-spacing: 0.04em;
+  padding: 20rpx 0 8rpx;
+}
+
+.merged-section-label-sub {
+  color: #78716c;
+}
+
+.merged-section-divider {
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, #e7d5bc 20%, #e7d5bc 80%, transparent);
+  margin: 12rpx 0 4rpx;
+}
+
+.merged-row {
+  display: flex;
+  align-items: center;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid #f0e6d8;
+}
+
+.merged-row:last-child {
+  border-bottom: none;
+}
+
+.merged-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: #e2a650;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+
+.merged-dot-seasoning {
+  background: #a8a29e;
+}
+
+.merged-name {
+  flex: 1;
+  font-size: 28rpx;
+  color: #374151;
+}
+
+.merged-amount {
+  font-size: 24rpx;
+  color: #8e8e93;
+  margin-left: 16rpx;
+}
+
+.merged-copy-btn {
+  background: #e2a650;
+  color: #ffffff;
+  font-size: 28rpx;
+  font-weight: 600;
+  text-align: center;
+  padding: 24rpx;
+  border-radius: 999rpx;
+  margin-bottom: 24rpx;
+}
+
+.merged-copy-btn:active {
+  opacity: 0.85;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 40rpx;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 120rpx;
+  height: 120rpx;
+  margin-bottom: 28rpx;
+  opacity: 0.5;
+}
+
+.empty-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #1c1c1e;
+  margin-bottom: 16rpx;
+}
+
+.empty-tip {
+  font-size: 28rpx;
+  color: #8e8e93;
+  line-height: 1.6;
+}
+
+/* 菜谱卡片 */
+.recipe-card {
+  background: #fffdf8;
+  border-radius: 24rpx;
+  margin-bottom: 20rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(125, 90, 50, 0.07);
+}
+
+.recipe-header {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  padding: 0;
+}
+
+/* 左侧：箭头列 + 菜名（仅箭头可点展开） */
+.recipe-header-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 24rpx 12rpx 24rpx 20rpx;
+  gap: 12rpx;
+  box-sizing: border-box;
+}
+
+/* 与箭头同宽，保证点击区域 */
+.recipe-expand-hit {
+  width: 56rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12rpx 0;
+  box-sizing: border-box;
+}
+
+.recipe-expand-hit:active {
+  opacity: 0.75;
+}
+
+.recipe-expand-arrow {
+  font-size: 56rpx;
+  line-height: 1;
+  color: #8e8e93;
+  font-weight: 300;
+  flex-shrink: 0;
+  width: 56rpx;
+  text-align: center;
+  transform: rotate(0deg);
+  transition: transform 0.22s ease;
+}
+
+.recipe-expand-arrow.expanded {
+  transform: rotate(90deg);
+}
+
+.recipe-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.recipe-name {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 6rpx;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recipe-ingredient-count {
+  font-size: 24rpx;
+  color: #8e8e93;
+}
+
+/* 右侧：删除清单（红字）+ 进详情 */
+.recipe-header-tools {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 20rpx 20rpx 20rpx 8rpx;
+  gap: 20rpx;
+  box-sizing: border-box;
+}
+
+.recipe-remove-list-btn {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #ff3b30;
+  white-space: nowrap;
+  padding: 8rpx 24rpx;
+  line-height: 24rpx;
+  margin-bottom: 9px;
+}
+
+.recipe-remove-list-btn:active {
+  opacity: 0.65;
+}
+
+.recipe-go-img {
+  width: 30rpx;
+  height: 30rpx;
+  flex-shrink: 0;
+}
+
+.recipe-go-img:active {
+  opacity: 0.65;
+}
+
+/* 食材列表：与头部左对齐（左padding 20 + 与箭头同宽 56 + gap 12） */
+.ingredient-list {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease-out;
+}
+
+.ingredient-list.visible {
+  max-height: 2000rpx;
+  transition: max-height 0.35s ease-in;
+}
+
+.ingredient-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18rpx 24rpx 18rpx 20rpx;
+  border-top: 1rpx solid #f0e6d8;
+  gap: 16rpx;
+  box-sizing: border-box;
+}
+
+.ingredient-row-left {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+/* 圆点与上方箭头同列居中对齐 */
+.ingredient-dot-wrap {
+  width: 56rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.ingredient-dot {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: #d1a96a;
+  flex-shrink: 0;
+}
+
+/* 与 .recipe-name 一致 */
+.ingredient-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #111827;
+  flex: 1;
+  min-width: 0;
+}
+
+.ingredient-row-right {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.ingredient-amount {
+  font-size: 24rpx;
+  color: #aeaeb2;
+  margin-right: 28rpx;
+}
+
+.ingredient-pass-img {
+  width: 40rpx;
+  height: 40rpx;
+  flex-shrink: 0;
+}
+
+.ingredient-pass-img:active {
+  opacity: 0.65;
+}
+
+.scroll-bottom-spacer {
+  height: 40rpx;
+}
