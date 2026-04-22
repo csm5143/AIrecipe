@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { asyncHandler } from '../../utils/helper';
+import { asyncHandler } from '../../../utils/helper';
 import { getBanners, createBanner, updateBanner, deleteBanner } from '../controllers/content.controller';
 import { authenticate } from '../../auth/middleware/auth.middleware';
 

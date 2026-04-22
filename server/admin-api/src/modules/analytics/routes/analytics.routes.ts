@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { asyncHandler } from '../../utils/helper';
+import { asyncHandler } from '../../../utils/helper';
 import { getDashboardStats, getUserStats, getRecipeStats, getFeedbackStats } from '../controllers/analytics.controller';
 import { authenticate } from '../../auth/middleware/auth.middleware';
 

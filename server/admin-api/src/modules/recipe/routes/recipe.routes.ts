@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { asyncHandler } from '../../utils/helper';
+import { asyncHandler } from '../../../utils/helper';
 import {
   getRecipes,
   getRecipeById,

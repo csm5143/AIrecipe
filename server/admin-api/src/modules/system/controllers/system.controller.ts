@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import config from '../../config';
+import config from '../../../config';
 
 export async function getSystemInfo(req: Request, res: Response) {
   res.json({

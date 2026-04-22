@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { asyncHandler } from '../../utils/helper';
+import { asyncHandler } from '../../../utils/helper';
 import { login, logout, getProfile, refreshToken } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
