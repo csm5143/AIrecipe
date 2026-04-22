@@ -6,7 +6,7 @@
           <el-icon><ArrowLeft /></el-icon>
           返回
         </el-button>
-        <h2 class="page-title">编辑食谱</h2>
+        <h2 class="page-title">编辑菜谱</h2>
         <el-tag :type="getStatusType(form.status)" size="small">{{ getStatusText(form.status) }}</el-tag>
       </div>
       <div class="header-actions">
@@ -33,10 +33,10 @@
         <div class="card-container">
           <h3 class="section-title">基本信息</h3>
           <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
-            <el-form-item label="食谱标题" prop="title">
+            <el-form-item label="菜谱标题" prop="title">
               <el-input
                 v-model="form.title"
-                placeholder="给食谱起个吸引人的名字"
+                placeholder="给菜谱起个吸引人的名字"
                 maxlength="100"
                 show-word-limit
               />
@@ -47,7 +47,7 @@
                 v-model="form.description"
                 type="textarea"
                 :rows="3"
-                placeholder="简要描述这道菜的特点"
+                placeholder="简要描述这道菜的特点和烹饪要点"
                 maxlength="500"
                 show-word-limit
               />
@@ -55,29 +55,62 @@
 
             <el-row :gutter="20">
               <el-col :span="8">
-                <el-form-item label="分类" prop="category">
-                  <el-select v-model="form.category" placeholder="选择分类" style="width: 100%">
-                    <el-option label="家常菜" value="home" />
-                    <el-option label="健身餐" value="fitness" />
-                    <el-option label="儿童餐" value="kids" />
-                    <el-option label="甜点" value="dessert" />
-                    <el-option label="饮品" value="drink" />
-                    <el-option label="早餐" value="breakfast" />
+                <el-form-item label="菜品类型" prop="dishType">
+                  <el-select v-model="form.dishType" placeholder="选择菜品类型" style="width: 100%">
+                    <el-option v-for="opt in DISH_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
                   </el-select>
                 </el-form-item>
               </el-col>
               <el-col :span="8">
                 <el-form-item label="难度">
                   <el-radio-group v-model="form.difficulty">
-                    <el-radio value="EASY">简单</el-radio>
-                    <el-radio value="MEDIUM">中等</el-radio>
-                    <el-radio value="HARD">困难</el-radio>
+                    <el-radio v-for="opt in DIFFICULTY_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</el-radio>
                   </el-radio-group>
                 </el-form-item>
               </el-col>
               <el-col :span="8">
                 <el-form-item label="烹饪时间（分钟）">
                   <el-input-number v-model="form.cookingTime" :min="1" :max="999" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <el-row :gutter="20">
+              <el-col :span="8">
+                <el-form-item label="用餐时段">
+                  <el-select v-model="form.mealTimes" multiple placeholder="选择用餐时段" style="width: 100%">
+                    <el-option v-for="opt in MEAL_TIME_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="适宜人群">
+                  <el-checkbox v-model="form.fitnessMeal">健身餐</el-checkbox>
+                  <el-checkbox v-model="form.childrenMeal">儿童餐</el-checkbox>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="年龄段" v-if="form.childrenMeal">
+                  <el-select v-model="form.ageBand" placeholder="选择年龄段" style="width: 100%">
+                    <el-option v-for="opt in AGE_BAND_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <el-row :gutter="20" v-if="form.fitnessMeal">
+              <el-col :span="12">
+                <el-form-item label="健身分类">
+                  <el-select v-model="form.fitnessCategory" placeholder="选择健身分类" style="width: 100%">
+                    <el-option v-for="opt in FITNESS_CATEGORY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="健身目标">
+                  <el-select v-model="form.goal" placeholder="选择健身目标" style="width: 100%">
+                    <el-option v-for="opt in GOAL_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+                  </el-select>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -184,6 +217,21 @@
             </el-button>
           </div>
         </div>
+
+        <!-- 小贴士 -->
+        <div class="card-container">
+          <h3 class="section-title">小贴士</h3>
+          <el-form-item>
+            <el-input
+              v-model="form.tips"
+              type="textarea"
+              :rows="3"
+              placeholder="分享一些烹饪小技巧或注意事项"
+              maxlength="500"
+              show-word-limit
+            />
+          </el-form-item>
+        </div>
       </div>
 
       <!-- 侧边栏 -->
@@ -266,10 +314,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { Plus, Delete, Picture, ArrowLeft, ArrowDown } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
+import {
+  DISH_TYPE_OPTIONS, MEAL_TIME_OPTIONS, DIFFICULTY_OPTIONS,
+  AGE_BAND_OPTIONS, FITNESS_CATEGORY_OPTIONS, GOAL_OPTIONS, STATUS_OPTIONS,
+} from './data';
 
 const router = useRouter();
 const route = useRoute();
@@ -281,41 +333,40 @@ const tagInputRef = ref();
 
 const form = reactive({
   id: 0,
-  title: '番茄炒蛋',
-  description: '一道简单美味的家常菜，色香味俱全，营养丰富。',
-  category: 'home',
+  title: '',
+  description: '',
+  dishType: '',
   difficulty: 'EASY',
-  cookingTime: 15,
-  coverImage: 'https://picsum.photos/seed/recipe1/400/300',
-  ingredients: [
-    { name: '番茄', amount: '2个' },
-    { name: '鸡蛋', amount: '3个' },
-    { name: '葱花', amount: '适量' },
-    { name: '盐', amount: '少许' },
-  ],
-  steps: [
-    { content: '番茄洗净切块，鸡蛋打散备用。', image: '' },
-    { content: '热锅凉油，倒入蛋液炒至凝固后盛出。', image: '' },
-    { content: '锅中加少许油，放入番茄块翻炒出汁。', image: '' },
-    { content: '加入炒好的鸡蛋，调入盐翻炒均匀即可。', image: '' },
-  ],
-  tags: ['家常菜', '快手菜', '下饭'],
-  status: 'PUBLISHED',
-  createdAt: '2024-01-15 10:30:00',
-  updatedAt: '2024-01-16 14:20:00',
-  viewCount: 12580,
-  collectCount: 3421,
+  cookingTime: 30,
+  coverImage: '',
+  ingredients: [{ name: '', amount: '' }] as { name: string; amount: string }[],
+  steps: [{ content: '', image: '' }] as { content: string; image: string }[],
+  tags: [] as string[],
+  tips: '',
+  status: 'DRAFT',
+  mealTimes: [] as string[],
+  fitnessMeal: false,
+  fitnessCategory: '',
+  goal: '',
+  ageBand: '',
+  childrenMeal: false,
+  createdAt: '',
+  updatedAt: '',
+  viewCount: 0,
+  collectCount: 0,
   nutrition: {
-    calories: 156,
-    protein: 12,
-    fat: 9,
-    carbs: 5,
+    calories: 0,
+    protein: 0,
+    fat: 0,
+    carbs: 0,
+    fiber: 0,
+    sodium: 0,
   },
 });
 
 const rules = {
-  title: [{ required: true, message: '请输入食谱标题', trigger: 'blur' }],
-  category: [{ required: true, message: '请选择分类', trigger: 'change' }],
+  title: [{ required: true, message: '请输入菜谱标题', trigger: 'blur' }],
+  dishType: [{ required: true, message: '请选择菜品类型', trigger: 'change' }],
 };
 
 function getStatusType(status: string) {
@@ -328,12 +379,7 @@ function getStatusType(status: string) {
 }
 
 function getStatusText(status: string) {
-  const map: Record<string, string> = {
-    PUBLISHED: '已发布',
-    DRAFT: '草稿',
-    OFFLINE: '已下线',
-  };
-  return map[status] || status;
+  return STATUS_OPTIONS.find(o => o.value === status)?.label || status;
 }
 
 function handleCoverChange(file: any) {
@@ -378,6 +424,7 @@ async function handleSave() {
   const valid = await formRef.value?.validate().catch(() => false);
   if (!valid) return;
 
+  form.updatedAt = new Date().toISOString().split('T')[0];
   ElMessage.success('保存成功');
 }
 
@@ -387,10 +434,56 @@ async function handlePublish(command: string) {
   await handleSave();
 }
 
-onMounted(() => {
-  const id = route.params.id;
-  // TODO: 根据 ID 加载食谱详情
-  console.log('Loading recipe:', id);
+onMounted(async () => {
+  const id = Number(route.params.id);
+  if (!id) return;
+
+  const res = await fetch('/data/recipes.json');
+  const data = await res.json();
+  const recipe = data.find((r: any) => String(r.id) === String(id)) as any;
+  if (!recipe) {
+    ElMessage.error('菜谱不存在');
+    router.push('/recipes');
+    return;
+  }
+
+  form.id = Number(recipe.id);
+  form.title = recipe.name || recipe.title || '';
+  form.description = recipe.description || '';
+  form.coverImage = recipe.coverImage || '';
+  form.cookingTime = recipe.timeCost || 30;
+  form.status = 'PUBLISHED';
+  form.mealTimes = recipe.mealTimes || [];
+  form.fitnessMeal = recipe.fitnessMeal || false;
+  form.fitnessCategory = recipe.fitnessCategory || '';
+  form.goal = recipe.goal || '';
+  form.ageBand = recipe.ageBand || '';
+  form.childrenMeal = recipe.childrenMeal || false;
+  form.viewCount = recipe.viewCount || Math.floor(Math.random() * 5000);
+  form.collectCount = recipe.collectCount || Math.floor(Math.random() * 500);
+  form.createdAt = new Date(Date.now() - Math.random() * 90 * 86400000).toISOString().split('T')[0];
+  form.updatedAt = new Date().toISOString().split('T')[0];
+  form.tags = (recipe.dishTypes || []).map((t: string) => {
+    const opt = DISH_TYPE_OPTIONS.find(o => o.value === t);
+    return opt?.label || t;
+  });
+
+  form.ingredients = Object.entries(recipe.usage || {}).map(([name, amount]) => ({
+    name,
+    amount: String(amount),
+  }));
+  if (form.ingredients.length === 0) {
+    form.ingredients = (recipe.ingredients || []).map((name: string) => ({ name, amount: '' }));
+  }
+
+  form.steps = (recipe.steps || []).map((content: string) => ({ content, image: '' }));
+
+  const diffMap: Record<string, string> = { easy: 'EASY', normal: 'MEDIUM', medium: 'MEDIUM', hard: 'HARD' };
+  form.difficulty = diffMap[recipe.difficulty] || 'EASY';
+
+  const typeMap: Record<string, string> = {};
+  DISH_TYPE_OPTIONS.forEach(opt => { typeMap[opt.value] = opt.value; });
+  form.dishType = recipe.dishTypes?.[0] || '';
 });
 </script>
 

@@ -227,7 +227,7 @@
 import { ref, reactive } from 'vue';
 import {
   Setting,
-  Globe,
+  Link,
   Key,
   Document,
   Lock,
@@ -240,7 +240,7 @@ const activeSetting = ref('site');
 const logoPreview = ref('');
 
 const settingItems = [
-  { key: 'site', label: '网站信息', icon: Globe },
+  { key: 'site', label: '网站信息', icon: Link },
   { key: 'seo', label: 'SEO 设置', icon: Document },
   { key: 'legal', label: '备案信息', icon: Setting },
   { key: 'security', label: '安全设置', icon: Lock },

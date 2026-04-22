@@ -30,19 +30,25 @@ const routes: RouteRecordRaw[] = [
         path: 'recipes',
         name: 'Recipes',
         component: () => import('@/views/recipe/index.vue'),
-        meta: { title: '食谱管理', icon: 'Food' },
+        meta: { title: '菜谱管理', icon: 'Food' },
       },
       {
         path: 'recipes/create',
         name: 'RecipeCreate',
         component: () => import('@/views/recipe/create.vue'),
-        meta: { title: '创建食谱', icon: 'Plus' },
+        meta: { title: '创建菜谱', icon: 'Plus' },
       },
       {
         path: 'recipes/:id/edit',
         name: 'RecipeEdit',
         component: () => import('@/views/recipe/edit.vue'),
-        meta: { title: '编辑食谱', icon: 'Edit' },
+        meta: { title: '编辑菜谱', icon: 'Edit' },
+      },
+      {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('@/views/profile/index.vue'),
+        meta: { title: '个人设置', icon: 'UserFilled' },
       },
       {
         path: 'ingredients',

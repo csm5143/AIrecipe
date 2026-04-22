@@ -2,47 +2,60 @@
   <div class="page-container">
     <div class="page-header">
       <div class="header-left">
-        <h2 class="page-title">食谱管理</h2>
-        <p class="text-muted">管理平台所有食谱内容</p>
+        <h2 class="page-title">菜谱管理</h2>
+        <p class="page-subtitle">共 {{ pagination.total }} 道菜谱</p>
       </div>
-      <el-button type="primary" @click="router.push('/recipes/create')">
-        <el-icon><Plus /></el-icon>
-        创建食谱
-      </el-button>
+      <div class="header-right">
+        <el-button @click="handleImport">
+          <el-icon><Upload /></el-icon>
+          导入
+        </el-button>
+        <el-button type="primary" @click="router.push('/recipes/create')">
+          <el-icon><Plus /></el-icon>
+          创建菜谱
+        </el-button>
+      </div>
     </div>
 
     <div class="card-container">
       <div class="filter-section">
-        <div class="filter-left">
+        <div class="filter-group">
           <el-input
             v-model="filters.keyword"
-            placeholder="搜索食谱名称..."
+            placeholder="搜索菜谱名称..."
             clearable
-            style="width: 280px"
-            :prefix-icon="Search"
-          />
-          <el-select v-model="filters.category" placeholder="分类" clearable style="width: 140px">
-            <el-option label="全部" value="" />
-            <el-option label="家常菜" value="home" />
-            <el-option label="健身餐" value="fitness" />
-            <el-option label="儿童餐" value="kids" />
-            <el-option label="甜点" value="dessert" />
+            style="width: 240px"
+            @keyup.enter="fetchRecipes"
+            @clear="fetchRecipes"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+
+          <el-select v-model="filters.dishType" placeholder="菜品类型" clearable style="width: 140px" @change="fetchRecipes">
+            <el-option v-for="opt in DISH_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
-          <el-select v-model="filters.status" placeholder="状态" clearable style="width: 140px">
-            <el-option label="全部" value="" />
-            <el-option label="已发布" value="PUBLISHED" />
-            <el-option label="草稿" value="DRAFT" />
-            <el-option label="已下线" value="OFFLINE" />
+
+          <el-select v-model="filters.difficulty" placeholder="难度" clearable style="width: 120px" @change="fetchRecipes">
+            <el-option v-for="opt in DIFFICULTY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+
+          <el-select v-model="filters.mealTime" placeholder="用餐时段" clearable style="width: 140px" @change="fetchRecipes">
+            <el-option v-for="opt in MEAL_TIME_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+
+          <el-select v-model="filters.status" placeholder="状态" clearable style="width: 120px" @change="fetchRecipes">
+            <el-option v-for="opt in STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </div>
-        <div class="filter-right">
+
+        <div class="filter-group">
+          <el-checkbox v-model="filters.fitnessMeal" @change="fetchRecipes">健身餐</el-checkbox>
+          <el-checkbox v-model="filters.childrenMeal" @change="fetchRecipes">儿童餐</el-checkbox>
           <el-button text @click="handleReset">
             <el-icon><RefreshLeft /></el-icon>
             重置
-          </el-button>
-          <el-button type="primary" @click="fetchRecipes">
-            <el-icon><Search /></el-icon>
-            搜索
           </el-button>
         </div>
       </div>
@@ -52,10 +65,11 @@
         :data="tableData"
         row-key="id"
         :header-cell-style="{ background: 'var(--surface-300)', color: 'var(--cursor-dark)' }"
+        @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="50" />
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column label="食谱信息" min-width="280">
+        <el-table-column prop="id" label="ID" width="70" />
+        <el-table-column label="菜谱信息" min-width="280">
           <template #default="{ row }">
             <div class="recipe-info">
               <el-image :src="row.coverImage" class="recipe-cover" fit="cover">
@@ -68,45 +82,66 @@
               <div class="recipe-detail">
                 <span class="recipe-title">{{ row.title }}</span>
                 <span class="recipe-meta">
-                  <span class="cursor-pill info">{{ row.categoryText }}</span>
-                  <span class="cursor-pill">{{ row.difficultyText }}</span>
+                  <span v-if="row.dishTypes?.length" class="cursor-pill info">
+                    {{ normalizeDishType(row.dishTypes[0]) }}
+                  </span>
+                  <span class="cursor-pill">
+                    {{ normalizeDifficulty(row.difficulty) }}
+                  </span>
+                  <span v-if="row.fitnessMeal" class="cursor-pill fitness">健身</span>
+                  <span v-if="row.childrenMeal" class="cursor-pill children">儿童</span>
                 </span>
               </div>
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="cookingTime" label="时长" width="100" align="center">
+        <el-table-column label="用餐" width="100" align="center">
           <template #default="{ row }">
-            <span class="text-mono">{{ row.cookingTime }}分钟</span>
+            <div class="meal-tags">
+              <span v-for="mt in (row.mealTimes || []).slice(0, 2)" :key="mt" class="meal-tag">
+                {{ normalizeMealTime(mt) }}
+              </span>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column label="数据" width="140" align="center">
+        <el-table-column prop="timeCost" label="时长" width="80" align="center">
+          <template #default="{ row }">
+            <span class="text-mono">{{ row.timeCost }}分钟</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="数据" width="120" align="center">
           <template #default="{ row }">
             <div class="data-stats">
-              <span class="stat-item" title="浏览量">
+              <span class="stat-item">
                 <el-icon><View /></el-icon>
                 {{ formatCount(row.viewCount) }}
               </span>
-              <span class="stat-item" title="收藏量">
+              <span class="stat-item">
                 <el-icon><Star /></el-icon>
                 {{ formatCount(row.collectCount) }}
               </span>
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="100" align="center">
+        <el-table-column label="标签" min-width="140">
           <template #default="{ row }">
-            <span
-              class="status-pill"
-              :class="row.status.toLowerCase()"
-            >
-              {{ getStatusText(row.status) }}
-            </span>
+            <div class="tag-list">
+              <el-tag
+                v-for="tag in (row.dishTypes || []).slice(0, 3)"
+                :key="tag"
+                size="small"
+                class="dish-type-tag"
+              >
+                {{ normalizeDishType(tag) }}
+              </el-tag>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="创建时间" width="120" align="center">
+        <el-table-column prop="status" label="状态" width="90" align="center">
           <template #default="{ row }">
-            <span class="text-muted text-small">{{ row.createdAt }}</span>
+            <span class="status-pill" :class="(row.status || 'PUBLISHED').toLowerCase()">
+              {{ getStatusText(row.status) }}
+            </span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="160" fixed="right" align="center">
@@ -126,13 +161,7 @@
                       <el-icon><View /></el-icon>
                       预览
                     </el-dropdown-item>
-                    <el-dropdown-item command="duplicate">
-                      <el-icon><CopyDocument /></el-icon>
-                      复制
-                    </el-dropdown-item>
-                    <el-dropdown-item
-                      :command="row.status === 'PUBLISHED' ? 'offline' : 'publish'"
-                    >
+                    <el-dropdown-item :command="row.status === 'PUBLISHED' ? 'offline' : 'publish'">
                       <el-icon v-if="row.status === 'PUBLISHED'"><Close /></el-icon>
                       <el-icon v-else><Check /></el-icon>
                       {{ row.status === 'PUBLISHED' ? '下线' : '发布' }}
@@ -168,39 +197,73 @@
           :page-sizes="[10, 20, 50, 100]"
           layout="total, sizes, prev, pager, next"
           background
+          @size-change="fetchRecipes"
+          @current-change="fetchRecipes"
         />
       </div>
     </div>
+
+    <el-dialog v-model="importDialogVisible" title="导入菜谱" width="480px">
+      <p style="color: rgba(38,37,30,0.6); font-size: 13px; margin-bottom: 16px;">
+        请上传 miniprogram/data/recipes.json 文件，将导入全部菜谱数据
+      </p>
+      <el-upload
+        ref="uploadRef"
+        drag
+        accept=".json"
+        :auto-upload="false"
+        :limit="1"
+        @change="handleFileChange"
+      >
+        <el-icon class="upload-icon"><UploadFilled /></el-icon>
+        <div>将文件拖到此处，或<em>点击上传</em></div>
+        <template #tip>
+          <div class="upload-tip">仅支持 .json 文件</div>
+        </template>
+      </el-upload>
+      <template #footer>
+        <el-button @click="importDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="importing" :disabled="!importFile" @click="confirmImport">
+          确认导入
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import {
-  Plus,
-  Search,
-  RefreshLeft,
-  Picture,
-  View,
-  Star,
-  Edit,
-  MoreFilled,
-  CopyDocument,
-  Check,
-  Close,
-  Delete
-} from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import type { UploadFile } from 'element-plus';
+import {
+  Plus, Search, RefreshLeft, Picture, View, Star, Edit,
+  MoreFilled, Check, Close, Delete, Upload, UploadFilled,
+} from '@element-plus/icons-vue';
+import {
+  DISH_TYPE_OPTIONS, MEAL_TIME_OPTIONS, DIFFICULTY_OPTIONS,
+  STATUS_OPTIONS, normalizeDishType, normalizeMealTime, normalizeDifficulty,
+  type RecipeRow,
+} from './data';
 
 const router = useRouter();
 const loading = ref(false);
 const selectedRows = ref<any[]>([]);
+const importDialogVisible = ref(false);
+const importFile = ref<UploadFile | null>(null);
+const importing = ref(false);
+const uploadRef = ref();
+
+const rawData = ref<RecipeRow[]>([]);
 
 const filters = reactive({
   keyword: '',
-  category: '',
+  dishType: '',
+  difficulty: '',
+  mealTime: '',
   status: '',
+  fitnessMeal: false,
+  childrenMeal: false,
 });
 
 const pagination = reactive({
@@ -209,113 +272,77 @@ const pagination = reactive({
   total: 0,
 });
 
-const tableData = ref([
-  {
-    id: 1,
-    title: '番茄炒蛋',
-    coverImage: 'https://picsum.photos/seed/recipe1/80/80',
-    category: 'home',
-    categoryText: '家常菜',
-    difficulty: 'EASY',
-    difficultyText: '简单',
-    cookingTime: 15,
-    viewCount: 12580,
-    collectCount: 3421,
-    status: 'PUBLISHED',
-    createdAt: '2024-01-15',
-  },
-  {
-    id: 2,
-    title: '鸡胸肉沙拉',
-    coverImage: 'https://picsum.photos/seed/recipe2/80/80',
-    category: 'fitness',
-    categoryText: '健身餐',
-    difficulty: 'MEDIUM',
-    difficultyText: '中等',
-    cookingTime: 25,
-    viewCount: 8960,
-    collectCount: 2156,
-    status: 'PUBLISHED',
-    createdAt: '2024-01-18',
-  },
-  {
-    id: 3,
-    title: '南瓜小米粥',
-    coverImage: 'https://picsum.photos/seed/recipe3/80/80',
-    category: 'kids',
-    categoryText: '儿童餐',
-    difficulty: 'EASY',
-    difficultyText: '简单',
-    cookingTime: 40,
-    viewCount: 6540,
-    collectCount: 1890,
-    status: 'PUBLISHED',
-    createdAt: '2024-01-20',
-  },
-  {
-    id: 4,
-    title: '提拉米苏',
-    coverImage: '',
-    category: 'dessert',
-    categoryText: '甜点',
-    difficulty: 'HARD',
-    difficultyText: '困难',
-    cookingTime: 60,
-    viewCount: 4320,
-    collectCount: 987,
-    status: 'DRAFT',
-    createdAt: '2024-01-22',
-  },
-  {
-    id: 5,
-    title: '红烧肉',
-    coverImage: 'https://picsum.photos/seed/recipe5/80/80',
-    category: 'home',
-    categoryText: '家常菜',
-    difficulty: 'MEDIUM',
-    difficultyText: '中等',
-    cookingTime: 90,
-    viewCount: 15800,
-    collectCount: 4567,
-    status: 'OFFLINE',
-    createdAt: '2024-01-10',
-  },
-]);
+const tableData = ref<any[]>([]);
 
 function formatCount(num: number): string {
-  if (num >= 10000) {
-    return (num / 10000).toFixed(1) + 'w';
-  }
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'k';
-  }
-  return num.toString();
+  if (num >= 10000) return (num / 10000).toFixed(1) + 'w';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+  return String(num);
 }
 
 function getStatusText(status: string): string {
-  const map: Record<string, string> = {
-    PUBLISHED: '已发布',
-    DRAFT: '草稿',
-    OFFLINE: '已下线',
-  };
-  return map[status] || status;
+  return STATUS_OPTIONS.find(o => o.value === status)?.label || '已发布';
 }
 
-function handleReset() {
-  filters.keyword = '';
-  filters.category = '';
-  filters.status = '';
-  fetchRecipes();
+function filterData() {
+  let data = [...rawData.value];
+
+  if (filters.keyword) {
+    const kw = filters.keyword.toLowerCase();
+    data = data.filter(r => r.title.toLowerCase().includes(kw));
+  }
+  if (filters.dishType) {
+    data = data.filter(r => r.dishTypes?.includes(filters.dishType));
+  }
+  if (filters.difficulty) {
+    const mapped = filters.difficulty === 'EASY' ? 'easy'
+      : filters.difficulty === 'MEDIUM' ? ['normal', 'medium']
+      : 'hard';
+    data = data.filter(r => {
+      if (Array.isArray(mapped)) return mapped.includes(r.difficulty);
+      return r.difficulty === mapped;
+    });
+  }
+  if (filters.mealTime) {
+    data = data.filter(r => r.mealTimes?.includes(filters.mealTime));
+  }
+  if (filters.fitnessMeal) {
+    data = data.filter(r => r.fitnessMeal);
+  }
+  if (filters.childrenMeal) {
+    data = data.filter(r => r.childrenMeal);
+  }
+
+  const start = (pagination.page - 1) * pagination.pageSize;
+  tableData.value = data.slice(start, start + pagination.pageSize);
+  pagination.total = data.length;
 }
 
 async function fetchRecipes() {
   loading.value = true;
   try {
-    // TODO: 调用 API
-    pagination.total = tableData.value.length;
+    if (rawData.value.length === 0) {
+      const res = await fetch('/data/recipes.json');
+      const data = await res.json();
+      rawData.value = data as RecipeRow[];
+    }
+    filterData();
   } finally {
     loading.value = false;
   }
+}
+
+function handleReset() {
+  Object.assign(filters, {
+    keyword: '', dishType: '', difficulty: '',
+    mealTime: '', status: '', fitnessMeal: false, childrenMeal: false,
+  });
+  pagination.page = 1;
+  fetchRecipes();
+}
+
+function handleSelectionChange(rows: any[]) {
+  selectedRows.value = rows;
 }
 
 async function handleCommand(command: string, row: any) {
@@ -323,34 +350,62 @@ async function handleCommand(command: string, row: any) {
     case 'preview':
       ElMessage.info('预览功能开发中');
       break;
-    case 'duplicate':
-      ElMessage.success('复制成功');
-      break;
     case 'publish':
+      row.status = 'PUBLISHED';
       ElMessage.success('发布成功');
       break;
     case 'offline':
-      await ElMessageBox.confirm('确定要下线该食谱吗？', '提示', { type: 'warning' });
+      await ElMessageBox.confirm('确定要下线该菜谱吗？', '提示', { type: 'warning' });
+      row.status = 'OFFLINE';
       ElMessage.success('下线成功');
       break;
     case 'delete':
-      await ElMessageBox.confirm('确定删除该食谱？删除后无法恢复。', '警告', {
+      await ElMessageBox.confirm('确定删除该菜谱？删除后无法恢复。', '警告', {
         type: 'warning',
         confirmButtonText: '删除',
         cancelButtonText: '取消',
       });
+      rawData.value = rawData.value.filter(r => r.id !== row.id);
+      filterData();
       ElMessage.success('删除成功');
-      fetchRecipes();
       break;
   }
 }
 
 async function handleBatchDelete() {
-  await ElMessageBox.confirm(`确定删除选中的 ${selectedRows.value.length} 个食谱吗？`, '警告', {
+  await ElMessageBox.confirm(`确定删除选中的 ${selectedRows.value.length} 个菜谱吗？`, '警告', {
     type: 'warning',
   });
+  const ids = new Set(selectedRows.value.map(r => r.id));
+  rawData.value = rawData.value.filter(r => !ids.has(r.id));
+  filterData();
+  selectedRows.value = [];
   ElMessage.success('批量删除成功');
-  fetchRecipes();
+}
+
+function handleImport() {
+  importDialogVisible.value = true;
+}
+
+function handleFileChange(file: UploadFile) {
+  importFile.value = file;
+}
+
+async function confirmImport() {
+  if (!importFile.value?.raw) return;
+  importing.value = true;
+  try {
+    const text = await (importFile.value.raw as any).text();
+    const data = JSON.parse(text) as RecipeRow[];
+    rawData.value = data;
+    filterData();
+    importDialogVisible.value = false;
+    ElMessage.success(`成功导入 ${data.length} 道菜谱`);
+  } catch {
+    ElMessage.error('文件格式错误，请上传正确的 recipes.json');
+  } finally {
+    importing.value = false;
+  }
 }
 
 onMounted(() => {
@@ -374,6 +429,17 @@ onMounted(() => {
       color: var(--cursor-dark);
       margin-bottom: 4px;
     }
+
+    .page-subtitle {
+      font-family: var(--font-serif);
+      font-size: 13px;
+      color: rgba(38, 37, 30, 0.5);
+    }
+  }
+
+  .header-right {
+    display: flex;
+    gap: 12px;
   }
 }
 
@@ -385,16 +451,10 @@ onMounted(() => {
   padding-bottom: 20px;
   border-bottom: 1px solid var(--border-primary);
 
-  .filter-left {
+  .filter-group {
     display: flex;
     align-items: center;
     gap: 12px;
-  }
-
-  .filter-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
   }
 }
 
@@ -421,9 +481,7 @@ onMounted(() => {
     background: var(--surface-400);
     color: rgba(38, 37, 30, 0.3);
 
-    .el-icon {
-      font-size: 24px;
-    }
+    .el-icon { font-size: 24px; }
   }
 
   .recipe-detail {
@@ -440,14 +498,28 @@ onMounted(() => {
     .recipe-meta {
       display: flex;
       gap: 6px;
+      flex-wrap: wrap;
     }
+  }
+}
+
+.meal-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+
+  .meal-tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(38, 37, 30, 0.6);
   }
 }
 
 .data-stats {
   display: flex;
   justify-content: center;
-  gap: 16px;
+  gap: 12px;
 
   .stat-item {
     display: flex;
@@ -457,9 +529,21 @@ onMounted(() => {
     font-size: 12px;
     color: rgba(38, 37, 30, 0.6);
 
-    .el-icon {
-      font-size: 14px;
-    }
+    .el-icon { font-size: 14px; }
+  }
+}
+
+.tag-list {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+
+  .dish-type-tag {
+    border-radius: var(--radius-pill);
+    background: var(--surface-400);
+    border: none;
+    font-size: 11px;
+    color: rgba(38, 37, 30, 0.7);
   }
 }
 
@@ -521,5 +605,17 @@ onMounted(() => {
       color: rgba(38, 37, 30, 0.6);
     }
   }
+}
+
+.upload-icon {
+  font-size: 48px;
+  color: rgba(38, 37, 30, 0.3);
+  margin-bottom: 12px;
+}
+
+.upload-tip {
+  font-size: 12px;
+  color: rgba(38, 37, 30, 0.4);
+  margin-top: 8px;
 }
 </style>

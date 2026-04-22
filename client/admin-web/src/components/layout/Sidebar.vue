@@ -41,14 +41,14 @@
         <el-sub-menu index="/recipes">
           <template #title>
             <el-icon><Food /></el-icon>
-            <span>食谱</span>
+            <span>菜谱</span>
           </template>
-          <el-menu-item index="/recipes">食谱列表</el-menu-item>
-          <el-menu-item index="/recipes/create">创建食谱</el-menu-item>
+          <el-menu-item index="/recipes">菜谱列表</el-menu-item>
+          <el-menu-item index="/recipes/create">创建菜谱</el-menu-item>
         </el-sub-menu>
 
         <el-menu-item index="/ingredients">
-          <el-icon><FoodComponent /></el-icon>
+          <el-icon><Goods /></el-icon>
           <template #title>食材库</template>
         </el-menu-item>
 
@@ -99,6 +99,7 @@
             <el-icon><Setting /></el-icon>
             <span>系统设置</span>
           </template>
+          <el-menu-item index="/profile">个人设置</el-menu-item>
           <el-menu-item index="/system/settings">基础设置</el-menu-item>
           <el-menu-item index="/system/admin">管理员</el-menu-item>
           <el-menu-item index="/system/operation-logs">操作日志</el-menu-item>
@@ -156,8 +157,29 @@ function toggleCollapse() {
     }
 
     :deep(.el-menu--collapse) {
-      .el-sub-menu__title span {
+      width: 100%;
+
+      > .el-menu-item,
+      > .el-sub-menu > .el-sub-menu__title {
+        padding: 0 !important;
+        width: 100%;
+        justify-content: center;
+      }
+
+      .el-sub-menu__icon-arrow {
         display: none;
+      }
+
+      .el-sub-menu__title span,
+      .el-menu-item > span:not(.el-icon) {
+        display: none;
+      }
+
+      .el-icon {
+        margin: 0 auto;
+        font-size: 18px;
+        width: 100%;
+        text-align: center;
       }
     }
   }
