@@ -1,6 +1,6 @@
 packages:
   - 'server/**'
-  - 'client/**'
+  - 'client/admin-web'
   - 'packages/**'
   - '!'
   - '**/node_modules'

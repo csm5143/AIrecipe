@@ -109,15 +109,23 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  const userStore = useUserStore();
-
-  if (to.meta.requiresAuth !== false && !userStore.token) {
-    next({ name: 'Login', query: { redirect: to.fullPath } });
-  } else if (to.name === 'Login' && userStore.token) {
-    next({ name: 'Dashboard' });
-  } else {
-    next();
+  if (to.meta.requiresAuth !== false) {
+    const userStore = useUserStore();
+    if (!userStore.token) {
+      next({ name: 'Login', query: { redirect: to.fullPath } });
+      return;
+    }
   }
+
+  if (to.name === 'Login') {
+    const userStore = useUserStore();
+    if (userStore.token) {
+      next({ name: 'Dashboard' });
+      return;
+    }
+  }
+
+  next();
 });
 
 export default router;

@@ -1,2 +1,4 @@
 export { default as request } from './request';
-export { default as authApi } from './auth';
+export { authApi } from './auth';
+export { feedbackApi } from './feedback';
+export { ingredientApi } from './ingredient';
