@@ -1,0 +1,3056 @@
+[
+  {
+    "name": "鸡胸肉",
+    "category": "meat",
+    "subCategory": "鸡肉",
+    "selected": false
+  },
+  {
+    "name": "鸡腿",
+    "category": "meat",
+    "subCategory": "鸡肉",
+    "selected": false
+  },
+  {
+    "name": "鸡翅",
+    "category": "meat",
+    "subCategory": "鸡肉",
+    "selected": false
+  },
+  {
+    "name": "鸡里脊",
+    "category": "meat",
+    "subCategory": "鸡肉",
+    "selected": false
+  },
+  {
+    "name": "鸡爪",
+    "category": "meat",
+    "subCategory": "鸡肉",
+    "selected": false
+  },
+  {
+    "name": "鸡翅中",
+    "category": "meat",
+    "subCategory": "鸡肉",
+    "selected": false
+  },
+  {
+    "name": "鸡翅根",
+    "category": "meat",
+    "subCategory": "鸡肉",
+    "selected": false
+  },
+  {
+    "name": "鸡胗",
+    "category": "meat",
+    "subCategory": "鸡肉",
+    "selected": false
+  },
+  {
+    "name": "鸭肉",
+    "category": "meat",
+    "subCategory": "鸭鹅",
+    "selected": false
+  },
+  {
+    "name": "鸭掌",
+    "category": "meat",
+    "subCategory": "鸭鹅",
+    "selected": false
+  },
+  {
+    "name": "鸭翅",
+    "category": "meat",
+    "subCategory": "鸭鹅",
+    "selected": false
+  },
+  {
+    "name": "鸭脖",
+    "category": "meat",
+    "subCategory": "鸭鹅",
+    "selected": false
+  },
+  {
+    "name": "鸭胗",
+    "category": "meat",
+    "subCategory": "鸭鹅",
+    "selected": false
+  },
+  {
+    "name": "鹅肉",
+    "category": "meat",
+    "subCategory": "鸭鹅",
+    "selected": false
+  },
+  {
+    "name": "鹅掌",
+    "category": "meat",
+    "subCategory": "鸭鹅",
+    "selected": false
+  },
+  {
+    "name": "鹅肠",
+    "category": "meat",
+    "subCategory": "鸭鹅",
+    "selected": false
+  },
+  {
+    "name": "猪肉",
+    "category": "meat",
+    "subCategory": "猪肉",
+    "selected": false
+  },
+  {
+    "name": "五花肉",
+    "category": "meat",
+    "subCategory": "猪肉",
+    "selected": false
+  },
+  {
+    "name": "梅花肉",
+    "category": "meat",
+    "subCategory": "猪肉",
+    "selected": false
+  },
+  {
+    "name": "排骨",
+    "category": "meat",
+    "subCategory": "猪肉",
+    "selected": false
+  },
+  {
+    "name": "猪里脊",
+    "category": "meat",
+    "subCategory": "猪肉",
+    "selected": false
+  },
+  {
+    "name": "猪蹄",
+    "category": "meat",
+    "subCategory": "猪肉",
+    "selected": false
+  },
+  {
+    "name": "猪肝",
+    "category": "meat",
+    "subCategory": "猪肉",
+    "selected": false
+  },
+  {
+    "name": "猪耳朵",
+    "category": "meat",
+    "subCategory": "猪肉",
+    "selected": false
+  },
+  {
+    "name": "牛肉",
+    "category": "meat",
+    "subCategory": "牛肉",
+    "selected": false
+  },
+  {
+    "name": "牛腩",
+    "category": "meat",
+    "subCategory": "牛肉",
+    "selected": false
+  },
+  {
+    "name": "牛排",
+    "category": "meat",
+    "subCategory": "牛肉",
+    "selected": false
+  },
+  {
+    "name": "牛腱子",
+    "category": "meat",
+    "subCategory": "牛肉",
+    "selected": false
+  },
+  {
+    "name": "牛百叶",
+    "category": "meat",
+    "subCategory": "牛肉",
+    "selected": false
+  },
+  {
+    "name": "牛肚",
+    "category": "meat",
+    "subCategory": "牛肉",
+    "selected": false
+  },
+  {
+    "name": "牛筋",
+    "category": "meat",
+    "subCategory": "牛肉",
+    "selected": false
+  },
+  {
+    "name": "牛肺",
+    "category": "meat",
+    "subCategory": "牛肉",
+    "selected": false
+  },
+  {
+    "name": "牛肉丸",
+    "category": "meat",
+    "subCategory": "牛肉",
+    "selected": false
+  },
+  {
+    "name": "羊肉",
+    "category": "meat",
+    "subCategory": "羊肉",
+    "selected": false
+  },
+  {
+    "name": "羊排",
+    "category": "meat",
+    "subCategory": "羊肉",
+    "selected": false
+  },
+  {
+    "name": "羊蝎子",
+    "category": "meat",
+    "subCategory": "羊肉",
+    "selected": false
+  },
+  {
+    "name": "羊杂",
+    "category": "meat",
+    "subCategory": "羊肉",
+    "selected": false
+  },
+  {
+    "name": "肥肠",
+    "category": "meat",
+    "subCategory": "羊肉",
+    "selected": false
+  },
+  {
+    "name": "培根",
+    "category": "meat",
+    "subCategory": "加工肉",
+    "selected": false
+  },
+  {
+    "name": "火腿肠",
+    "category": "meat",
+    "subCategory": "加工肉",
+    "selected": false
+  },
+  {
+    "name": "火腿",
+    "category": "meat",
+    "subCategory": "加工肉",
+    "selected": false
+  },
+  {
+    "name": "腊肉",
+    "category": "meat",
+    "subCategory": "加工肉",
+    "selected": false
+  },
+  {
+    "name": "腊肠",
+    "category": "meat",
+    "subCategory": "加工肉",
+    "selected": false
+  },
+  {
+    "name": "叉烧",
+    "category": "meat",
+    "subCategory": "加工肉",
+    "selected": false
+  },
+  {
+    "name": "香肠",
+    "category": "meat",
+    "subCategory": "加工肉",
+    "selected": false
+  },
+  {
+    "name": "肉松",
+    "category": "meat",
+    "subCategory": "加工肉",
+    "selected": false
+  },
+  {
+    "name": "意式香肠",
+    "category": "meat",
+    "subCategory": "加工肉",
+    "selected": false
+  },
+  {
+    "name": "鸡蛋",
+    "category": "egg_dairy",
+    "subCategory": "蛋类",
+    "selected": false
+  },
+  {
+    "name": "咸鸭蛋",
+    "category": "egg_dairy",
+    "subCategory": "蛋类",
+    "selected": false
+  },
+  {
+    "name": "鹌鹑蛋",
+    "category": "egg_dairy",
+    "subCategory": "蛋类",
+    "selected": false
+  },
+  {
+    "name": "鸭蛋",
+    "category": "egg_dairy",
+    "subCategory": "蛋类",
+    "selected": false
+  },
+  {
+    "name": "鹅蛋",
+    "category": "egg_dairy",
+    "subCategory": "蛋类",
+    "selected": false
+  },
+  {
+    "name": "皮蛋",
+    "category": "egg_dairy",
+    "subCategory": "蛋类",
+    "selected": false
+  },
+  {
+    "name": "咸蛋黄",
+    "category": "egg_dairy",
+    "subCategory": "蛋类",
+    "selected": false
+  },
+  {
+    "name": "牛奶",
+    "category": "egg_dairy",
+    "subCategory": "奶制品",
+    "selected": false
+  },
+  {
+    "name": "酸奶",
+    "category": "egg_dairy",
+    "subCategory": "奶制品",
+    "selected": false
+  },
+  {
+    "name": "芝士",
+    "category": "egg_dairy",
+    "subCategory": "奶制品",
+    "selected": false
+  },
+  {
+    "name": "奶酪",
+    "category": "egg_dairy",
+    "subCategory": "奶制品",
+    "selected": false
+  },
+  {
+    "name": "淡奶油",
+    "category": "egg_dairy",
+    "subCategory": "奶制品",
+    "selected": false
+  },
+  {
+    "name": "黄油",
+    "category": "egg_dairy",
+    "subCategory": "奶制品",
+    "selected": false
+  },
+  {
+    "name": "老酸奶",
+    "category": "egg_dairy",
+    "subCategory": "奶制品",
+    "selected": false
+  },
+  {
+    "name": "炼乳",
+    "category": "egg_dairy",
+    "subCategory": "奶制品",
+    "selected": false
+  },
+  {
+    "name": "西兰花",
+    "category": "vegetable",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "番茄",
+    "category": "vegetable",
+    "subCategory": "瓜果",
+    "selected": false
+  },
+  {
+    "name": "土豆",
+    "category": "vegetable",
+    "subCategory": "根茎",
+    "selected": false
+  },
+  {
+    "name": "胡萝卜",
+    "category": "vegetable",
+    "subCategory": "根茎",
+    "selected": false
+  },
+  {
+    "name": "白萝卜",
+    "category": "vegetable",
+    "subCategory": "根茎",
+    "selected": false
+  },
+  {
+    "name": "黄瓜",
+    "category": "vegetable",
+    "subCategory": "瓜果",
+    "selected": false
+  },
+  {
+    "name": "生菜",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "油麦菜",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "菠菜",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "小白菜",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "青椒",
+    "category": "vegetable",
+    "subCategory": "辣椒",
+    "selected": false
+  },
+  {
+    "name": "红椒",
+    "category": "vegetable",
+    "subCategory": "辣椒",
+    "selected": false
+  },
+  {
+    "name": "彩椒",
+    "category": "vegetable",
+    "subCategory": "辣椒",
+    "selected": false
+  },
+  {
+    "name": "洋葱",
+    "category": "vegetable",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "大葱",
+    "category": "vegetable",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "西葫芦",
+    "category": "vegetable",
+    "subCategory": "瓜果",
+    "selected": false
+  },
+  {
+    "name": "茄子",
+    "category": "vegetable",
+    "subCategory": "瓜果",
+    "selected": false
+  },
+  {
+    "name": "豆角",
+    "category": "vegetable",
+    "subCategory": "豆类",
+    "selected": false
+  },
+  {
+    "name": "四季豆",
+    "category": "vegetable",
+    "subCategory": "豆类",
+    "selected": false
+  },
+  {
+    "name": "荷兰豆",
+    "category": "vegetable",
+    "subCategory": "豆类",
+    "selected": false
+  },
+  {
+    "name": "芹菜",
+    "category": "vegetable",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "莲藕",
+    "category": "vegetable",
+    "subCategory": "根茎",
+    "selected": false
+  },
+  {
+    "name": "南瓜",
+    "category": "vegetable",
+    "subCategory": "瓜果",
+    "selected": false
+  },
+  {
+    "name": "山药",
+    "category": "vegetable",
+    "subCategory": "根茎",
+    "selected": false
+  },
+  {
+    "name": "香菜",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "大白菜",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "包菜",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "韭菜",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "韭黄",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "蒜苔",
+    "category": "vegetable",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "娃娃菜",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "芦笋",
+    "category": "vegetable",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "冬瓜",
+    "category": "vegetable",
+    "subCategory": "瓜果",
+    "selected": false
+  },
+  {
+    "name": "豇豆",
+    "category": "vegetable",
+    "subCategory": "豆类",
+    "selected": false
+  },
+  {
+    "name": "秋葵",
+    "category": "vegetable",
+    "subCategory": "豆类",
+    "selected": false
+  },
+  {
+    "name": "毛豆",
+    "category": "vegetable",
+    "subCategory": "豆类",
+    "selected": false
+  },
+  {
+    "name": "豌豆",
+    "category": "vegetable",
+    "subCategory": "豆类",
+    "selected": false
+  },
+  {
+    "name": "竹笋",
+    "category": "vegetable",
+    "subCategory": "根茎",
+    "selected": false
+  },
+  {
+    "name": "玉米",
+    "category": "vegetable",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "茭白",
+    "category": "vegetable",
+    "subCategory": "根茎",
+    "selected": false
+  },
+  {
+    "name": "荠菜",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "香椿",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "花菜",
+    "category": "vegetable",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "豆芽",
+    "category": "vegetable",
+    "subCategory": "豆类",
+    "selected": false
+  },
+  {
+    "name": "小米辣",
+    "category": "vegetable",
+    "subCategory": "辣椒",
+    "selected": false
+  },
+  {
+    "name": "灯笼椒",
+    "category": "vegetable",
+    "subCategory": "辣椒",
+    "selected": false
+  },
+  {
+    "name": "尖椒",
+    "category": "vegetable",
+    "subCategory": "辣椒",
+    "selected": false
+  },
+  {
+    "name": "螺丝椒",
+    "category": "vegetable",
+    "subCategory": "辣椒",
+    "selected": false
+  },
+  {
+    "name": "圣女果",
+    "category": "vegetable",
+    "subCategory": "瓜果",
+    "selected": false
+  },
+  {
+    "name": "线椒",
+    "category": "vegetable",
+    "subCategory": "辣椒",
+    "selected": false
+  },
+  {
+    "name": "杭椒",
+    "category": "vegetable",
+    "subCategory": "辣椒",
+    "selected": false
+  },
+  {
+    "name": "余干椒",
+    "category": "vegetable",
+    "subCategory": "辣椒",
+    "selected": false
+  },
+  {
+    "name": "紫甘蓝",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "茼蒿",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "油菜",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "贡菜",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "豆苗",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "空心菜",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "芹菜苗",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "黄花菜",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "水萝卜",
+    "category": "vegetable",
+    "subCategory": "根茎",
+    "selected": false
+  },
+  {
+    "name": "发菜",
+    "category": "vegetable",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "莴笋",
+    "category": "vegetable",
+    "subCategory": "根茎",
+    "selected": false
+  },
+  {
+    "name": "冬笋",
+    "category": "vegetable",
+    "subCategory": "根茎",
+    "selected": false
+  },
+  {
+    "name": "蒜苗",
+    "category": "vegetable",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "紫苏",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "芽菜",
+    "category": "vegetable",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "榨菜",
+    "category": "vegetable",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "红豆",
+    "category": "vegetable",
+    "subCategory": "豆类",
+    "selected": false
+  },
+  {
+    "name": "青豆",
+    "category": "vegetable",
+    "subCategory": "豆类",
+    "selected": false
+  },
+  {
+    "name": "虾仁",
+    "category": "seafood",
+    "subCategory": "虾蟹",
+    "selected": false
+  },
+  {
+    "name": "龙虾",
+    "category": "seafood",
+    "subCategory": "虾蟹",
+    "selected": false
+  },
+  {
+    "name": "螃蟹",
+    "category": "seafood",
+    "subCategory": "虾蟹",
+    "selected": false
+  },
+  {
+    "name": "皮皮虾",
+    "category": "seafood",
+    "subCategory": "虾蟹",
+    "selected": false
+  },
+  {
+    "name": "基围虾",
+    "category": "seafood",
+    "subCategory": "虾蟹",
+    "selected": false
+  },
+  {
+    "name": "梭子蟹",
+    "category": "seafood",
+    "subCategory": "虾蟹",
+    "selected": false
+  },
+  {
+    "name": "大闸蟹",
+    "category": "seafood",
+    "subCategory": "虾蟹",
+    "selected": false
+  },
+  {
+    "name": "帝王蟹",
+    "category": "seafood",
+    "subCategory": "虾蟹",
+    "selected": false
+  },
+  {
+    "name": "鱼片",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "带鱼",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "鲈鱼",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "三文鱼",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "龙利鱼",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "银鱼",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "草鱼",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "鲤鱼",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "鲫鱼",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "鳕鱼",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "黄花鱼",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "秋刀鱼",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "鱼丸",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "鱼籽",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "小河鱼",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "多春鱼",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "黄鳝",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "泥鳅",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "白鲢",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "花鲢",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "小银鱼",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "巴沙鱼",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "鳜鱼",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "河豚",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "金枪鱼",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "鱼头",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "多宝鱼",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "蟹棒",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "花蛤",
+    "category": "seafood",
+    "subCategory": "贝类",
+    "selected": false
+  },
+  {
+    "name": "蛤蜊",
+    "category": "seafood",
+    "subCategory": "贝类",
+    "selected": false
+  },
+  {
+    "name": "扇贝",
+    "category": "seafood",
+    "subCategory": "贝类",
+    "selected": false
+  },
+  {
+    "name": "生蚝",
+    "category": "seafood",
+    "subCategory": "贝类",
+    "selected": false
+  },
+  {
+    "name": "牡蛎",
+    "category": "seafood",
+    "subCategory": "贝类",
+    "selected": false
+  },
+  {
+    "name": "鲍鱼",
+    "category": "seafood",
+    "subCategory": "贝类",
+    "selected": false
+  },
+  {
+    "name": "蛏子",
+    "category": "seafood",
+    "subCategory": "贝类",
+    "selected": false
+  },
+  {
+    "name": "海蛏",
+    "category": "seafood",
+    "subCategory": "贝类",
+    "selected": false
+  },
+  {
+    "name": "海胆",
+    "category": "seafood",
+    "subCategory": "贝类",
+    "selected": false
+  },
+  {
+    "name": "象拔蚌",
+    "category": "seafood",
+    "subCategory": "贝类",
+    "selected": false
+  },
+  {
+    "name": "田螺",
+    "category": "seafood",
+    "subCategory": "贝类",
+    "selected": false
+  },
+  {
+    "name": "螺蛳",
+    "category": "seafood",
+    "subCategory": "贝类",
+    "selected": false
+  },
+  {
+    "name": "干贝",
+    "category": "seafood",
+    "subCategory": "贝类",
+    "selected": false
+  },
+  {
+    "name": "鱿鱼",
+    "category": "seafood",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "鱿鱼须",
+    "category": "seafood",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "鱿鱼圈",
+    "category": "seafood",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "章鱼",
+    "category": "seafood",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "牛蛙",
+    "category": "seafood",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "海带",
+    "category": "seafood",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "紫菜",
+    "category": "seafood",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "虾皮",
+    "category": "seafood",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "虾米",
+    "category": "seafood",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "海参",
+    "category": "seafood",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "鱼胶",
+    "category": "seafood",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "鱼翅",
+    "category": "seafood",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "鱼子酱",
+    "category": "seafood",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "虾酱",
+    "category": "seafood",
+    "subCategory": "其他",
+    "selected": false
+  },
+  {
+    "name": "香菇",
+    "category": "fungus",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "金针菇",
+    "category": "fungus",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "杏鲍菇",
+    "category": "fungus",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "平菇",
+    "category": "fungus",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "木耳",
+    "category": "fungus",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "口蘑",
+    "category": "fungus",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "茶树菇",
+    "category": "fungus",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "黑木耳",
+    "category": "fungus",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "干香菇",
+    "category": "fungus",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "鸡枞菌",
+    "category": "fungus",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "羊肚菌",
+    "category": "fungus",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "牛肝菌",
+    "category": "fungus",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "鸡油菌",
+    "category": "fungus",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "松露",
+    "category": "fungus",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "银耳",
+    "category": "fungus",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "花胶",
+    "category": "fungus",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "百合",
+    "category": "fungus",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "桃胶",
+    "category": "fungus",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "皂角米",
+    "category": "fungus",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "豆腐",
+    "category": "soy",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "豆干",
+    "category": "soy",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "腐竹",
+    "category": "soy",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "豆浆",
+    "category": "soy",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "油豆腐",
+    "category": "soy",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "烤麸",
+    "category": "soy",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "豆皮",
+    "category": "soy",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "千张",
+    "category": "soy",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "豆腐干",
+    "category": "soy",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "香干",
+    "category": "soy",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "魔芋丝",
+    "category": "soy",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "大米",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "谷物米类"
+  },
+  {
+    "name": "米饭",
+    "category": "staple",
+    "subCategory": "米饭",
+    "selected": false
+  },
+  {
+    "name": "糯米",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "谷物米类"
+  },
+  {
+    "name": "米粉",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面食"
+  },
+  {
+    "name": "粉丝",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面食"
+  },
+  {
+    "name": "馒头",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "蒸制类"
+  },
+  {
+    "name": "面包",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面包类"
+  },
+  {
+    "name": "吐司",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面包类"
+  },
+  {
+    "name": "面条",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面食"
+  },
+  {
+    "name": "面饼",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "饼类"
+  },
+  {
+    "name": "红薯",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "薯芋类"
+  },
+  {
+    "name": "紫薯",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "薯芋类"
+  },
+  {
+    "name": "芋头",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "薯芋类"
+  },
+  {
+    "name": "小米",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "谷物米类"
+  },
+  {
+    "name": "薏米",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "谷物米类"
+  },
+  {
+    "name": "荞麦米",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "谷物米类"
+  },
+  {
+    "name": "荞麦面",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "其他"
+  },
+  {
+    "name": "燕麦",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "谷物米类"
+  },
+  {
+    "name": "意大利面",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面食"
+  },
+  {
+    "name": "河粉",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面食"
+  },
+  {
+    "name": "年糕",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "其他"
+  },
+  {
+    "name": "粉皮",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面食"
+  },
+  {
+    "name": "粉条",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面食"
+  },
+  {
+    "name": "糯米粉",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面粉类"
+  },
+  {
+    "name": "面粉",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面粉类"
+  },
+  {
+    "name": "黑米",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "谷物米类"
+  },
+  {
+    "name": "青稞",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "谷物米类"
+  },
+  {
+    "name": "扁豆",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "豆类"
+  },
+  {
+    "name": "芸豆",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "豆类"
+  },
+  {
+    "name": "黑豆",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "豆类"
+  },
+  {
+    "name": "绿豆",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "豆类"
+  },
+  {
+    "name": "蚕豆",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "豆类"
+  },
+  {
+    "name": "紫米",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "谷物米类"
+  },
+  {
+    "name": "糙米",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "谷物米类"
+  },
+  {
+    "name": "手擀面",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面食"
+  },
+  {
+    "name": "乌冬面",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面食"
+  },
+  {
+    "name": "拉面",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面食"
+  },
+  {
+    "name": "热干面",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面食"
+  },
+  {
+    "name": "馕",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "饼类"
+  },
+  {
+    "name": "汉堡胚",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面包类"
+  },
+  {
+    "name": "春卷皮",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "饼类"
+  },
+  {
+    "name": "馄饨皮",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "饼类"
+  },
+  {
+    "name": "饺子皮",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "饼类"
+  },
+  {
+    "name": "蛋挞皮",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "饼类"
+  },
+  {
+    "name": "汤圆",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "其他"
+  },
+  {
+    "name": "酵母",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "其他"
+  },
+  {
+    "name": "泡打粉",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "其他"
+  },
+  {
+    "name": "玉米淀粉",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面粉类"
+  },
+  {
+    "name": "红薯淀粉",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面粉类"
+  },
+  {
+    "name": "淀粉",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面粉类"
+  },
+  {
+    "name": "面包糠",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "面粉类"
+  },
+  {
+    "name": "藜麦",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "谷物米类"
+  },
+  {
+    "name": "无铝油条膨松剂",
+    "category": "staple",
+    "selected": false,
+    "subCategory": "其他"
+  },
+  {
+    "name": "蒜瓣",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "isCommon": true,
+    "selected": false
+  },
+  {
+    "name": "姜",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "isCommon": true,
+    "selected": false
+  },
+  {
+    "name": "葱花",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "isCommon": true,
+    "selected": false
+  },
+  {
+    "name": "干辣椒",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "isCommon": true,
+    "selected": false
+  },
+  {
+    "name": "花椒",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "isCommon": true,
+    "selected": false
+  },
+  {
+    "name": "酱油",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "isCommon": true,
+    "selected": false
+  },
+  {
+    "name": "生抽",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "isCommon": true,
+    "selected": false
+  },
+  {
+    "name": "老抽",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "isCommon": true,
+    "selected": false
+  },
+  {
+    "name": "蚝油",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "isCommon": true,
+    "selected": false
+  },
+  {
+    "name": "香油",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "isCommon": true,
+    "selected": false
+  },
+  {
+    "name": "料酒",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "isCommon": true,
+    "selected": false
+  },
+  {
+    "name": "啤酒",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "selected": false
+  },
+  {
+    "name": "白胡椒粉",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "isCommon": true,
+    "selected": false
+  },
+  {
+    "name": "黑胡椒",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "isCommon": true,
+    "selected": false
+  },
+  {
+    "name": "香醋",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "isCommon": true,
+    "selected": false
+  },
+  {
+    "name": "陈醋",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "isCommon": true,
+    "selected": false
+  },
+  {
+    "name": "冰糖",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "isCommon": true,
+    "selected": false
+  },
+  {
+    "name": "白糖",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "isCommon": true,
+    "selected": false
+  },
+  {
+    "name": "盐",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "isCommon": true,
+    "selected": false
+  },
+  {
+    "name": "海苔",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "selected": false
+  },
+  {
+    "name": "欧芹",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "selected": false
+  },
+  {
+    "name": "芥末",
+    "category": "seasoning",
+    "subCategory": "常用",
+    "selected": false
+  },
+  {
+    "name": "豆瓣酱",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "甜面酱",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "沙拉酱",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "番茄酱",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "蛋黄酱",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "老干妈",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "芝麻酱",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "XO酱",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "辣椒油",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "麻酱",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "咖喱块",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "腐乳",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "南乳",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "酸菜",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "泡菜",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "番茄沙司",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "酸梅酱",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "叉烧酱",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "烧烤酱",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "蒸鱼豉油",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "鱼露",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "豆豉",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "干黄酱",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "火锅底料",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "冬阴功酱",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "味噌酱",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "八角",
+    "category": "seasoning",
+    "subCategory": "香料",
+    "selected": false
+  },
+  {
+    "name": "桂皮",
+    "category": "seasoning",
+    "subCategory": "香料",
+    "selected": false
+  },
+  {
+    "name": "香叶",
+    "category": "seasoning",
+    "subCategory": "香料",
+    "selected": false
+  },
+  {
+    "name": "花椒粉",
+    "category": "seasoning",
+    "subCategory": "香料",
+    "selected": false
+  },
+  {
+    "name": "辣椒粉",
+    "category": "seasoning",
+    "subCategory": "香料",
+    "selected": false
+  },
+  {
+    "name": "孜然粉",
+    "category": "seasoning",
+    "subCategory": "香料",
+    "selected": false
+  },
+  {
+    "name": "五香粉",
+    "category": "seasoning",
+    "subCategory": "香料",
+    "selected": false
+  },
+  {
+    "name": "胡椒粉",
+    "category": "seasoning",
+    "subCategory": "香料",
+    "selected": false
+  },
+  {
+    "name": "椒盐",
+    "category": "seasoning",
+    "subCategory": "香料",
+    "selected": false
+  },
+  {
+    "name": "泡椒",
+    "category": "seasoning",
+    "subCategory": "香料",
+    "selected": false
+  },
+  {
+    "name": "红酒",
+    "category": "seasoning",
+    "subCategory": "香料",
+    "selected": false
+  },
+  {
+    "name": "奥尔良腌料",
+    "category": "seasoning",
+    "subCategory": "香料",
+    "selected": false
+  },
+  {
+    "name": "迷迭香",
+    "category": "seasoning",
+    "subCategory": "香料",
+    "selected": false
+  },
+  {
+    "name": "香草精",
+    "category": "seasoning",
+    "subCategory": "香料",
+    "selected": false
+  },
+  {
+    "name": "橄榄油",
+    "category": "seasoning",
+    "subCategory": "油类",
+    "selected": false
+  },
+  {
+    "name": "食用油",
+    "category": "seasoning",
+    "subCategory": "油类",
+    "selected": false
+  },
+  {
+    "name": "菜籽油",
+    "category": "seasoning",
+    "subCategory": "油类",
+    "selected": false
+  },
+  {
+    "name": "花生油",
+    "category": "seasoning",
+    "subCategory": "油类",
+    "selected": false
+  },
+  {
+    "name": "糖",
+    "category": "seasoning",
+    "subCategory": "甜味",
+    "selected": false
+  },
+  {
+    "name": "白砂糖",
+    "category": "seasoning",
+    "subCategory": "甜味",
+    "selected": false
+  },
+  {
+    "name": "红糖",
+    "category": "seasoning",
+    "subCategory": "甜味",
+    "selected": false
+  },
+  {
+    "name": "蜂蜜",
+    "category": "seasoning",
+    "subCategory": "甜味",
+    "selected": false
+  },
+  {
+    "name": "醋",
+    "category": "seasoning",
+    "subCategory": "酸味",
+    "selected": false
+  },
+  {
+    "name": "柠檬汁",
+    "category": "seasoning",
+    "subCategory": "酸味",
+    "selected": false
+  },
+  {
+    "name": "芝麻",
+    "category": "seasoning",
+    "subCategory": "芝麻",
+    "selected": false
+  },
+  {
+    "name": "白芝麻",
+    "category": "seasoning",
+    "subCategory": "芝麻",
+    "selected": false
+  },
+  {
+    "name": "黑芝麻",
+    "category": "seasoning",
+    "subCategory": "芝麻",
+    "selected": false
+  },
+  {
+    "name": "芒果",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "热带"
+  },
+  {
+    "name": "苹果",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "鲜果"
+  },
+  {
+    "name": "香蕉",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "鲜果"
+  },
+  {
+    "name": "橙子",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "柑橘"
+  },
+  {
+    "name": "梨",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "鲜果"
+  },
+  {
+    "name": "西瓜",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "瓜类"
+  },
+  {
+    "name": "葡萄",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "葡萄"
+  },
+  {
+    "name": "柚子",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "柑橘"
+  },
+  {
+    "name": "蓝莓",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "浆果"
+  },
+  {
+    "name": "草莓",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "浆果"
+  },
+  {
+    "name": "菠萝",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "热带"
+  },
+  {
+    "name": "火龙果",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "热带"
+  },
+  {
+    "name": "猕猴桃",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "鲜果"
+  },
+  {
+    "name": "百香果",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "热带"
+  },
+  {
+    "name": "枇杷",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "鲜果"
+  },
+  {
+    "name": "石榴",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "热带"
+  },
+  {
+    "name": "车厘子",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "鲜果"
+  },
+  {
+    "name": "桃",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "鲜果"
+  },
+  {
+    "name": "杏",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "鲜果"
+  },
+  {
+    "name": "柿子",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "鲜果"
+  },
+  {
+    "name": "荔枝",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "热带"
+  },
+  {
+    "name": "龙眼",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "热带"
+  },
+  {
+    "name": "红枣",
+    "category": "medicinal",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "枸杞",
+    "category": "medicinal",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "桂圆",
+    "category": "medicinal",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "甘蔗",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "其他"
+  },
+  {
+    "name": "椰子",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "热带"
+  },
+  {
+    "name": "柠檬",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "柑橘"
+  },
+  {
+    "name": "牛油果",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "热带"
+  },
+  {
+    "name": "雪梨",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "鲜果"
+  },
+  {
+    "name": "杨桃",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "热带"
+  },
+  {
+    "name": "桑葚",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "浆果"
+  },
+  {
+    "name": "山楂",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "其他"
+  },
+  {
+    "name": "无花果",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "干果"
+  },
+  {
+    "name": "金桔",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "柑橘"
+  },
+  {
+    "name": "莲子",
+    "category": "medicinal",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "银杏果",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "干果"
+  },
+  {
+    "name": "板栗",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "干果"
+  },
+  {
+    "name": "腰果",
+    "category": "nut",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "杏仁",
+    "category": "nut",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "开心果",
+    "category": "nut",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "榛子",
+    "category": "nut",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "栗子",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "干果"
+  },
+  {
+    "name": "白果",
+    "category": "fruit",
+    "selected": false,
+    "subCategory": "干果"
+  },
+  {
+    "name": "夏威夷果",
+    "category": "nut",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "碧根果",
+    "category": "nut",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "木鱼花",
+    "category": "other",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "可可粉",
+    "category": "other",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "巧克力",
+    "category": "other",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "巧克力酱",
+    "category": "other",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "黑巧克力",
+    "category": "other",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "芡实",
+    "category": "medicinal",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "龟苓膏",
+    "category": "other",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "南瓜泥",
+    "category": "other",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "即食燕麦",
+    "category": "other",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "自制肉松",
+    "category": "other",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "糖粉",
+    "category": "other",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "黄芪",
+    "category": "medicinal",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "乌梅",
+    "category": "medicinal",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "山楂干",
+    "category": "other",
+    "selected": false,
+    "subCategory": ""
+  },
+  {
+    "name": "核桃",
+    "category": "nut",
+    "subCategory": ""
+  },
+  {
+    "name": "核桃仁",
+    "category": "nut",
+    "subCategory": ""
+  },
+  {
+    "name": "西瓜子",
+    "category": "nut",
+    "subCategory": ""
+  },
+  {
+    "name": "薄荷",
+    "category": "medicinal",
+    "subCategory": ""
+  },
+  {
+    "name": "薄荷叶",
+    "category": "medicinal",
+    "subCategory": ""
+  },
+  {
+    "name": "罗勒",
+    "category": "medicinal",
+    "subCategory": ""
+  },
+  {
+    "name": "鸡心",
+    "category": "meat",
+    "subCategory": "鸡肉",
+    "selected": false
+  },
+  {
+    "name": "鸭心",
+    "category": "meat",
+    "subCategory": "鸭鹅",
+    "selected": false
+  },
+  {
+    "name": "鸭肝",
+    "category": "meat",
+    "subCategory": "鸭鹅",
+    "selected": false
+  },
+  {
+    "name": "鸭肠",
+    "category": "meat",
+    "subCategory": "鸭鹅",
+    "selected": false
+  },
+  {
+    "name": "鹅肝",
+    "category": "meat",
+    "subCategory": "鸭鹅",
+    "selected": false
+  },
+  {
+    "name": "猪血",
+    "category": "meat",
+    "subCategory": "其他肉类",
+    "selected": false
+  },
+  {
+    "name": "猪肚",
+    "category": "meat",
+    "subCategory": "其他肉类",
+    "selected": false
+  },
+  {
+    "name": "牛骨",
+    "category": "meat",
+    "subCategory": "牛肉",
+    "selected": false
+  },
+  {
+    "name": "花生",
+    "category": "nut",
+    "subCategory": "",
+    "selected": false
+  },
+  {
+    "name": "黄豆",
+    "category": "soy",
+    "subCategory": "",
+    "selected": false
+  },
+  {
+    "name": "青菜",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "鸡精",
+    "category": "seasoning",
+    "subCategory": "粉类",
+    "selected": false
+  },
+  {
+    "name": "红薯粉",
+    "category": "staple",
+    "subCategory": "面食",
+    "selected": false
+  },
+  {
+    "name": "葱",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "蒜",
+    "category": "vegetable",
+    "subCategory": "",
+    "selected": false
+  },
+  {
+    "name": "可乐",
+    "category": "other",
+    "subCategory": "",
+    "selected": false
+  },
+  {
+    "name": "金枪鱼罐头",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "鸭血",
+    "category": "meat",
+    "subCategory": "其他肉类",
+    "selected": false
+  },
+  {
+    "name": "黄喉",
+    "category": "meat",
+    "subCategory": "其他肉类",
+    "selected": false
+  },
+  {
+    "name": "肥牛卷",
+    "category": "meat",
+    "subCategory": "加工肉",
+    "selected": false
+  },
+  {
+    "name": "大虾",
+    "category": "seafood",
+    "subCategory": "虾蟹",
+    "selected": false
+  },
+  {
+    "name": "小龙虾",
+    "category": "seafood",
+    "subCategory": "虾蟹",
+    "selected": false
+  },
+  {
+    "name": "猪肘子",
+    "category": "meat",
+    "subCategory": "其他肉类",
+    "selected": false
+  },
+  {
+    "name": "肋排",
+    "category": "meat",
+    "subCategory": "猪肉",
+    "selected": false
+  },
+  {
+    "name": "里脊肉",
+    "category": "meat",
+    "subCategory": "猪肉",
+    "selected": false
+  },
+  {
+    "name": "鸡腿肉",
+    "category": "meat",
+    "subCategory": "鸡肉",
+    "selected": false
+  },
+  {
+    "name": "鹅",
+    "category": "meat",
+    "subCategory": "鸭鹅",
+    "selected": false
+  },
+  {
+    "name": "鹅腿",
+    "category": "meat",
+    "subCategory": "鸭鹅",
+    "selected": false
+  },
+  {
+    "name": "兔肉",
+    "category": "meat",
+    "subCategory": "其他肉类",
+    "selected": false
+  },
+  {
+    "name": "驴肉",
+    "category": "meat",
+    "subCategory": "其他肉类",
+    "selected": false
+  },
+  {
+    "name": "黄酒",
+    "category": "seasoning",
+    "subCategory": "酒水",
+    "selected": false
+  },
+  {
+    "name": "剁椒",
+    "category": "seasoning",
+    "subCategory": "粉类",
+    "selected": false
+  },
+  {
+    "name": "十三香",
+    "category": "seasoning",
+    "subCategory": "粉类",
+    "selected": false
+  },
+  {
+    "name": "韩式辣酱",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "玉米粒",
+    "category": "vegetable",
+    "subCategory": "",
+    "selected": false
+  },
+  {
+    "name": "松子仁",
+    "category": "nut",
+    "subCategory": "",
+    "selected": false
+  },
+  {
+    "name": "马苏里拉芝士",
+    "category": "egg_dairy",
+    "subCategory": "奶制品",
+    "selected": false
+  },
+  {
+    "name": "马蹄",
+    "category": "vegetable",
+    "subCategory": "根茎",
+    "selected": false
+  },
+  {
+    "name": "藕",
+    "category": "vegetable",
+    "subCategory": "根茎",
+    "selected": false
+  },
+  {
+    "name": "青蒜",
+    "category": "vegetable",
+    "subCategory": "",
+    "selected": false
+  },
+  {
+    "name": "葱白",
+    "category": "vegetable",
+    "subCategory": "",
+    "selected": false
+  },
+  {
+    "name": "白醋",
+    "category": "seasoning",
+    "subCategory": "酒水",
+    "selected": false
+  },
+  {
+    "name": "麦芽糖",
+    "category": "seasoning",
+    "subCategory": "酒水",
+    "selected": false
+  },
+  {
+    "name": "黄豆酱",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  },
+  {
+    "name": "小葱",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "黄椒",
+    "category": "vegetable",
+    "subCategory": "辣椒",
+    "selected": false
+  },
+  {
+    "name": "苦瓜",
+    "category": "vegetable",
+    "subCategory": "瓜果",
+    "selected": false
+  },
+  {
+    "name": "丝瓜",
+    "category": "vegetable",
+    "subCategory": "瓜果",
+    "selected": false
+  },
+  {
+    "name": "花甲",
+    "category": "seafood",
+    "subCategory": "贝类",
+    "selected": false
+  },
+  {
+    "name": "鳝鱼",
+    "category": "seafood",
+    "subCategory": "鱼类",
+    "selected": false
+  },
+  {
+    "name": "海螺",
+    "category": "seafood",
+    "subCategory": "贝类",
+    "selected": false
+  },
+  {
+    "name": "猪大肠",
+    "category": "meat",
+    "subCategory": "其他肉类",
+    "selected": false
+  },
+  {
+    "name": "猪腰",
+    "category": "meat",
+    "subCategory": "其他肉类",
+    "selected": false
+  },
+  {
+    "name": "梅干菜",
+    "category": "vegetable",
+    "subCategory": "",
+    "selected": false
+  },
+  {
+    "name": "笋干",
+    "category": "vegetable",
+    "subCategory": "",
+    "selected": false
+  },
+  {
+    "name": "猪血旺",
+    "category": "meat",
+    "subCategory": "其他肉类",
+    "selected": false
+  },
+  {
+    "name": "里脊",
+    "category": "meat",
+    "subCategory": "猪肉",
+    "selected": false
+  },
+  {
+    "name": "藤椒",
+    "category": "seasoning",
+    "subCategory": "粉类",
+    "selected": false
+  },
+  {
+    "name": "青花椒",
+    "category": "seasoning",
+    "subCategory": "粉类",
+    "selected": false
+  },
+  {
+    "name": "西芹",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "乳鸽",
+    "category": "meat",
+    "subCategory": "其他肉类",
+    "selected": false
+  },
+  {
+    "name": "鸭腿",
+    "category": "meat",
+    "subCategory": "鸭鹅",
+    "selected": false
+  },
+  {
+    "name": "蛋清",
+    "category": "egg_dairy",
+    "subCategory": "蛋类",
+    "selected": false
+  },
+  {
+    "name": "牛里脊",
+    "category": "meat",
+    "subCategory": "牛肉",
+    "selected": false
+  },
+  {
+    "name": "花生米",
+    "category": "nut",
+    "subCategory": "",
+    "selected": false
+  },
+  {
+    "name": "鸡肉",
+    "category": "meat",
+    "subCategory": "鸡肉",
+    "selected": false
+  },
+  {
+    "name": "白菜",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "水饺皮",
+    "category": "staple",
+    "subCategory": "面粉类",
+    "selected": false
+  },
+  {
+    "name": "燕麦片",
+    "category": "staple",
+    "subCategory": "谷物米类",
+    "selected": false
+  },
+  {
+    "name": "烤鸭",
+    "category": "meat",
+    "subCategory": "鸭鹅",
+    "selected": false
+  },
+  {
+    "name": "猪肉松",
+    "category": "meat",
+    "subCategory": "加工肉",
+    "selected": false
+  },
+  {
+    "name": "木瓜",
+    "category": "fruit",
+    "subCategory": "热带",
+    "selected": false
+  },
+  {
+    "name": "肉桂粉",
+    "category": "seasoning",
+    "subCategory": "粉类",
+    "selected": false
+  },
+  {
+    "name": "长茄子",
+    "category": "vegetable",
+    "subCategory": "瓜果",
+    "selected": false
+  },
+  {
+    "name": "西蓝花",
+    "category": "vegetable",
+    "subCategory": "",
+    "selected": false
+  },
+  {
+    "name": "温水",
+    "category": "other",
+    "subCategory": "",
+    "selected": false
+  },
+  {
+    "name": "香葱",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "椰蓉",
+    "category": "egg_dairy",
+    "subCategory": "奶制品",
+    "selected": false
+  },
+  {
+    "name": "黄瓜条",
+    "category": "vegetable",
+    "subCategory": "瓜果",
+    "selected": false
+  },
+  {
+    "name": "薄饼",
+    "category": "staple",
+    "subCategory": "面粉类",
+    "selected": false
+  },
+  {
+    "name": "葱丝",
+    "category": "vegetable",
+    "subCategory": "叶菜",
+    "selected": false
+  },
+  {
+    "name": "方便面",
+    "category": "staple",
+    "subCategory": "面食",
+    "selected": false
+  },
+  {
+    "name": "鸽子",
+    "category": "meat",
+    "subCategory": "其他肉类",
+    "selected": false
+  },
+  {
+    "name": "五指毛桃",
+    "category": "vegetable",
+    "subCategory": "",
+    "selected": false
+  },
+  {
+    "name": "蟹味菇",
+    "category": "fungus",
+    "subCategory": "",
+    "selected": false
+  },
+  {
+    "name": "挂面",
+    "category": "staple",
+    "subCategory": "面食",
+    "selected": false
+  },
+  {
+    "name": "酸豆角",
+    "category": "vegetable",
+    "subCategory": "",
+    "selected": false
+  },
+  {
+    "name": "高汤",
+    "category": "seasoning",
+    "subCategory": "酱料",
+    "selected": false
+  }
+]

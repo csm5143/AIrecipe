@@ -1,5 +1,5 @@
 import request from './request';
-import type { ApiResponse, LoginDto, LoginResponse, AdminUser } from '@airecipe/shared-types';
+import type { ApiResponse, LoginDto, LoginResponse, AdminUser, UpdateProfileDto, ChangePasswordDto } from '@airecipe/shared-types';
 
 export const authApi = {
   login: (data: LoginDto) =>
@@ -13,4 +13,13 @@ export const authApi = {
 
   refreshToken: (refreshToken: string) =>
     request.post<ApiResponse<{ token: string; expiresIn: string }>>('/auth/refresh-token', { refreshToken }),
+
+  updateProfile: (data: UpdateProfileDto) =>
+    request.put<ApiResponse<AdminUser>>('/auth/profile', data),
+
+  changePassword: (data: ChangePasswordDto) =>
+    request.put<ApiResponse>('/auth/password', data),
+
+  updateAvatar: (data: { avatar: string }) =>
+    request.put<ApiResponse<{ avatar: string }>>('/auth/avatar', data),
 };

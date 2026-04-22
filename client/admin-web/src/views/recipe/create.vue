@@ -6,7 +6,7 @@
           <el-icon><ArrowLeft /></el-icon>
           返回
         </el-button>
-        <h2 class="page-title">创建食谱</h2>
+        <h2 class="page-title">创建菜谱</h2>
       </div>
     </div>
 
@@ -16,10 +16,10 @@
         <div class="card-container">
           <h3 class="section-title">基本信息</h3>
           <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
-            <el-form-item label="食谱标题" prop="title">
+            <el-form-item label="菜谱标题" prop="title">
               <el-input
                 v-model="form.title"
-                placeholder="给食谱起个吸引人的名字"
+                placeholder="给菜谱起个吸引人的名字"
                 maxlength="100"
                 show-word-limit
               />
@@ -30,7 +30,7 @@
                 v-model="form.description"
                 type="textarea"
                 :rows="3"
-                placeholder="简要描述这道菜的特点"
+                placeholder="简要描述这道菜的特点和烹饪要点"
                 maxlength="500"
                 show-word-limit
               />
@@ -38,29 +38,62 @@
 
             <el-row :gutter="20">
               <el-col :span="8">
-                <el-form-item label="分类" prop="category">
-                  <el-select v-model="form.category" placeholder="选择分类" style="width: 100%">
-                    <el-option label="家常菜" value="home" />
-                    <el-option label="健身餐" value="fitness" />
-                    <el-option label="儿童餐" value="kids" />
-                    <el-option label="甜点" value="dessert" />
-                    <el-option label="饮品" value="drink" />
-                    <el-option label="早餐" value="breakfast" />
+                <el-form-item label="菜品类型" prop="dishType">
+                  <el-select v-model="form.dishType" placeholder="选择菜品类型" style="width: 100%">
+                    <el-option v-for="opt in DISH_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
                   </el-select>
                 </el-form-item>
               </el-col>
               <el-col :span="8">
                 <el-form-item label="难度">
                   <el-radio-group v-model="form.difficulty">
-                    <el-radio value="EASY">简单</el-radio>
-                    <el-radio value="MEDIUM">中等</el-radio>
-                    <el-radio value="HARD">困难</el-radio>
+                    <el-radio v-for="opt in DIFFICULTY_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</el-radio>
                   </el-radio-group>
                 </el-form-item>
               </el-col>
               <el-col :span="8">
                 <el-form-item label="烹饪时间（分钟）">
                   <el-input-number v-model="form.cookingTime" :min="1" :max="999" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <el-row :gutter="20">
+              <el-col :span="8">
+                <el-form-item label="用餐时段">
+                  <el-select v-model="form.mealTimes" multiple placeholder="选择用餐时段" style="width: 100%">
+                    <el-option v-for="opt in MEAL_TIME_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="适宜人群">
+                  <el-checkbox v-model="form.fitnessMeal">健身餐</el-checkbox>
+                  <el-checkbox v-model="form.childrenMeal">儿童餐</el-checkbox>
+                </el-form-item>
+              </el-col>
+              <el-col :span="8">
+                <el-form-item label="年龄段" v-if="form.childrenMeal">
+                  <el-select v-model="form.ageBand" placeholder="选择年龄段" style="width: 100%">
+                    <el-option v-for="opt in AGE_BAND_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <el-row :gutter="20" v-if="form.fitnessMeal">
+              <el-col :span="12">
+                <el-form-item label="健身分类">
+                  <el-select v-model="form.fitnessCategory" placeholder="选择健身分类" style="width: 100%">
+                    <el-option v-for="opt in FITNESS_CATEGORY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="健身目标">
+                  <el-select v-model="form.goal" placeholder="选择健身目标" style="width: 100%">
+                    <el-option v-for="opt in GOAL_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+                  </el-select>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -93,9 +126,14 @@
         <div class="card-container">
           <h3 class="section-title">食材清单</h3>
           <div class="ingredients-list">
+            <div class="ingredient-header">
+              <span>食材名称</span>
+              <span>用量</span>
+              <span></span>
+            </div>
             <div v-for="(item, index) in form.ingredients" :key="index" class="ingredient-item">
-              <el-input v-model="item.name" placeholder="食材名称" />
-              <el-input v-model="item.amount" placeholder="用量" />
+              <el-input v-model="item.name" placeholder="如：鸡胸肉" />
+              <el-input v-model="item.amount" placeholder="如：80g" />
               <el-button type="danger" :icon="Delete" circle @click="removeIngredient(index)" />
             </div>
             <el-button type="default" @click="addIngredient">
@@ -144,6 +182,21 @@
             </el-button>
           </div>
         </div>
+
+        <!-- 小贴士 -->
+        <div class="card-container">
+          <h3 class="section-title">小贴士</h3>
+          <el-form-item>
+            <el-input
+              v-model="form.tips"
+              type="textarea"
+              :rows="3"
+              placeholder="分享一些烹饪小技巧或注意事项"
+              maxlength="500"
+              show-word-limit
+            />
+          </el-form-item>
+        </div>
       </div>
 
       <!-- 侧边栏 -->
@@ -153,8 +206,7 @@
           <el-form label-position="top">
             <el-form-item label="状态">
               <el-radio-group v-model="form.status">
-                <el-radio value="DRAFT">存为草稿</el-radio>
-                <el-radio value="PUBLISHED">立即发布</el-radio>
+                <el-radio v-for="opt in STATUS_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</el-radio>
               </el-radio-group>
             </el-form-item>
 
@@ -186,7 +238,7 @@
 
           <div class="action-buttons">
             <el-button type="primary" size="large" @click="handleSubmit">
-              {{ form.status === 'PUBLISHED' ? '发布食谱' : '保存草稿' }}
+              {{ form.status === 'PUBLISHED' ? '发布菜谱' : '保存草稿' }}
             </el-button>
             <el-button size="large" @click="router.back()">取消</el-button>
           </div>
@@ -215,10 +267,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, nextTick } from 'vue';
+import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { Plus, Delete, Picture, ArrowLeft } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
+import {
+  DISH_TYPE_OPTIONS, MEAL_TIME_OPTIONS, DIFFICULTY_OPTIONS,
+  AGE_BAND_OPTIONS, FITNESS_CATEGORY_OPTIONS, GOAL_OPTIONS, STATUS_OPTIONS,
+} from './data';
 
 const router = useRouter();
 const formRef = ref();
@@ -230,25 +286,34 @@ const tagInputRef = ref();
 const form = reactive({
   title: '',
   description: '',
-  category: '',
-  difficulty: 'MEDIUM',
+  dishType: '',
+  difficulty: 'EASY',
   cookingTime: 30,
   coverImage: '',
   ingredients: [{ name: '', amount: '' }],
   steps: [{ content: '', image: '' }],
   tags: [] as string[],
+  tips: '',
   status: 'DRAFT',
+  mealTimes: [] as string[],
+  fitnessMeal: false,
+  fitnessCategory: '',
+  goal: '',
+  ageBand: '',
+  childrenMeal: false,
   nutrition: {
     calories: 0,
     protein: 0,
     fat: 0,
     carbs: 0,
+    fiber: 0,
+    sodium: 0,
   },
 });
 
 const rules = {
-  title: [{ required: true, message: '请输入食谱标题', trigger: 'blur' }],
-  category: [{ required: true, message: '请选择分类', trigger: 'change' }],
+  title: [{ required: true, message: '请输入菜谱标题', trigger: 'blur' }],
+  dishType: [{ required: true, message: '请选择菜品类型', trigger: 'change' }],
 };
 
 function handleCoverChange(file: any) {
@@ -293,7 +358,6 @@ async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false);
   if (!valid) return;
 
-  // TODO: 调用 API 创建食谱
   ElMessage.success(form.status === 'PUBLISHED' ? '发布成功' : '保存成功');
   router.push('/recipes');
 }
@@ -411,6 +475,16 @@ async function handleSubmit() {
   display: flex;
   flex-direction: column;
   gap: 12px;
+
+  .ingredient-header {
+    display: grid;
+    grid-template-columns: 1fr 120px auto;
+    gap: 12px;
+    font-family: var(--font-display);
+    font-size: 13px;
+    color: rgba(38, 37, 30, 0.5);
+    padding: 0 4px;
+  }
 
   .ingredient-item {
     display: grid;

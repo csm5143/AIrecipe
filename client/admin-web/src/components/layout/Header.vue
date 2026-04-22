@@ -180,10 +180,14 @@ async function handleCommand(command: string) {
       router.push({ name: 'Login' });
       break;
     case 'profile':
-      ElMessage.info('个人设置功能开发中');
+      router.push({ name: 'Profile' });
       break;
     case 'password':
-      passwordDialogVisible.value = true;
+      router.push({ name: 'Profile' });
+      setTimeout(() => {
+        const event = new CustomEvent('open-password-tab');
+        window.dispatchEvent(event);
+      }, 100);
       break;
   }
 }
@@ -192,9 +196,17 @@ async function handleChangePassword() {
   const valid = await passwordFormRef.value?.validate().catch(() => false);
   if (!valid) return;
 
-  ElMessage.success('密码修改成功');
-  passwordDialogVisible.value = false;
-  passwordFormRef.value?.resetFields();
+  try {
+    await userStore.changePassword({
+      oldPassword: passwordForm.oldPassword,
+      newPassword: passwordForm.newPassword,
+    });
+    ElMessage.success('密码修改成功');
+    passwordDialogVisible.value = false;
+    passwordFormRef.value?.resetFields();
+  } catch {
+    ElMessage.error('密码修改失败，请检查当前密码是否正确');
+  }
 }
 </script>
 

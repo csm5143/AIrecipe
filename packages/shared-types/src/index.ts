@@ -201,3 +201,17 @@ export interface LoginResponse {
   expiresIn: string;
   admin: AdminUser;
 }
+
+export interface UpdateProfileDto {
+  nickname?: string;
+  phone?: string;
+}
+
+export interface ChangePasswordDto {
+  oldPassword: string;
+  newPassword: string;
+}
+
+export interface UpdateAvatarDto {
+  avatar: string;
+}

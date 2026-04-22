@@ -32,11 +32,35 @@ export const useUserStore = defineStore('user', () => {
     profile.value = res.data;
   }
 
+  async function updateProfile(data: { nickname?: string; phone?: string }) {
+    const res = await authApi.updateProfile(data);
+    if (profile.value) {
+      profile.value.nickname = res.data.nickname;
+      if ('phone' in res.data) {
+        (profile.value as any).phone = res.data.phone;
+      }
+    }
+  }
+
+  async function updateAvatar(avatar: string) {
+    await authApi.updateAvatar({ avatar });
+    if (profile.value) {
+      profile.value.avatar = avatar;
+    }
+  }
+
+  async function changePassword(data: { oldPassword: string; newPassword: string }) {
+    await authApi.changePassword(data);
+  }
+
   return {
     token,
     profile,
     login,
     logout,
     fetchProfile,
+    updateProfile,
+    updateAvatar,
+    changePassword,
   };
 });

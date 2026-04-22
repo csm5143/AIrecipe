@@ -3,7 +3,7 @@
     <div class="page-header">
       <div class="header-left">
         <h2 class="page-title">食材管理</h2>
-        <p class="text-muted">管理食材库和营养信息</p>
+        <p class="page-subtitle">共 {{ pagination.total }} 种食材</p>
       </div>
       <div class="header-actions">
         <el-button @click="handleExport">
@@ -23,49 +23,45 @@
 
     <div class="card-container">
       <div class="filter-section">
-        <div class="filter-left">
+        <div class="filter-group">
           <el-input
             v-model="filters.keyword"
             placeholder="搜索食材名称..."
             clearable
             style="width: 240px"
-            :prefix-icon="Search"
-            @keyup.enter="handleSearch"
-          />
-          <el-select v-model="filters.category" placeholder="分类" clearable style="width: 140px" @change="handleSearch">
-            <el-option label="全部" value="" />
-            <el-option label="蔬菜" value="vegetable" />
-            <el-option label="水果" value="fruit" />
-            <el-option label="肉类" value="meat" />
-            <el-option label="水产" value="seafood" />
-            <el-option label="蛋奶" value="dairy" />
-            <el-option label="谷物" value="grain" />
-            <el-option label="调料" value="seasoning" />
-            <el-option label="豆制品" value="soy" />
-            <el-option label="菌菇" value="fungus" />
-            <el-option label="坚果" value="nut" />
-            <el-option label="其他" value="other" />
+            @keyup.enter="applyFilters"
+            @clear="applyFilters"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+
+          <el-select v-model="filters.category" placeholder="分类" clearable style="width: 140px" @change="applyFilters">
+            <el-option v-for="opt in CATEGORY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
-          <el-select v-model="filters.status" placeholder="状态" clearable style="width: 100px" @change="handleSearch">
-            <el-option label="全部" value="" />
+
+          <el-select v-model="filters.status" placeholder="状态" clearable style="width: 110px" @change="applyFilters">
             <el-option label="启用" value="ACTIVE" />
             <el-option label="禁用" value="INACTIVE" />
           </el-select>
         </div>
-        <el-button type="primary" @click="handleSearch">
-          <el-icon><Search /></el-icon>
-          搜索
-        </el-button>
+
+        <div class="filter-group">
+          <el-button text @click="handleReset">
+            <el-icon><RefreshLeft /></el-icon>
+            重置
+          </el-button>
+        </div>
       </div>
 
       <el-table
         v-loading="loading"
         :data="tableData"
-        row-key="id"
-        stripe
+        row-key="name"
+        :header-cell-style="{ background: 'var(--surface-300)', color: 'var(--cursor-dark)' }"
       >
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column label="食材" min-width="200">
+        <el-table-column prop="name" label="食材" min-width="180">
           <template #default="{ row }">
             <div class="ingredient-info">
               <div class="ingredient-icon" :style="{ background: getCategoryColor(row.category) }">
@@ -73,48 +69,20 @@
               </div>
               <div class="ingredient-detail">
                 <span class="ingredient-name">{{ row.name }}</span>
-                <span class="ingredient-alias">{{ row.alias || '—' }}</span>
+                <span v-if="row.subCategory" class="ingredient-alias">{{ row.subCategory }}</span>
               </div>
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="分类" width="120" align="center">
+        <el-table-column label="分类" width="130" align="center">
           <template #default="{ row }">
             <span class="cursor-pill">{{ getCategoryText(row.category) }}</span>
-            <div v-if="row.subCategory" class="sub-category">{{ row.subCategory }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="热量" width="100" align="center">
+        <el-table-column label="标签" width="120" align="center">
           <template #default="{ row }">
-            <span class="nutrition-value">{{ row.calories ?? '—' }}</span>
-            <span v-if="row.calories != null" class="nutrition-unit">kcal</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="营养成分（每100g）" width="260" align="center">
-          <template #default="{ row }">
-            <div class="nutrition-bars">
-              <div class="nutrition-item">
-                <span class="nutrition-label">蛋白</span>
-                <div class="nutrition-bar">
-                  <div class="bar-fill protein" :style="{ width: `${Math.min((row.protein ?? 0) / 50 * 100, 100)}%` }"></div>
-                </div>
-                <span class="nutrition-num">{{ row.protein ?? 0 }}g</span>
-              </div>
-              <div class="nutrition-item">
-                <span class="nutrition-label">脂肪</span>
-                <div class="nutrition-bar">
-                  <div class="bar-fill fat" :style="{ width: `${Math.min((row.fat ?? 0) / 50 * 100, 100)}%` }"></div>
-                </div>
-                <span class="nutrition-num">{{ row.fat ?? 0 }}g</span>
-              </div>
-              <div class="nutrition-item">
-                <span class="nutrition-label">碳水</span>
-                <div class="nutrition-bar">
-                  <div class="bar-fill carbs" :style="{ width: `${Math.min((row.carbs ?? 0) / 100 * 100, 100)}%` }"></div>
-                </div>
-                <span class="nutrition-num">{{ row.carbs ?? 0 }}g</span>
-              </div>
-            </div>
+            <span v-if="row.isCommon" class="tag-chip common">常用</span>
+            <span v-if="row.selected" class="tag-chip selected">已选</span>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="90" align="center">
@@ -151,20 +119,16 @@
           :page-sizes="[20, 50, 100]"
           layout="total, sizes, prev, pager, next"
           background
-          @size-change="handleSizeChange"
-          @current-change="handlePageChange"
+          @size-change="applyFilters"
+          @current-change="applyFilters"
         />
       </div>
     </div>
 
     <!-- 添加/编辑对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="isEdit ? '编辑食材' : '添加食材'"
-      width="600px"
-    >
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑食材' : '添加食材'" width="560px">
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
-        <el-row :gutter="20">
+        <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="食材名称" prop="name">
               <el-input v-model="form.name" placeholder="请输入食材名称" />
@@ -172,35 +136,18 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="别名">
-              <el-input v-model="form.alias" placeholder="如：番茄的别名是西红柿" />
+              <el-input v-model="form.subCategory" placeholder="如：西红柿是番茄的别名" />
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row :gutter="20">
+        <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="分类" prop="category">
               <el-select v-model="form.category" placeholder="选择分类" style="width: 100%">
-                <el-option label="蔬菜" value="vegetable" />
-                <el-option label="水果" value="fruit" />
-                <el-option label="肉类" value="meat" />
-                <el-option label="水产" value="seafood" />
-                <el-option label="蛋奶" value="dairy" />
-                <el-option label="谷物" value="grain" />
-                <el-option label="调料" value="seasoning" />
-                <el-option label="豆制品" value="soy" />
-                <el-option label="菌菇" value="fungus" />
-                <el-option label="坚果" value="nut" />
-                <el-option label="其他" value="other" />
+                <el-option v-for="opt in CATEGORY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="子类">
-              <el-input v-model="form.subCategory" placeholder="如：叶菜、虾蟹、鱼类" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="状态">
               <el-radio-group v-model="form.status">
@@ -210,49 +157,13 @@
             </el-form-item>
           </el-col>
         </el-row>
-
-        <el-divider content-position="left">营养成分（每 100g）</el-divider>
-
-        <el-row :gutter="20">
+        <el-row :gutter="16">
           <el-col :span="12">
-            <el-form-item label="热量 (kcal)">
-              <el-input-number v-model="form.calories" :min="0" :max="9999" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="蛋白质 (g)">
-              <el-input-number v-model="form.protein" :min="0" :max="999" :precision="1" style="width: 100%" />
+            <el-form-item label="是否常用食材">
+              <el-switch v-model="form.isCommon" />
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="脂肪 (g)">
-              <el-input-number v-model="form.fat" :min="0" :max="999" :precision="1" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="碳水化合物 (g)">
-              <el-input-number v-model="form.carbs" :min="0" :max="999" :precision="1" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="膳食纤维 (g)">
-              <el-input-number v-model="form.fiber" :min="0" :max="999" :precision="1" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="钠 (mg)">
-              <el-input-number v-model="form.sodium" :min="0" :max="99999" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-form-item label="备注">
-          <el-input v-model="form.remark" type="textarea" :rows="2" placeholder="请输入备注信息" />
-        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -261,19 +172,12 @@
     </el-dialog>
 
     <!-- 导入对话框 -->
-    <el-dialog
-      v-model="importDialogVisible"
-      title="导入食材"
-      width="480px"
-    >
+    <el-dialog v-model="importDialogVisible" title="导入食材" width="500px">
       <div class="import-section">
-        <div class="import-desc">
-          请选择 JSON 文件导入食材数据。文件格式需为数组，每个元素包含 <code>name</code> 和 <code>category</code> 字段。
-        </div>
-        <div class="import-template">
-          <div class="template-label">JSON 格式示例：</div>
-          <pre class="template-code">{{ importTemplate }}</pre>
-        </div>
+        <p class="import-desc">
+          上传 <code>miniprogram/data/ingredients.json</code> 文件导入食材数据。
+          当前共有 <strong>{{ localData.length }}</strong> 种食材，导入将完全覆盖现有数据。
+        </p>
         <el-upload
           ref="uploadRef"
           class="import-upload"
@@ -281,7 +185,7 @@
           accept=".json"
           :auto-upload="false"
           :limit="1"
-          :on-change="handleFileChange"
+          @change="handleFileChange"
         >
           <el-icon class="upload-icon"><Upload /></el-icon>
           <div class="upload-text">将 JSON 文件拖到此处，或<em>点击上传</em></div>
@@ -302,9 +206,33 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
-import { Search, Plus, Edit, Delete, Upload, Download } from '@element-plus/icons-vue';
+import { Search, Plus, Edit, Delete, Upload, Download, RefreshLeft } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { ingredientApi, type IngredientRow, type IngredientFormData } from '@/api/ingredient';
+import type { UploadFile, FormInstance, FormRules } from 'element-plus';
+
+interface LocalIngredient {
+  name: string;
+  category: string;
+  subCategory?: string;
+  selected?: boolean;
+  isCommon?: boolean;
+  status: 'ACTIVE' | 'INACTIVE';
+}
+
+const CATEGORY_OPTIONS = [
+  { value: 'vegetable', label: '蔬菜' },
+  { value: 'fruit', label: '水果' },
+  { value: 'meat', label: '肉类' },
+  { value: 'seafood', label: '水产' },
+  { value: 'egg_dairy', label: '蛋奶' },
+  { value: 'staple', label: '主食' },
+  { value: 'seasoning', label: '调料' },
+  { value: 'soy', label: '豆制品' },
+  { value: 'fungus', label: '菌菇' },
+  { value: 'nut', label: '坚果' },
+  { value: 'medicinal', label: '药食' },
+  { value: 'other', label: '其他' },
+];
 
 const loading = ref(false);
 const saveLoading = ref(false);
@@ -312,9 +240,11 @@ const importLoading = ref(false);
 const dialogVisible = ref(false);
 const importDialogVisible = ref(false);
 const isEdit = ref(false);
-const formRef = ref();
+const formRef = ref<FormInstance>();
 const uploadRef = ref();
 const selectedFile = ref<File | null>(null);
+
+const localData = ref<LocalIngredient[]>([]);
 
 const filters = reactive({
   keyword: '',
@@ -328,158 +258,122 @@ const pagination = reactive({
   total: 0,
 });
 
-const form = reactive<IngredientFormData>({
-  id: undefined,
+const tableData = ref<LocalIngredient[]>([]);
+
+const form = reactive<LocalIngredient & { name: string; category: string }>({
   name: '',
-  alias: '',
   category: 'vegetable',
   subCategory: '',
+  selected: false,
+  isCommon: false,
   status: 'ACTIVE',
-  calories: 0,
-  protein: 0,
-  fat: 0,
-  carbs: 0,
-  fiber: 0,
-  sodium: 0,
-  remark: '',
 });
 
-const rules = {
+const rules: FormRules = {
   name: [{ required: true, message: '请输入食材名称', trigger: 'blur' }],
   category: [{ required: true, message: '请选择分类', trigger: 'change' }],
 };
 
-const tableData = ref<IngredientRow[]>([]);
-
-const importTemplate = JSON.stringify([
-  {
-    name: '牛肉',
-    category: 'meat',
-    subCategory: '牛肉',
-    alias: '',
-    calories: 125,
-    protein: 19.8,
-    fat: 5.3,
-    carbs: 0,
-    fiber: 0,
-    sodium: 32,
-  }
-], null, 2);
-
-function getCategoryText(category: string) {
-  const map: Record<string, string> = {
-    vegetable: '蔬菜',
-    fruit: '水果',
-    meat: '肉类',
-    seafood: '水产',
-    dairy: '蛋奶',
-    grain: '谷物',
-    seasoning: '调料',
-    soy: '豆制品',
-    fungus: '菌菇',
-    nut: '坚果',
-    other: '其他',
-  };
-  return map[category] || category;
+function getCategoryText(category: string): string {
+  return CATEGORY_OPTIONS.find(o => o.value === category)?.label || category;
 }
 
-function getCategoryColor(category: string) {
+function getCategoryColor(category: string): string {
   const map: Record<string, string> = {
     vegetable: 'rgba(31, 138, 101, 0.15)',
     fruit: 'rgba(212, 136, 14, 0.15)',
     meat: 'rgba(207, 45, 86, 0.15)',
     seafood: 'rgba(74, 125, 191, 0.15)',
-    dairy: 'rgba(192, 135, 221, 0.15)',
-    grain: 'rgba(245, 78, 0, 0.15)',
+    egg_dairy: 'rgba(192, 135, 221, 0.15)',
+    staple: 'rgba(245, 78, 0, 0.15)',
     seasoning: 'rgba(38, 37, 30, 0.1)',
     soy: 'rgba(171, 121, 46, 0.15)',
     fungus: 'rgba(128, 90, 213, 0.15)',
     nut: 'rgba(200, 130, 60, 0.15)',
+    medicinal: 'rgba(200, 80, 80, 0.15)',
     other: 'rgba(120, 120, 120, 0.1)',
   };
   return map[category] || 'rgba(38, 37, 30, 0.1)';
 }
 
+function applyFilters() {
+  let data = [...localData.value];
+
+  if (filters.keyword) {
+    const kw = filters.keyword.toLowerCase();
+    data = data.filter(r =>
+      r.name.toLowerCase().includes(kw) ||
+      (r.subCategory?.toLowerCase().includes(kw) ?? false)
+    );
+  }
+  if (filters.category) {
+    data = data.filter(r => r.category === filters.category);
+  }
+  if (filters.status) {
+    data = data.filter(r => r.status === filters.status);
+  }
+
+  pagination.total = data.length;
+  const start = (pagination.page - 1) * pagination.pageSize;
+  tableData.value = data.slice(start, start + pagination.pageSize);
+}
+
 async function fetchData() {
   loading.value = true;
   try {
-    const params = {
-      page: pagination.page,
-      pageSize: pagination.pageSize,
-      keyword: filters.keyword || undefined,
-      category: filters.category || undefined,
-      status: filters.status || undefined,
-    };
-    const res = await ingredientApi.list(params);
-    const resp = res.data as any;
-    tableData.value = resp.data?.list || [];
-    if (resp.pagination) {
-      pagination.total = resp.pagination.total;
-    } else if (resp.data?.total != null) {
-      pagination.total = resp.data.total;
+    const cached = localStorage.getItem('ingredients_data');
+    if (cached) {
+      localData.value = JSON.parse(cached);
+    } else {
+      const res = await fetch('/data/ingredients.json');
+      const data = await res.json();
+      localData.value = (data as any[]).map(item => ({
+        name: item.name,
+        category: item.category,
+        subCategory: item.subCategory || '',
+        selected: item.selected || false,
+        isCommon: item.isCommon || false,
+        status: 'ACTIVE' as const,
+      }));
+      saveToStorage();
     }
+    applyFilters();
   } catch {
-    ElMessage.error('加载食材数据失败');
+    ElMessage.error('加载食材数据失败，请检查网络或重新导入');
   } finally {
     loading.value = false;
   }
 }
 
-function handleSearch() {
+function saveToStorage() {
+  localStorage.setItem('ingredients_data', JSON.stringify(localData.value));
+}
+
+function handleReset() {
+  Object.assign(filters, { keyword: '', category: '', status: '' });
   pagination.page = 1;
-  fetchData();
-}
-
-function handleSizeChange() {
-  pagination.page = 1;
-  fetchData();
-}
-
-function handlePageChange() {
-  fetchData();
-}
-
-function resetForm() {
-  Object.assign(form, {
-    id: undefined,
-    name: '',
-    alias: '',
-    category: 'vegetable',
-    subCategory: '',
-    status: 'ACTIVE',
-    calories: 0,
-    protein: 0,
-    fat: 0,
-    carbs: 0,
-    fiber: 0,
-    sodium: 0,
-    remark: '',
-  });
+  applyFilters();
 }
 
 function handleCreate() {
   isEdit.value = false;
-  resetForm();
+  Object.assign(form, {
+    name: '',
+    category: 'vegetable',
+    subCategory: '',
+    selected: false,
+    isCommon: false,
+    status: 'ACTIVE',
+  });
   dialogVisible.value = true;
 }
 
-function handleEdit(row: IngredientRow) {
+  let editingName = '';
+
+function handleEdit(row: LocalIngredient) {
   isEdit.value = true;
-  Object.assign(form, {
-    id: row.id,
-    name: row.name,
-    alias: row.alias || '',
-    category: row.category,
-    subCategory: row.subCategory || '',
-    status: row.status,
-    calories: row.calories,
-    protein: row.protein,
-    fat: row.fat,
-    carbs: row.carbs,
-    fiber: row.fiber,
-    sodium: row.sodium,
-    remark: row.remark || '',
-  });
+  editingName = row.name;
+  Object.assign(form, { ...row });
   dialogVisible.value = true;
 }
 
@@ -489,42 +383,44 @@ async function handleSave() {
 
   saveLoading.value = true;
   try {
-    if (isEdit.value && form.id) {
-      await ingredientApi.update(form.id, form);
+    if (isEdit.value) {
+      const idx = localData.value.findIndex(r => r.name === editingName);
+      if (idx !== -1) {
+        localData.value[idx] = { ...form };
+      }
       ElMessage.success('更新成功');
     } else {
-      await ingredientApi.create(form);
-      ElMessage.success('创建成功');
+      if (localData.value.some(r => r.name === form.name)) {
+        ElMessage.warning('该食材已存在');
+        return;
+      }
+      localData.value.push({ ...form });
+      ElMessage.success('添加成功');
     }
+    saveToStorage();
+    applyFilters();
     dialogVisible.value = false;
-    fetchData();
-  } catch {
-    ElMessage.error(isEdit.value ? '更新失败' : '创建失败');
   } finally {
     saveLoading.value = false;
   }
 }
 
-async function handleDelete(row: IngredientRow) {
-  await ElMessageBox.confirm(`确定要删除食材「${row.name}」吗？`, '提示', {
-    type: 'warning',
-  });
-  try {
-    await ingredientApi.delete(row.id);
-    ElMessage.success('删除成功');
-    fetchData();
-  } catch {
-    ElMessage.error('删除失败');
-  }
+async function handleDelete(row: LocalIngredient) {
+  await ElMessageBox.confirm(`确定要删除食材「${row.name}」吗？`, '提示', { type: 'warning' });
+  localData.value = localData.value.filter(r => r.name !== row.name);
+  saveToStorage();
+  applyFilters();
+  ElMessage.success('删除成功');
 }
 
-function handleStatusChange(row: IngredientRow) {
+function handleStatusChange(row: LocalIngredient) {
   const action = row.status === 'ACTIVE' ? '启用' : '禁用';
-  ElMessage.success(`食材已${action}`);
+  saveToStorage();
+  ElMessage.success(`食材「${row.name}」已${action}`);
 }
 
-function handleFileChange(file: any) {
-  selectedFile.value = file.raw;
+function handleFileChange(file: UploadFile) {
+  selectedFile.value = file.raw as File;
 }
 
 async function handleImport() {
@@ -533,67 +429,52 @@ async function handleImport() {
   importLoading.value = true;
   try {
     const text = await selectedFile.value.text();
-    const data = JSON.parse(text);
+    const data = JSON.parse(text) as any[];
 
     if (!Array.isArray(data)) {
       ElMessage.error('JSON 文件格式错误：根元素必须是数组');
       return;
     }
 
-    const res = await ingredientApi.batchImport(data);
-    const resp = res.data as any;
-    const d = resp.data || {};
-    ElMessage.success(`导入完成：新增 ${d.imported ?? 0} 条，跳过 ${d.skipped ?? 0} 条`);
+    localData.value = data.map(item => ({
+      name: item.name || '',
+      category: item.category || 'other',
+      subCategory: item.subCategory || '',
+      selected: item.selected || false,
+      isCommon: item.isCommon || false,
+      status: 'ACTIVE' as const,
+    })).filter(item => item.name);
+
+    saveToStorage();
+    applyFilters();
     importDialogVisible.value = false;
     selectedFile.value = null;
     uploadRef.value?.clearFiles();
-    fetchData();
-  } catch (e: any) {
-    if (e?.name === 'SyntaxError') {
-      ElMessage.error('JSON 解析失败，请检查文件格式');
-    } else {
-      ElMessage.error('导入失败');
-    }
+    ElMessage.success(`成功导入 ${localData.value.length} 种食材`);
+  } catch {
+    ElMessage.error('JSON 解析失败，请检查文件格式');
   } finally {
     importLoading.value = false;
   }
 }
 
-async function handleExport() {
-  loading.value = true;
-  try {
-    const res = await ingredientApi.export();
-    const resp = res.data as any;
-    const list: IngredientRow[] = resp.data?.list || resp.data || [];
+function handleExport() {
+  const exportData = localData.value.map(item => ({
+    name: item.name,
+    category: item.category,
+    subCategory: item.subCategory || '',
+    selected: item.selected || false,
+    isCommon: item.isCommon || false,
+  }));
 
-    const exportData = list.map(item => ({
-      name: item.name,
-      alias: item.alias || '',
-      category: item.category,
-      subCategory: item.subCategory || '',
-      calories: item.calories ?? 0,
-      protein: item.protein ?? 0,
-      fat: item.fat ?? 0,
-      carbs: item.carbs ?? 0,
-      fiber: item.fiber ?? 0,
-      sodium: item.sodium ?? 0,
-      status: item.status,
-      remark: item.remark || '',
-    }));
-
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ingredients_${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    ElMessage.success(`已导出 ${exportData.length} 条食材数据`);
-  } catch {
-    ElMessage.error('导出失败');
-  } finally {
-    loading.value = false;
-  }
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ingredients_${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  ElMessage.success(`已导出 ${exportData.length} 种食材`);
 }
 
 onMounted(() => {
@@ -622,6 +503,12 @@ onMounted(() => {
       color: var(--cursor-dark);
       margin-bottom: 4px;
     }
+
+    .page-subtitle {
+      font-family: var(--font-serif);
+      font-size: 13px;
+      color: rgba(38, 37, 30, 0.5);
+    }
   }
 }
 
@@ -633,7 +520,7 @@ onMounted(() => {
   padding-bottom: 20px;
   border-bottom: 1px solid var(--border-primary);
 
-  .filter-left {
+  .filter-group {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -678,65 +565,22 @@ onMounted(() => {
   }
 }
 
-.sub-category {
-  font-size: 11px;
-  color: rgba(38, 37, 30, 0.4);
-  margin-top: 2px;
-}
-
-.nutrition-value {
-  font-family: var(--font-display);
-  font-size: 14px;
-  color: var(--cursor-dark);
-}
-
-.nutrition-unit {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: rgba(38, 37, 30, 0.4);
-  margin-left: 2px;
-}
-
-.nutrition-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-}
-
-.nutrition-item {
-  display: grid;
-  grid-template-columns: 32px 60px 1fr 36px;
+.tag-chip {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
   font-size: 11px;
 
-  .nutrition-label {
-    font-family: var(--font-serif);
-    color: rgba(38, 37, 30, 0.5);
+  &.common {
+    background: rgba(31, 138, 101, 0.12);
+    color: var(--color-success);
   }
 
-  .nutrition-bar {
-    height: 4px;
-    background: var(--surface-400);
-    border-radius: 2px;
-    overflow: hidden;
-
-    .bar-fill {
-      height: 100%;
-      border-radius: 2px;
-      transition: width 0.3s ease;
-
-      &.protein { background: var(--color-info); }
-      &.fat { background: var(--color-warning); }
-      &.carbs { background: var(--cursor-orange); }
-    }
-  }
-
-  .nutrition-num {
-    font-family: var(--font-mono);
-    color: rgba(38, 37, 30, 0.6);
-    text-align: right;
+  &.selected {
+    background: rgba(245, 78, 0, 0.12);
+    color: var(--cursor-orange);
   }
 }
 
@@ -762,7 +606,6 @@ onMounted(() => {
   }
 }
 
-// 导入对话框样式
 .import-section {
   .import-desc {
     font-size: 13px;
@@ -779,43 +622,20 @@ onMounted(() => {
       color: var(--cursor-dark);
     }
   }
-
-  .import-template {
-    margin-bottom: 16px;
-
-    .template-label {
-      font-size: 12px;
-      color: rgba(38, 37, 30, 0.5);
-      margin-bottom: 6px;
-    }
-
-    .template-code {
-      background: #f7f7f8;
-      border: 1px solid var(--border-primary);
-      border-radius: var(--radius-md);
-      padding: 12px;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--cursor-dark);
-      overflow: auto;
-      max-height: 160px;
-      margin: 0;
-    }
-  }
 }
 
 .import-upload {
   width: 100%;
 
   :deep(.el-upload-dragger) {
-    padding: 24px;
+    padding: 32px;
     border-radius: var(--radius-md);
   }
 
   .upload-icon {
-    font-size: 28px;
+    font-size: 32px;
     color: rgba(38, 37, 30, 0.3);
-    margin-bottom: 8px;
+    margin-bottom: 12px;
   }
 
   .upload-text {

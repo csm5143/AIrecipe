@@ -1,0 +1,210 @@
+[
+  {
+    "id": 1,
+    "feedbackId": "FB2024001",
+    "userIdentifier": "user_001",
+    "userType": "user",
+    "nickname": "美食达人",
+    "avatar": "",
+    "type": "bug",
+    "typeLabel": "Bug反馈",
+    "content": "在浏览菜谱详情页时，点击收藏按钮后页面会短暂白屏，希望修复这个问题。",
+    "contact": "dinner@example.com",
+    "images": [],
+    "cloudImageUrls": [],
+    "createTime": 1713820800000,
+    "status": "pending",
+    "reply": [],
+    "appVersion": "1.2.0",
+    "phoneModel": "iPhone 14 Pro",
+    "systemInfo": "iOS 17.2"
+  },
+  {
+    "id": 2,
+    "feedbackId": "FB2024002",
+    "userIdentifier": "visitor_002",
+    "userType": "visitor",
+    "nickname": "",
+    "avatar": "",
+    "type": "suggest",
+    "typeLabel": "功能建议",
+    "content": "希望增加一个功能，可以根据冰箱里的食材自动推荐菜谱，这样每天不用纠结吃什么了。",
+    "contact": "",
+    "images": [],
+    "cloudImageUrls": [],
+    "createTime": 1713734400000,
+    "status": "processing",
+    "reply": [
+      {
+        "id": 101,
+        "adminId": 1,
+        "adminName": "管理员",
+        "content": "感谢您的建议！食材推荐功能已在开发计划中，预计下个版本会上线。",
+        "createTime": 1713766800000
+      }
+    ],
+    "appVersion": "1.1.8",
+    "phoneModel": "小米 13",
+    "systemInfo": "Android 14"
+  },
+  {
+    "id": 3,
+    "feedbackId": "FB2024003",
+    "userIdentifier": "user_003",
+    "userType": "user",
+    "nickname": "健康生活",
+    "avatar": "",
+    "type": "error",
+    "typeLabel": "内容纠错",
+    "content": "红烧肉的做法中，第3步写的糖色要用小火，但图片显示是大火，希望确认一下正确的火候。",
+    "contact": "healthy@example.com",
+    "images": ["https://placehold.co/200x200/ff6b6b/white?text=步骤3截图"],
+    "cloudImageUrls": [],
+    "createTime": 1713648000000,
+    "status": "resolved",
+    "reply": [
+      {
+        "id": 102,
+        "adminId": 1,
+        "adminName": "管理员",
+        "content": "感谢您的反馈！已经修正为小火炒糖色，图片也已更新。",
+        "createTime": 1713691200000
+      }
+    ],
+    "appVersion": "1.2.1",
+    "phoneModel": "华为 P60",
+    "systemInfo": "HarmonyOS 4.0"
+  },
+  {
+    "id": 4,
+    "feedbackId": "FB2024004",
+    "userIdentifier": "guest_004",
+    "userType": "guest",
+    "nickname": "匿名用户",
+    "avatar": "",
+    "type": "other",
+    "typeLabel": "其他问题",
+    "content": "希望能支持更多语言的界面，现在只有中文，使用起来不太方便。",
+    "contact": "",
+    "images": [],
+    "cloudImageUrls": [],
+    "createTime": 1713561600000,
+    "status": "pending",
+    "reply": [],
+    "appVersion": "1.2.0",
+    "phoneModel": "Samsung Galaxy S24",
+    "systemInfo": "Android 14"
+  },
+  {
+    "id": 5,
+    "feedbackId": "FB2024005",
+    "userIdentifier": "user_005",
+    "userType": "user",
+    "nickname": "烘焙爱好者",
+    "avatar": "",
+    "type": "suggest",
+    "typeLabel": "功能建议",
+    "content": "希望增加一个烘焙专区，现在的家常菜种类很丰富，但甜点和烘焙的菜谱太少了。",
+    "contact": "baking@example.com",
+    "images": [],
+    "cloudImageUrls": [],
+    "createTime": 1713475200000,
+    "status": "resolved",
+    "reply": [
+      {
+        "id": 103,
+        "adminId": 2,
+        "adminName": "运营小王",
+        "content": "感谢建议！烘焙专区已在规划中，我们会在下个月陆续上线更多烘焙菜谱。",
+        "createTime": 1713518400000
+      }
+    ],
+    "appVersion": "1.1.9",
+    "phoneModel": "OPPO Find X7",
+    "systemInfo": "Android 14"
+  },
+  {
+    "id": 6,
+    "feedbackId": "FB2024006",
+    "userIdentifier": "user_006",
+    "userType": "user",
+    "nickname": "厨房新手",
+    "avatar": "",
+    "type": "bug",
+    "typeLabel": "Bug反馈",
+    "content": "搜索功能有时候搜不到已知的菜谱名称，比如搜索「宫保鸡丁」显示没有结果，但实际上菜谱库里有这道菜。",
+    "contact": "newbie@example.com",
+    "images": [],
+    "cloudImageUrls": [],
+    "createTime": 1713388800000,
+    "status": "processing",
+    "reply": [
+      {
+        "id": 104,
+        "adminId": 1,
+        "adminName": "管理员",
+        "content": "感谢反馈！搜索问题已记录，正在排查中，稍后会修复。",
+        "createTime": 1713410400000
+      }
+    ],
+    "appVersion": "1.2.0",
+    "phoneModel": "vivo X100",
+    "systemInfo": "Android 14"
+  },
+  {
+    "id": 7,
+    "feedbackId": "FB2024007",
+    "userIdentifier": "visitor_007",
+    "userType": "visitor",
+    "nickname": "",
+    "avatar": "",
+    "type": "suggest",
+    "typeLabel": "功能建议",
+    "content": "建议增加一个「我的饮食记录」功能，可以记录每天吃了什么，帮助管理饮食健康。",
+    "contact": "health@example.com",
+    "images": [],
+    "cloudImageUrls": [],
+    "createTime": 1713302400000,
+    "status": "rejected",
+    "reply": [
+      {
+        "id": 105,
+        "adminId": 2,
+        "adminName": "运营小王",
+        "content": "感谢建议，但饮食记录功能与当前产品定位差异较大，暂不考虑开发。",
+        "createTime": 1713331200000
+      }
+    ],
+    "appVersion": "1.1.8",
+    "phoneModel": "iPhone 13",
+    "systemInfo": "iOS 17.1"
+  },
+  {
+    "id": 8,
+    "feedbackId": "FB2024008",
+    "userIdentifier": "user_008",
+    "userType": "user",
+    "nickname": "素食主义者",
+    "avatar": "",
+    "type": "error",
+    "typeLabel": "内容纠错",
+    "content": "素炒时蔬的食材清单里写了「鸡精」，素食者不能吃鸡精，建议改成蔬之鲜或者其他素食调味料。",
+    "contact": "vegan@example.com",
+    "images": [],
+    "cloudImageUrls": [],
+    "createTime": 1713216000000,
+    "status": "resolved",
+    "reply": [
+      {
+        "id": 106,
+        "adminId": 1,
+        "adminName": "管理员",
+        "content": "感谢指正！已将鸡精替换为素食可用的调味料。",
+        "createTime": 1713259200000
+      }
+    ],
+    "appVersion": "1.2.1",
+    "phoneModel": "小米 14",
+    "systemInfo": "HyperOS 1.0"
+  }
+]

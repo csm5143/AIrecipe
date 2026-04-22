@@ -400,7 +400,6 @@ import {
 } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
-  feedbackApi,
   type FeedbackItem,
   type FeedbackType,
   type FeedbackStatus,
@@ -415,6 +414,7 @@ const replyVisible = ref(false);
 const currentFeedback = ref<FeedbackItem | null>(null);
 const replyFormRef = ref();
 const quickAction = ref<FeedbackStatus>('resolved');
+const rawData = ref<FeedbackItem[]>([]);
 
 const filters = reactive({
   keyword: '',
@@ -503,15 +503,34 @@ function formatDateTime(timestamp: number) {
 async function fetchFeedbacks() {
   loading.value = true;
   try {
-    const res = await feedbackApi.getFeedbacks({
-      page: pagination.page,
-      pageSize: pagination.pageSize,
-      type: filters.type || undefined,
-      status: filters.status || undefined,
-      keyword: filters.keyword || undefined,
-    });
-    tableData.value = res.data.data;
-    pagination.total = res.data.total;
+    if (rawData.value.length === 0) {
+      const res = await fetch('/data/feedbacks.json');
+      const data = await res.json();
+      rawData.value = data as FeedbackItem[];
+    }
+    // 本地过滤（实际项目中应由后端处理）
+    let filtered = [...rawData.value];
+    if (filters.keyword) {
+      const kw = filters.keyword.toLowerCase();
+      filtered = filtered.filter(f =>
+        f.content.toLowerCase().includes(kw) ||
+        f.nickname?.toLowerCase().includes(kw)
+      );
+    }
+    if (filters.type) {
+      filtered = filtered.filter(f => f.type === filters.type);
+    }
+    if (filters.status) {
+      filtered = filtered.filter(f => f.status === filters.status);
+    }
+    if (filters.userType) {
+      filtered = filtered.filter(f => f.userType === filters.userType);
+    }
+
+    // 分页
+    const start = (pagination.page - 1) * pagination.pageSize;
+    tableData.value = filtered.slice(start, start + pagination.pageSize);
+    pagination.total = filtered.length;
   } catch (error) {
     console.error('获取反馈列表失败:', error);
     ElMessage.error('获取反馈列表失败');
@@ -565,13 +584,8 @@ async function handleAction(command: string, row: FeedbackItem) {
 }
 
 async function updateStatus(row: FeedbackItem, status: FeedbackStatus) {
-  try {
-    await feedbackApi.updateFeedbackStatus(row.id, status);
-    row.status = status;
-    ElMessage.success('状态更新成功');
-  } catch (error) {
-    ElMessage.error('状态更新失败');
-  }
+  row.status = status;
+  ElMessage.success('状态更新成功');
 }
 
 async function handleQuickAction() {
@@ -593,10 +607,21 @@ async function handleSubmitReply() {
 
   submitting.value = true;
   try {
-    await feedbackApi.replyFeedback(currentFeedback.value.id, {
+    // 本地模拟回复
+    const newReply = {
+      id: Date.now(),
+      adminId: 1,
+      adminName: '管理员',
       content: replyForm.content,
-      action: replyForm.action as 'reply' | 'resolve',
-    });
+      createTime: Date.now(),
+    };
+    if (!currentFeedback.value.reply) {
+      currentFeedback.value.reply = [];
+    }
+    currentFeedback.value.reply.push(newReply);
+    if (replyForm.action === 'resolve') {
+      currentFeedback.value.status = 'resolved';
+    }
     ElMessage.success('回复发送成功');
     replyVisible.value = false;
     fetchFeedbacks();
@@ -614,7 +639,7 @@ async function handleDelete(row: FeedbackItem) {
       cancelButtonText: '取消',
       type: 'warning',
     });
-    await feedbackApi.deleteFeedback(row.id);
+    rawData.value = rawData.value.filter(f => f.id !== row.id);
     ElMessage.success('删除成功');
     fetchFeedbacks();
   } catch {
