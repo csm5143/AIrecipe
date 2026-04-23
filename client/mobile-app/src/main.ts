@@ -1,12 +1,14 @@
-import { createApp } from 'vue';
-import { createPinia } from 'pinia';
-import Taro from '@tarojs/taro';
+import { createSSRApp } from 'vue';
 import App from './App.vue';
+import { createPinia } from 'pinia';
 
-const app = createApp(App);
-const pinia = createPinia();
+export function createApp() {
+  const app = createSSRApp(App);
+  const pinia = createPinia();
 
-app.use(pinia);
-app.use(Taro);
+  app.use(pinia);
 
-export default app;
+  return {
+    app,
+  };
+}

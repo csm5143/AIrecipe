@@ -1,0 +1,54 @@
+// 主题色
+$primary-color: #FF9500;
+$primary-light: #FFB84D;
+$primary-dark: #E68600;
+
+// 功能色
+$success-color: #34C759;
+$warning-color: #FF9500;
+$danger-color: #FF3B30;
+$info-color: #5AC8FA;
+
+// 中性色
+$white: #FFFFFF;
+$bg-color: #F5F5F5;
+$bg-color-light: #FAFAFA;
+$bg-color-dark: #EEEEEE;
+$text-color: #333333;
+$text-color-secondary: #666666;
+$text-color-placeholder: #999999;
+$text-color-disabled: #CCCCCC;
+$border-color: #E5E5E5;
+$border-color-light: #F0F0F0;
+
+// 字体大小
+$font-size-xs: 20rpx;
+$font-size-sm: 24rpx;
+$font-size-base: 28rpx;
+$font-size-lg: 32rpx;
+$font-size-xl: 36rpx;
+$font-size-xxl: 40rpx;
+
+// 间距
+$spacing-xs: 8rpx;
+$spacing-sm: 16rpx;
+$spacing-base: 24rpx;
+$spacing-lg: 32rpx;
+$spacing-xl: 40rpx;
+
+// 圆角
+$border-radius-sm: 8rpx;
+$border-radius-base: 16rpx;
+$border-radius-lg: 24rpx;
+$border-radius-xl: 32rpx;
+$border-radius-round: 50%;
+
+// 阴影
+$shadow-sm: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+$shadow-base: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+$shadow-lg: 0 8rpx 32rpx rgba(0, 0, 0, 0.12);
+
+// 安全区域
+$safe-area-inset-bottom: env(safe-area-inset-bottom);
+$nav-height: 88rpx;
+$tab-bar-height: 100rpx;

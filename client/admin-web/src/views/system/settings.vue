@@ -30,7 +30,7 @@
           </div>
           <div class="panel-body">
             <el-form :model="siteForm" label-position="top" style="max-width: 600px">
-              <el-form-item label="网站名称">
+              <el-form-item label="网站名称" required>
                 <el-input v-model="siteForm.siteName" placeholder="请输入网站名称" />
               </el-form-item>
               <el-form-item label="网站描述">
@@ -42,37 +42,66 @@
                 />
               </el-form-item>
               <el-form-item label="网站 Logo">
-                <div class="logo-upload">
+                <div class="image-upload-row">
                   <el-upload
+                    ref="logoUploadRef"
+                    class="image-uploader"
+                    :class="{ 'has-preview': logoPreview }"
                     action="#"
                     :auto-upload="false"
                     :show-file-list="false"
                     accept="image/*"
                     @change="handleLogoChange"
                   >
-                    <img v-if="logoPreview || siteForm.logo" :src="logoPreview || siteForm.logo" class="logo-preview" />
+                    <img v-if="logoPreview" :src="logoPreview" class="image-preview" />
                     <div v-else class="upload-placeholder">
-                      <el-icon><Plus /></el-icon>
+                      <el-icon class="upload-icon"><Plus /></el-icon>
                       <span>上传 Logo</span>
                     </div>
                   </el-upload>
+                  <div class="upload-actions">
+                    <el-button size="small" @click="logoUploadRef?.$el.querySelector('input').click()">
+                      更换图片
+                    </el-button>
+                    <el-button v-if="logoPreview" size="small" type="danger" plain @click="removeLogo">
+                      移除
+                    </el-button>
+                    <div class="upload-tip">建议尺寸 200x60，支持 PNG/JPG/SVG</div>
+                  </div>
                 </div>
               </el-form-item>
-              <el-form-item label="网站图标">
-                <el-upload
-                  action="#"
-                  :auto-upload="false"
-                  :show-file-list="false"
-                  accept="image/*"
-                >
-                  <el-button>上传图标</el-button>
-                  <template #tip>
-                    <span class="upload-tip">建议尺寸 32x32，支持 ICO 格式</span>
-                  </template>
-                </el-upload>
+              <el-form-item label="网站图标（Favicon）">
+                <div class="image-upload-row">
+                  <el-upload
+                    ref="faviconUploadRef"
+                    class="image-uploader favicon-uploader"
+                    :class="{ 'has-preview': faviconPreview }"
+                    action="#"
+                    :auto-upload="false"
+                    :show-file-list="false"
+                    accept="image/*"
+                    @change="handleFaviconChange"
+                  >
+                    <img v-if="faviconPreview" :src="faviconPreview" class="image-preview favicon-preview" />
+                    <div v-else class="upload-placeholder">
+                      <el-icon class="upload-icon"><Plus /></el-icon>
+                      <span>上传图标</span>
+                    </div>
+                  </el-upload>
+                  <div class="upload-actions">
+                    <el-button size="small" @click="faviconUploadRef?.$el.querySelector('input').click()">
+                      更换图片
+                    </el-button>
+                    <el-button v-if="faviconPreview" size="small" type="danger" plain @click="removeFavicon">
+                      移除
+                    </el-button>
+                    <div class="upload-tip">建议尺寸 32x32 或 64x64，支持 ICO/PNG</div>
+                  </div>
+                </div>
               </el-form-item>
               <el-form-item>
-                <el-button type="primary" @click="handleSaveSite">保存设置</el-button>
+                <el-button type="primary" :loading="saving.site" @click="handleSaveSite">保存设置</el-button>
+                <el-button v-if="hasUnsavedSiteChanges" type="warning" plain @click="handleResetSite">重置</el-button>
               </el-form-item>
             </el-form>
           </div>
@@ -101,7 +130,8 @@
                 />
               </el-form-item>
               <el-form-item>
-                <el-button type="primary" @click="handleSaveSeo">保存设置</el-button>
+                <el-button type="primary" :loading="saving.seo" @click="handleSaveSeo">保存设置</el-button>
+                <el-button v-if="hasUnsavedSeoChanges" type="warning" plain @click="handleResetSeo">重置</el-button>
               </el-form-item>
             </el-form>
           </div>
@@ -131,7 +161,8 @@
                 <el-input v-model="legalForm.phone" placeholder="请输入联系电话" />
               </el-form-item>
               <el-form-item>
-                <el-button type="primary" @click="handleSaveLegal">保存设置</el-button>
+                <el-button type="primary" :loading="saving.legal" @click="handleSaveLegal">保存设置</el-button>
+                <el-button v-if="hasUnsavedLegalChanges" type="warning" plain @click="handleResetLegal">重置</el-button>
               </el-form-item>
             </el-form>
           </div>
@@ -172,7 +203,8 @@
                 <span class="input-hint">记录所有管理员操作</span>
               </el-form-item>
               <el-form-item>
-                <el-button type="primary" @click="handleSaveSecurity">保存设置</el-button>
+                <el-button type="primary" :loading="saving.security" @click="handleSaveSecurity">保存设置</el-button>
+                <el-button v-if="hasUnsavedSecurityChanges" type="warning" plain @click="handleResetSecurity">重置</el-button>
               </el-form-item>
             </el-form>
           </div>
@@ -213,7 +245,8 @@
               </el-form-item>
               <el-form-item>
                 <el-button @click="handleTestEmail">发送测试邮件</el-button>
-                <el-button type="primary" @click="handleSaveEmail" style="margin-left: 12px">保存设置</el-button>
+                <el-button type="primary" :loading="saving.email" style="margin-left: 12px" @click="handleSaveEmail">保存设置</el-button>
+                <el-button v-if="hasUnsavedEmailChanges" type="warning" plain @click="handleResetEmail">重置</el-button>
               </el-form-item>
             </el-form>
           </div>
@@ -224,20 +257,69 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
-import {
-  Setting,
-  Link,
-  Key,
-  Document,
-  Lock,
-  Message,
-  Plus
-} from '@element-plus/icons-vue';
+import { ref, reactive, onMounted, computed } from 'vue';
+import { Setting, Link, Document, Lock, Message, Plus } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
+import { systemApi, type SiteSettings, type SeoSettings, type LegalSettings, type SecuritySettings, type EmailSettings } from '@/api/system';
+import { useSiteSettingsStore } from '@/store/modules/siteSettings';
+
+const siteSettingsStore = useSiteSettingsStore();
 
 const activeSetting = ref('site');
+const logoUploadRef = ref();
+const faviconUploadRef = ref();
+const loading = ref(false);
+
 const logoPreview = ref('');
+const faviconPreview = ref('');
+
+const originalSiteForm = ref<SiteSettings>({ siteName: '', siteDescription: '', logo: '', favicon: '' });
+const originalSeoForm = ref<SeoSettings>({ title: '', keywords: '', description: '' });
+const originalLegalForm = ref<LegalSettings>({ icp: '', psbe: '', copyright: '', company: '', phone: '' });
+const originalSecurityForm = ref<SecuritySettings>({ sessionTimeout: 60, maxLoginAttempts: 5, passwordRequirements: [], enableOperationLog: true });
+const originalEmailForm = ref<EmailSettings>({ smtpHost: '', smtpPort: 465, encryption: 'ssl', fromEmail: '', fromName: '', username: '', password: '' });
+
+const saving = reactive({
+  site: false, seo: false, legal: false, security: false, email: false,
+});
+
+const siteForm = reactive<SiteSettings>({
+  siteName: '',
+  siteDescription: '',
+  logo: '',
+  favicon: '',
+});
+
+const seoForm = reactive<SeoSettings>({
+  title: '',
+  keywords: '',
+  description: '',
+});
+
+const legalForm = reactive<LegalSettings>({
+  icp: '',
+  psbe: '',
+  copyright: '',
+  company: '',
+  phone: '',
+});
+
+const securityForm = reactive<SecuritySettings>({
+  sessionTimeout: 60,
+  maxLoginAttempts: 5,
+  passwordRequirements: ['minLength', 'number'],
+  enableOperationLog: true,
+});
+
+const emailForm = reactive<EmailSettings>({
+  smtpHost: '',
+  smtpPort: 465,
+  encryption: 'ssl',
+  fromEmail: '',
+  fromName: '',
+  username: '',
+  password: '',
+});
 
 const settingItems = [
   { key: 'site', label: '网站信息', icon: Link },
@@ -247,71 +329,200 @@ const settingItems = [
   { key: 'email', label: '邮件设置', icon: Message },
 ];
 
-const siteForm = reactive({
-  siteName: 'AIRecipe',
-  siteDescription: 'AIRecipe - 您的智能食谱助手',
-  logo: '',
-});
+const hasUnsavedSiteChanges = computed(() => JSON.stringify(siteForm) !== JSON.stringify(originalSiteForm.value));
+const hasUnsavedSeoChanges = computed(() => JSON.stringify(seoForm) !== JSON.stringify(originalSeoForm.value));
+const hasUnsavedLegalChanges = computed(() => JSON.stringify(legalForm) !== JSON.stringify(originalLegalForm.value));
+const hasUnsavedSecurityChanges = computed(() => JSON.stringify(securityForm) !== JSON.stringify(originalSecurityForm.value));
+const hasUnsavedEmailChanges = computed(() => JSON.stringify(emailForm) !== JSON.stringify(originalEmailForm.value));
 
-const seoForm = reactive({
-  title: 'AIRecipe - 智能食谱推荐平台',
-  keywords: '食谱,美食,烹饪,健康饮食,AI推荐',
-  description: 'AIRecipe 提供智能食谱推荐、AI食材识别、健康饮食管理等功能的综合平台。',
-});
+async function loadSettings() {
+  loading.value = true;
+  try {
+    const res = await systemApi.getSettings();
+    const resp = res.data as any;
+    const data = resp.data;
 
-const legalForm = reactive({
-  icp: '',
-  psbe: '',
-  copyright: '© 2024 AIRecipe 版权所有',
-  company: '',
-  phone: '',
-});
+    Object.assign(siteForm, data.site);
+    originalSiteForm.value = { ...data.site };
+    logoPreview.value = data.site.logo ? getFullImageUrl(data.site.logo) : '';
+    faviconPreview.value = data.site.favicon ? getFullImageUrl(data.site.favicon) : '';
 
-const securityForm = reactive({
-  sessionTimeout: 60,
-  maxLoginAttempts: 5,
-  passwordRequirements: ['minLength', 'number'],
-  enableOperationLog: true,
-});
+    Object.assign(seoForm, data.seo);
+    originalSeoForm.value = { ...data.seo };
 
-const emailForm = reactive({
-  smtpHost: '',
-  smtpPort: 465,
-  encryption: 'ssl',
-  fromEmail: '',
-  fromName: 'AIRecipe',
-  username: '',
-  password: '',
-});
+    Object.assign(legalForm, data.legal);
+    originalLegalForm.value = { ...data.legal };
+
+    Object.assign(securityForm, data.security);
+    originalSecurityForm.value = { ...data.security };
+
+    Object.assign(emailForm, data.email);
+    originalEmailForm.value = { ...data.email };
+  } catch (e: any) {
+    ElMessage.error('加载设置失败');
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function uploadAndSetLogo(file: File) {
+  try {
+    const res = await systemApi.uploadImage(file);
+    const resp = res.data as any;
+    const url = resp.data?.url || resp.url;
+    if (url) {
+      siteForm.logo = url;
+      logoPreview.value = getFullImageUrl(url);
+    }
+  } catch {
+    ElMessage.error('Logo 上传失败');
+  }
+}
+
+async function uploadAndSetFavicon(file: File) {
+  try {
+    const res = await systemApi.uploadImage(file);
+    const resp = res.data as any;
+    const url = resp.data?.url || resp.url;
+    if (url) {
+      siteForm.favicon = url;
+      faviconPreview.value = getFullImageUrl(url);
+    }
+  } catch {
+    ElMessage.error('图标上传失败');
+  }
+}
 
 function handleLogoChange(file: any) {
-  logoPreview.value = URL.createObjectURL(file.raw);
-  siteForm.logo = file.raw;
+  const raw = file.raw;
+  if (!raw) return;
+  logoPreview.value = URL.createObjectURL(raw);
+  uploadAndSetLogo(raw);
 }
 
-function handleSaveSite() {
-  ElMessage.success('网站信息已保存');
+function handleFaviconChange(file: any) {
+  const raw = file.raw;
+  if (!raw) return;
+  faviconPreview.value = URL.createObjectURL(raw);
+  uploadAndSetFavicon(raw);
 }
 
-function handleSaveSeo() {
-  ElMessage.success('SEO 设置已保存');
+function removeLogo() {
+  siteForm.logo = '';
+  logoPreview.value = '';
 }
 
-function handleSaveLegal() {
-  ElMessage.success('备案信息已保存');
+function removeFavicon() {
+  siteForm.favicon = '';
+  faviconPreview.value = '';
 }
 
-function handleSaveSecurity() {
-  ElMessage.success('安全设置已保存');
+function getFullImageUrl(path: string): string {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('//')) {
+    return path.startsWith('//') ? window.location.protocol + path : path;
+  }
+  if (path.startsWith('/')) {
+    return path;
+  }
+  return path;
 }
 
-function handleSaveEmail() {
-  ElMessage.success('邮件设置已保存');
+async function handleSaveSite() {
+  saving.site = true;
+  try {
+    await systemApi.updateSettings('site', siteForm);
+    Object.assign(originalSiteForm.value, siteForm);
+    siteSettingsStore.updateSite({ ...siteForm });
+    ElMessage.success('网站信息已保存');
+  } catch {
+    ElMessage.error('保存失败');
+  } finally {
+    saving.site = false;
+  }
+}
+
+async function handleSaveSeo() {
+  saving.seo = true;
+  try {
+    await systemApi.updateSettings('seo', seoForm);
+    Object.assign(originalSeoForm.value, seoForm);
+    ElMessage.success('SEO 设置已保存');
+  } catch {
+    ElMessage.error('保存失败');
+  } finally {
+    saving.seo = false;
+  }
+}
+
+async function handleSaveLegal() {
+  saving.legal = true;
+  try {
+    await systemApi.updateSettings('legal', legalForm);
+    Object.assign(originalLegalForm.value, legalForm);
+    ElMessage.success('备案信息已保存');
+  } catch {
+    ElMessage.error('保存失败');
+  } finally {
+    saving.legal = false;
+  }
+}
+
+async function handleSaveSecurity() {
+  saving.security = true;
+  try {
+    await systemApi.updateSettings('security', securityForm);
+    Object.assign(originalSecurityForm.value, securityForm);
+    ElMessage.success('安全设置已保存');
+  } catch {
+    ElMessage.error('保存失败');
+  } finally {
+    saving.security = false;
+  }
+}
+
+async function handleSaveEmail() {
+  saving.email = true;
+  try {
+    await systemApi.updateSettings('email', emailForm);
+    Object.assign(originalEmailForm.value, emailForm);
+    ElMessage.success('邮件设置已保存');
+  } catch {
+    ElMessage.error('保存失败');
+  } finally {
+    saving.email = false;
+  }
 }
 
 function handleTestEmail() {
-  ElMessage.success('测试邮件已发送');
+  ElMessage.info('测试邮件功能正在开发中');
 }
+
+function handleResetSite() {
+  Object.assign(siteForm, originalSiteForm.value);
+  logoPreview.value = originalSiteForm.value.logo ? getFullImageUrl(originalSiteForm.value.logo) : '';
+  faviconPreview.value = originalSiteForm.value.favicon ? getFullImageUrl(originalSiteForm.value.favicon) : '';
+}
+
+function handleResetSeo() {
+  Object.assign(seoForm, originalSeoForm.value);
+}
+
+function handleResetLegal() {
+  Object.assign(legalForm, originalLegalForm.value);
+}
+
+function handleResetSecurity() {
+  Object.assign(securityForm, originalSecurityForm.value);
+}
+
+function handleResetEmail() {
+  Object.assign(emailForm, originalEmailForm.value);
+}
+
+onMounted(() => {
+  loadSettings();
+});
 </script>
 
 <style scoped lang="scss">
@@ -396,7 +607,13 @@ function handleTestEmail() {
   padding: 24px;
 }
 
-.logo-upload {
+.image-upload-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.image-uploader {
   :deep(.el-upload) {
     border: 2px dashed var(--border-medium);
     border-radius: var(--radius-md);
@@ -409,40 +626,68 @@ function handleTestEmail() {
     }
   }
 
-  .logo-preview {
-    width: 120px;
-    height: 60px;
-    object-fit: contain;
-    display: block;
-  }
-
-  .upload-placeholder {
-    width: 120px;
-    height: 60px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    background: var(--surface-300);
-    color: rgba(38, 37, 30, 0.5);
-
-    .el-icon {
-      font-size: 24px;
-    }
-
-    span {
-      font-family: var(--font-display);
-      font-size: 12px;
+  &.has-preview {
+    :deep(.el-upload) {
+      border-style: solid;
+      border-color: var(--border-medium);
     }
   }
 }
 
-.upload-tip {
-  margin-left: 12px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: rgba(38, 37, 30, 0.4);
+.favicon-uploader {
+  :deep(.el-upload) {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.image-preview {
+  width: 120px;
+  height: 60px;
+  object-fit: contain;
+  display: block;
+}
+
+.favicon-preview {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+
+.upload-placeholder {
+  width: 120px;
+  height: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: var(--surface-300);
+  color: rgba(38, 37, 30, 0.5);
+
+  .upload-icon {
+    font-size: 24px;
+  }
+
+  span {
+    font-family: var(--font-display);
+    font-size: 12px;
+  }
+}
+
+.upload-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .upload-tip {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(38, 37, 30, 0.4);
+  }
 }
 
 .input-hint {

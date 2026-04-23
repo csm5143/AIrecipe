@@ -1,15 +1,20 @@
 <template>
   <aside class="sidebar" :class="{ collapsed: isCollapse }">
-    <div class="logo">
-      <div class="logo-icon">
-        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="16" cy="16" r="14" stroke="currentColor" stroke-width="2"/>
-          <path d="M10 16C10 12.686 12.686 10 16 10C19.314 10 22 12.686 22 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="12" cy="14" r="2" fill="currentColor"/>
-          <circle cx="20" cy="18" r="2" fill="currentColor"/>
-        </svg>
-      </div>
-      <span class="logo-text">AIRecipe</span>
+    <div class="logo" @click="$router.push('/dashboard')" :title="siteSettingsStore.site.siteName || 'AIRecipe'">
+      <template v-if="siteSettingsStore.site.logo">
+        <img :src="getFullImageUrl(siteSettingsStore.site.logo)" class="logo-image" :alt="siteSettingsStore.site.siteName || 'Logo'" />
+      </template>
+      <template v-else>
+        <div class="logo-icon">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="16" r="14" stroke="currentColor" stroke-width="2"/>
+            <path d="M10 16C10 12.686 12.686 10 16 10C19.314 10 22 12.686 22 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="14" r="2" fill="currentColor"/>
+            <circle cx="20" cy="18" r="2" fill="currentColor"/>
+          </svg>
+        </div>
+      </template>
+      <span class="logo-text">{{ siteSettingsStore.site.siteName || 'AIRecipe' }}</span>
     </div>
 
     <div class="sidebar-content">
@@ -121,13 +126,26 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
+import { useSiteSettingsStore } from '@/store/modules/siteSettings';
 
 const route = useRoute();
 const isCollapse = ref(false);
 const activeMenu = computed(() => route.path);
+const siteSettingsStore = useSiteSettingsStore();
 
 function toggleCollapse() {
   isCollapse.value = !isCollapse.value;
+}
+
+function getFullImageUrl(path: string): string {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('//')) {
+    return path.startsWith('//') ? window.location.protocol + path : path;
+  }
+  if (path.startsWith('/')) {
+    return path;
+  }
+  return path;
 }
 </script>
 
@@ -214,6 +232,14 @@ function toggleCollapse() {
   gap: 12px;
   border-bottom: 1px solid var(--border-primary);
   flex-shrink: 0;
+  cursor: pointer;
+
+  .logo-image {
+    height: 32px;
+    width: auto;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
 
   .logo-icon {
     width: 32px;

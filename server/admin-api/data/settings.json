@@ -1,0 +1,38 @@
+{
+  "site": {
+    "siteName": "AIrecipe",
+    "siteDescription": "AIrecipe - 您的智能食谱助手",
+    "logo": "/uploads/895369b8-f9a3-41a4-83f6-d9e3b60d253a.png",
+    "favicon": "/uploads/f36bc862-6f91-490d-8e27-5efddf17ec62.png"
+  },
+  "seo": {
+    "title": "AIRecipe - 智能食谱推荐平台",
+    "keywords": "食谱,美食,烹饪,健康饮食,AI推荐",
+    "description": "AIRecipe 提供智能食谱推荐、AI食材识别、健康饮食管理等功能的综合平台。"
+  },
+  "legal": {
+    "icp": "",
+    "psbe": "",
+    "copyright": "© 2024 AIRecipe 版权所有",
+    "company": "",
+    "phone": ""
+  },
+  "security": {
+    "sessionTimeout": 60,
+    "maxLoginAttempts": 5,
+    "passwordRequirements": [
+      "minLength",
+      "number"
+    ],
+    "enableOperationLog": true
+  },
+  "email": {
+    "smtpHost": "",
+    "smtpPort": 465,
+    "encryption": "ssl",
+    "fromEmail": "",
+    "fromName": "AIRecipe",
+    "username": "",
+    "password": ""
+  }
+}
