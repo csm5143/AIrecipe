@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import multer from 'multer';
 import { ApiResponse } from '../../types/response';
 
 export interface AppError extends Error {
@@ -52,13 +53,24 @@ export class ConflictException extends HttpException {
 }
 
 export function errorHandler(
-  err: AppError,
+  err: AppError | multer.MulterError | Error,
   req: Request,
   res: Response,
   _next: NextFunction
 ): void {
-  const statusCode = err.statusCode || 500;
-  const message = err.isOperational ? err.message : '服务器内部错误';
+  let statusCode = (err as AppError).statusCode || 500;
+  let message = err.message;
+
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      statusCode = 413;
+      message = '文件大小超出限制，最大支持 10MB';
+    } else {
+      statusCode = 400;
+    }
+  } else if (!(err as AppError).isOperational) {
+    message = '服务器内部错误';
+  }
 
   console.error(`[Error] ${req.method} ${req.path}:`, err);
 
@@ -69,7 +81,7 @@ export function errorHandler(
   };
 
   if (process.env.NODE_ENV === 'development') {
-    (response as any).stack = err.stack;
+    (response as any).stack = (err as Error).stack;
   }
 
   res.status(statusCode).json(response);

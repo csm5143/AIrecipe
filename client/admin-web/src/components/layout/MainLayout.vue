@@ -15,8 +15,16 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue';
 import Sidebar from './Sidebar.vue';
 import Header from './Header.vue';
+import { useSiteSettingsStore } from '@/store/modules/siteSettings';
+
+const siteSettingsStore = useSiteSettingsStore();
+
+onMounted(() => {
+  siteSettingsStore.loadSettings();
+});
 </script>
 
 <style scoped lang="scss">

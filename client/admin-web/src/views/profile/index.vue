@@ -284,6 +284,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useUserStore } from '@/store/modules/user';
+import { systemApi } from '@/api/system';
 import {
   User,
   Lock,
@@ -436,13 +437,28 @@ async function handleAvatarChange(e: Event) {
   avatarPreview.value = URL.createObjectURL(file);
   profileSaving.value = true;
   try {
-    await userStore.updateAvatar(avatarPreview.value);
+    const res = await systemApi.uploadImage(file);
+    const resp = res.data as any;
+    const url = resp.data?.url || resp.url;
+    await userStore.updateAvatar(url);
     ElMessage.success('头像更新成功');
   } catch {
+    avatarPreview.value = userStore.profile?.avatar ? getFullAvatarUrl(userStore.profile.avatar) : '';
     ElMessage.error('头像更新失败');
   } finally {
     profileSaving.value = false;
   }
+}
+
+function getFullAvatarUrl(path: string): string {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('//')) {
+    return path.startsWith('//') ? window.location.protocol + path : path;
+  }
+  if (path.startsWith('/')) {
+    return path;
+  }
+  return path;
 }
 
 async function handleSaveProfile() {
@@ -492,12 +508,12 @@ function handleSaveNotifications() {
   ElMessage.success('通知设置已保存');
 }
 
-onMounted(() => {
-  if (userStore.profile) {
-    profileForm.username = userStore.profile.username || '';
-    profileForm.nickname = userStore.profile.nickname || '';
-    profileForm.avatar = userStore.profile.avatar || '';
-  }
+onMounted(async () => {
+  await userStore.fetchProfile();
+  profileForm.username = userStore.profile?.username || '';
+  profileForm.nickname = userStore.profile?.nickname || '';
+  profileForm.avatar = userStore.profile?.avatar || '';
+  avatarPreview.value = userStore.profile?.avatar ? getFullAvatarUrl(userStore.profile.avatar) : '';
 
   const savedPrefs = localStorage.getItem('userPreferences');
   if (savedPrefs) {

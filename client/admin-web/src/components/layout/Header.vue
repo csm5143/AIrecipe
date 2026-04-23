@@ -30,7 +30,7 @@
       <el-dropdown trigger="click" @command="handleCommand">
         <button class="user-btn">
           <div class="user-avatar">
-            <img v-if="userStore.profile?.avatar" :src="userStore.profile.avatar" alt="avatar" />
+            <img v-if="userStore.profile?.avatar" :src="getFullAvatarUrl(userStore.profile.avatar)" alt="avatar" />
             <span v-else>{{ avatarText }}</span>
           </div>
           <div class="user-info">
@@ -151,6 +151,17 @@ const roleText = computed(() => {
   };
   return roleMap[role || ''] || '管理员';
 });
+
+function getFullAvatarUrl(path: string): string {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('//')) {
+    return path.startsWith('//') ? window.location.protocol + path : path;
+  }
+  if (path.startsWith('/')) {
+    return path;
+  }
+  return path;
+}
 
 function handleRefresh() {
   isRefreshing.value = true;

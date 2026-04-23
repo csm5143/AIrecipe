@@ -3,21 +3,21 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 // ==================== 管理员账号 ====================
 model Admin {
   id           Int       @id @default(autoincrement())
-  username     String    @unique @db.VarChar(50)
-  password     String    @db.VarChar(255)
-  nickname     String?   @db.VarChar(50)
-  avatar       String?   @db.VarChar(255)
+  username     String    @unique
+  password     String
+  nickname     String?
+  avatar       String?
   role         AdminRole @default(EDITOR)
   status       AccountStatus @default(ACTIVE)
   lastLoginAt  DateTime?
-  lastLoginIp  String?   @db.VarChar(50)
+  lastLoginIp  String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -42,12 +42,12 @@ model OperationLog {
   id         Int      @id @default(autoincrement())
   adminId    Int
   admin      Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
-  action     String   @db.VarChar(100)
-  module     String   @db.VarChar(50)
-  targetId   String?  @db.VarChar(50)
-  detail     String?  @db.Text
-  ip         String?  @db.VarChar(50)
-  userAgent  String?  @db.VarChar(255)
+  action     String
+  module     String
+  targetId   String?
+  detail     String?
+  ip         String?
+  userAgent  String?
   createdAt  DateTime @default(now())
 
   @@index([adminId])
@@ -58,16 +58,16 @@ model OperationLog {
 // ==================== 用户管理 ====================
 model User {
   id           Int         @id @default(autoincrement())
-  openid       String      @unique @db.VarChar(100)
-  unionid      String?     @unique @db.VarChar(100)
-  nickname     String?     @db.VarChar(50)
-  avatar       String?     @db.VarChar(255)
-  phone        String?     @unique @db.VarChar(20)
+  openid       String      @unique
+  unionid      String?     @unique
+  nickname     String?
+  avatar       String?
+  phone        String?     @unique
   gender       Gender?     @default(UNKNOWN)
   birthday     DateTime?
   status       AccountStatus @default(ACTIVE)
   lastLoginAt  DateTime?
-  lastLoginIp  String?     @db.VarChar(50)
+  lastLoginIp  String?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -92,22 +92,22 @@ enum Gender {
 // ==================== 食谱 ====================
 model Recipe {
   id           Int       @id @default(autoincrement())
-  title        String    @db.VarChar(200)
-  coverImage   String?   @db.VarChar(255)
-  description  String?   @db.Text
+  title        String
+  coverImage   String?
+  description  String?
   difficulty   Difficulty @default(MEDIUM)
-  cookingTime  Int?      // 分钟
-  servings     Int?      // 份数
-  calories     Int?      // 千卡
-  tags         Json?     // 标签数组
-  ingredients  Json      // 食材列表
-  steps        Json      // 烹饪步骤
-  tips         String?   @db.Text
-  nutrition    Json?     // 营养成分
-  cuisine      String?   @db.VarChar(50)  // 菜系
-  category     String?   @db.VarChar(50) // 分类
+  cookingTime  Int?
+  servings     Int?
+  calories     Int?
+  tags         Json?
+  ingredients  Json
+  steps        Json
+  tips         String?
+  nutrition    Json?
+  cuisine      String?
+  category     String?
   isAiGenerated Boolean  @default(false)
-  aiPrompt     String?   @db.Text
+  aiPrompt     String?
   viewCount    Int       @default(0)
   collectCount Int       @default(0)
   shareCount   Int       @default(0)
@@ -139,19 +139,20 @@ enum ContentStatus {
   PUBLISHED
   OFFLINE
   DELETED
+  ACTIVE
 }
 
 // ==================== 食材 ====================
 model Ingredient {
   id           Int       @id @default(autoincrement())
-  name         String    @db.VarChar(100)
-  alias        String?   @db.VarChar(100)
-  coverImage   String?   @db.VarChar(255)
-  category     String?   @db.VarChar(50)
-  unit         String?   @db.VarChar(20)   // 默认单位
-  calories     Float?    // 每100g千卡
-  nutrition    Json?     // 营养成分
-  tags         Json?     // 标签
+  name         String
+  alias        String?
+  coverImage   String?
+  category     String?
+  unit         String?
+  calories     Float?
+  nutrition    Json?
+  tags         Json?
   status       ContentStatus @default(ACTIVE)
   isDeleted    Boolean   @default(false)
   createdAt    DateTime  @default(now())
@@ -169,9 +170,9 @@ model RecipeIngredient {
   id           Int       @id @default(autoincrement())
   recipeId     Int
   ingredientId Int?
-  name         String    @db.VarChar(100)  // 食材名称
-  amount       String    @db.VarChar(50)   // 用量
-  unit         String?   @db.VarChar(20)   // 单位
+  name         String
+  amount       String
+  unit         String?
   isOptional   Boolean   @default(false)
   sortOrder    Int       @default(0)
   createdAt    DateTime  @default(now())
@@ -187,9 +188,9 @@ model RecipeIngredient {
 model Collection {
   id           Int       @id @default(autoincrement())
   userId       Int
-  name         String    @db.VarChar(100)
-  description  String?   @db.VarChar(255)
-  coverImage   String?   @db.VarChar(255)
+  name         String
+  description  String?
+  coverImage   String?
   isPublic     Boolean   @default(false)
   itemCount    Int       @default(0)
   createdAt    DateTime  @default(now())
@@ -206,7 +207,7 @@ model CollectionItem {
   id           Int       @id @default(autoincrement())
   collectionId Int
   recipeId     Int
-  note         String?   @db.Text
+  note         String?
   createdAt    DateTime  @default(now())
 
   collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
@@ -236,7 +237,7 @@ model Favorite {
 model ShoppingList {
   id           Int       @id @default(autoincrement())
   userId       Int
-  name         String    @db.VarChar(100)
+  name         String
   status       ListStatus @default(ACTIVE)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -251,10 +252,10 @@ model ShoppingList {
 model ShoppingItem {
   id           Int       @id @default(autoincrement())
   listId       Int
-  name         String    @db.VarChar(100)
-  amount       String?   @db.VarChar(50)
-  unit         String?   @db.VarChar(20)
-  category     String?   @db.VarChar(50)
+  name         String
+  amount       String?
+  unit         String?
+  category     String?
   isChecked    Boolean   @default(false)
   createdAt    DateTime  @default(now())
 
@@ -275,11 +276,11 @@ model Feedback {
   id           Int       @id @default(autoincrement())
   userId       Int?
   type         FeedbackType @default(OTHER)
-  content      String    @db.Text
-  images       Json?     // 图片URL数组
-  contact      String?   @db.VarChar(100)
+  content      String
+  images       Json?
+  contact      String?
   status       FeedbackStatus @default(PENDING)
-  reply        String?   @db.Text
+  reply        String?
   repliedAt    DateTime?
   repliedBy    Int?
   createdAt    DateTime  @default(now())
@@ -298,7 +299,7 @@ model FeedbackReply {
   id           Int       @id @default(autoincrement())
   feedbackId   Int
   adminId      Int?
-  content      String    @db.Text
+  content      String
   createdAt    DateTime  @default(now())
 
   feedback     Feedback  @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
@@ -325,9 +326,9 @@ enum FeedbackStatus {
 model AiScan {
   id           Int       @id @default(autoincrement())
   userId       Int
-  imageUrl     String    @db.VarChar(255)
-  result       Json      // 识别结果
-  recipes      Json?     // 推荐食谱
+  imageUrl     String
+  result       Json
+  recipes      Json?
   status       ScanStatus @default(SUCCESS)
   createdAt    DateTime  @default(now())
 
@@ -347,10 +348,10 @@ enum ScanStatus {
 // ==================== 内容运营 ====================
 model Banner {
   id           Int       @id @default(autoincrement())
-  title        String    @db.VarChar(100)
-  imageUrl     String    @db.VarChar(255)
+  title        String
+  imageUrl     String
   linkType     LinkType  @default(NONE)
-  linkValue    String?   @db.VarChar(255)
+  linkValue    String?
   sortOrder    Int       @default(0)
   status       ContentStatus @default(ACTIVE)
   startTime    DateTime?
@@ -371,8 +372,8 @@ enum LinkType {
 
 model Notice {
   id           Int       @id @default(autoincrement())
-  title        String    @db.VarChar(100)
-  content      String    @db.Text
+  title        String
+  content      String
   type         NoticeType @default(SYSTEM)
   target       NoticeTarget @default(ALL)
   status       ContentStatus @default(ACTIVE)

@@ -1,12 +1,237 @@
-* {
-  margin: 0;
-  padding: 0;
+@import './variables.scss';
+
+/* Reset */
+page {
+  box-sizing: border-box;
+  font-size: $font-size-base;
+  color: $text-color;
+  background-color: $bg-color;
+}
+
+view,
+scroll-view,
+swiper,
+button,
+input,
+textarea,
+label,
+navigator,
+image {
   box-sizing: border-box;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 14px;
-  color: #333;
-  background: #f5f5f5;
+/* Flex */
+.flex {
+  display: flex;
+}
+
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.flex-shrink-0 {
+  flex-shrink: 0;
+}
+
+/* Text */
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-primary {
+  color: $primary-color;
+}
+
+.text-success {
+  color: $success-color;
+}
+
+.text-warning {
+  color: $warning-color;
+}
+
+.text-danger {
+  color: $danger-color;
+}
+
+.text-muted {
+  color: $text-color-secondary;
+}
+
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-ellipsis-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Font Size */
+.text-xs { font-size: $font-size-xs; }
+.text-sm { font-size: $font-size-sm; }
+.text-base { font-size: $font-size-base; }
+.text-lg { font-size: $font-size-lg; }
+.text-xl { font-size: $font-size-xl; }
+.text-xxl { font-size: $font-size-xxl; }
+
+.font-bold { font-weight: bold; }
+.font-medium { font-weight: 500; }
+
+/* Spacing */
+.mt-xs { margin-top: $spacing-xs; }
+.mt-sm { margin-top: $spacing-sm; }
+.mt-base { margin-top: $spacing-base; }
+.mt-lg { margin-top: $spacing-lg; }
+.mt-xl { margin-top: $spacing-xl; }
+
+.mb-xs { margin-bottom: $spacing-xs; }
+.mb-sm { margin-bottom: $spacing-sm; }
+.mb-base { margin-bottom: $spacing-base; }
+.mb-lg { margin-bottom: $spacing-lg; }
+.mb-xl { margin-bottom: $spacing-xl; }
+
+.ml-xs { margin-left: $spacing-xs; }
+.ml-sm { margin-left: $spacing-sm; }
+.ml-base { margin-left: $spacing-base; }
+.ml-lg { margin-left: $spacing-lg; }
+
+.mr-xs { margin-right: $spacing-xs; }
+.mr-sm { margin-right: $spacing-sm; }
+.mr-base { margin-right: $spacing-base; }
+.mr-lg { margin-right: $spacing-lg; }
+
+.p-sm { padding: $spacing-sm; }
+.p-base { padding: $spacing-base; }
+.p-lg { padding: $spacing-lg; }
+
+.px-base { padding-left: $spacing-base; padding-right: $spacing-base; }
+.py-base { padding-top: $spacing-base; padding-bottom: $spacing-base; }
+
+/* Card */
+.card {
+  background-color: $white;
+  border-radius: $border-radius-base;
+  box-shadow: $shadow-sm;
+  overflow: hidden;
+}
+
+/* Button */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 80rpx;
+  padding: 0 $spacing-lg;
+  font-size: $font-size-lg;
+  border-radius: $border-radius-base;
+  transition: all 0.2s ease;
+
+  &.btn-primary {
+    background-color: $primary-color;
+    color: $white;
+  }
+
+  &.btn-outline {
+    border: 2rpx solid $primary-color;
+    color: $primary-color;
+    background-color: transparent;
+  }
+
+  &.btn-block {
+    width: 100%;
+  }
+
+  &.btn-sm {
+    height: 60rpx;
+    font-size: $font-size-sm;
+  }
+
+  &.btn-lg {
+    height: 96rpx;
+    font-size: $font-size-xl;
+  }
+
+  &.btn-round {
+    border-radius: $border-radius-round;
+  }
+
+  &.btn-disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}
+
+/* Image */
+image {
+  width: 100%;
+  height: 100%;
+}
+
+.img-rounded {
+  border-radius: $border-radius-base;
+}
+
+.img-circle {
+  border-radius: 50%;
+}
+
+/* Safe Area */
+.safe-area-bottom {
+  padding-bottom: $safe-area-inset-bottom;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease;
 }
