@@ -1,0 +1,36 @@
+<svg width="320" height="560" viewBox="0 0 320 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="560" fill="#f2f1ed"/>
+  
+  <!-- Header -->
+  <rect width="320" height="60" fill="#26251e"/>
+  <circle cx="30" cy="30" r="15" fill="#f54e00"/>
+  <rect x="55" y="22" width="80" height="16" rx="2" fill="white" opacity="0.9"/>
+  
+  <!-- Search Bar -->
+  <rect x="20" y="80" width="280" height="40" rx="20" fill="white"/>
+  <circle cx="40" cy="100" r="10" fill="none" stroke="#666" stroke-width="2"/>
+  <rect x="55" y="95" width="60" height="10" rx="2" fill="#ddd"/>
+  
+  <!-- Recipe Cards -->
+  <rect x="20" y="140" width="135" height="180" rx="12" fill="white"/>
+  <rect x="35" y="155" width="105" height="100" rx="8" fill="#f0e6d3"/>
+  <rect x="35" y="265" width="70" height="12" rx="2" fill="#26251e"/>
+  <rect x="35" y="285" width="50" height="8" rx="2" fill="#999"/>
+  <rect x="35" y="300" width="40" height="8" rx="2" fill="#f54e00"/>
+  
+  <rect x="165" y="140" width="135" height="180" rx="12" fill="white"/>
+  <rect x="180" y="155" width="105" height="100" rx="8" fill="#e6f0e6"/>
+  <rect x="180" y="265" width="80" height="12" rx="2" fill="#26251e"/>
+  <rect x="180" y="285" width="55" height="8" rx="2" fill="#999"/>
+  <rect x="180" y="300" width="45" height="8" rx="2" fill="#1f8a65"/>
+  
+  <!-- Bottom Nav -->
+  <rect y="500" width="320" height="60" fill="white"/>
+  <rect x="0" y="499" width="320" height="1" fill="#eee"/>
+  
+  <circle cx="60" cy="530" r="16" fill="#f54e00"/>
+  <rect x="95" y="522" width="30" height="16" rx="2" fill="#ddd"/>
+  <rect x="140" y="522" width="30" height="16" rx="2" fill="#ddd"/>
+  <rect x="185" y="522" width="30" height="16" rx="2" fill="#ddd"/>
+  <rect x="230" y="522" width="30" height="16" rx="2" fill="#ddd"/>
+</svg>
