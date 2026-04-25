@@ -2,7 +2,8 @@ import type { Recipe } from '@airecipe/shared-types';
 
 export interface RecipeRow {
   id: string;
-  title: string;
+  title?: string;   // 支持 title 字段
+  name?: string;    // 也支持 name 字段（兼容 JSON）
   coverImage: string;
   description: string;
   ingredients: string[];
@@ -17,6 +18,8 @@ export interface RecipeRow {
   ageBand?: string;
   childrenMeal: boolean;
   steps: string[];
+  viewCount?: number;   // 添加缺失字段
+  collectCount?: number; // 添加缺失字段
 }
 
 function mapDifficulty(d: string): string {
@@ -46,9 +49,10 @@ function mapMealTime(t: string): string {
 }
 
 export function normalizeRecipe(raw: RecipeRow): Recipe {
+  const recipeTitle = raw.title || raw.name || '';
   return {
     id: Number(raw.id) || 0,
-    title: raw.title,
+    title: recipeTitle,
     coverImage: raw.coverImage || '',
     description: raw.description || '',
     difficulty: mapDifficulty(raw.difficulty) as any,
@@ -74,8 +78,8 @@ export function normalizeRecipe(raw: RecipeRow): Recipe {
     cuisine: '',
     category: raw.dishTypes?.[0] ? mapDishType(raw.dishTypes[0]) : '',
     isAiGenerated: false,
-    viewCount: Math.floor(Math.random() * 5000),
-    collectCount: Math.floor(Math.random() * 500),
+    viewCount: raw.viewCount ?? Math.floor(Math.random() * 5000),
+    collectCount: raw.collectCount ?? Math.floor(Math.random() * 500),
     shareCount: Math.floor(Math.random() * 200),
     status: 'PUBLISHED' as any,
     isFeatured: false,

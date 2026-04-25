@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { asyncHandler } from '../../../utils/helper';
 import {
   getIngredients,
+  getIngredientById,
   createIngredient,
   updateIngredient,
   deleteIngredient,
@@ -13,6 +14,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', asyncHandler(getIngredients));
+router.get('/:id', asyncHandler(getIngredientById));
 router.post('/', asyncHandler(createIngredient));
 router.put('/:id', asyncHandler(updateIngredient));
 router.delete('/:id', asyncHandler(deleteIngredient));

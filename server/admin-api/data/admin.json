@@ -1,0 +1,12 @@
+{
+  "id": 1,
+  "username": "admin",
+  "passwordHash": "$2a$10$VCUHGfGCiLpej8rmb.j2WeEgD5SJmVuwNbtOBz7QE8fT/fp8cnx0C",
+  "nickname": "管理员1",
+  "phone": "",
+  "avatar": "/uploads/3442c11b-3724-4e49-a1e3-1446fb692244.png",
+  "role": "ADMIN",
+  "status": "ACTIVE",
+  "createdAt": "2026-04-24T01:30:51.963Z",
+  "updatedAt": "2026-04-24T01:47:14.759Z"
+}

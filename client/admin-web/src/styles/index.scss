@@ -778,3 +778,23 @@ h4 { font-size: 16px; }
 .animate-slide-up {
   animation: slideUp var(--transition-normal) ease;
 }
+
+/* ==============================
+   Touch-friendly scrolling
+   ============================== */
+@media (max-width: 768px) {
+  /* 移动端更好的触摸滚动 */
+  * {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* 增强滚动性能 */
+  .el-table {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .el-table__body-wrapper {
+    overscroll-behavior: contain;
+  }
+}

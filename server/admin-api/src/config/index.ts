@@ -9,7 +9,7 @@ module.exports = {
 
   database: {
     host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '3306', 10),
+    port: parseInt(process.env.DB_PORT || '5432', 10),
     name: process.env.DB_NAME || 'airecipe',
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
@@ -44,6 +44,14 @@ module.exports = {
     accessKeyId: process.env.OSS_ACCESS_KEY_ID || '',
     accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET || '',
     bucket: process.env.OSS_BUCKET || '',
+  },
+
+  cos: {
+    secretId: process.env.TENCENT_COS_SECRET_ID || '',
+    secretKey: process.env.TENCENT_COS_SECRET_KEY || '',
+    bucket: process.env.TENCENT_COS_BUCKET || '',
+    region: process.env.TENCENT_COS_REGION || 'ap-guangzhou',
+    baseUrl: process.env.TENCENT_COS_BASE_URL || '',
   },
 
   cors: {

@@ -12,6 +12,30 @@ export type FeedbackType = 'BUG_REPORT' | 'FEATURE_REQUEST' | 'CONTENT_ISSUE' | 
 
 export type FeedbackStatus = 'PENDING' | 'REPLIED' | 'RESOLVED' | 'CLOSED';
 
+// ==================== COS 存储类型 ====================
+
+export type COSFolderType =
+  | 'avatars'      // 用户头像
+  | 'recipes'       // 菜谱图片
+  | 'recipes/steps' // 菜谱步骤图
+  | 'favorites'    // 收藏夹封面
+  | 'feedback'     // 用户反馈
+  | 'banners'      // Banner轮播图
+  | 'categories'   // 分类图标
+  | 'ingredients'  // 食材图片
+  | 'tmp';         // 临时文件
+
+export interface COSConfig {
+  Bucket: string;
+  Region: string;
+  BaseUrl: string;
+}
+
+export interface COSUploadResult {
+  url: string;
+  key: string;
+}
+
 // ==================== 用户类型 ====================
 
 export interface User {

@@ -1,5 +1,4 @@
 {
   "navigationBarTitleText": "每日推荐",
-  "navigationStyle": "custom",
-  "enableShareCard": true
+  "navigationStyle": "custom"
 }

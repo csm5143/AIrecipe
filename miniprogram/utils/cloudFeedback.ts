@@ -5,12 +5,10 @@
  */
 
 import { getUserIdentifier, getUserType, getUserInfo } from './userAuth';
+import { COS_CONFIG } from './cos';
 
 // 云数据库集合名称
 const FEEDBACK_COLLECTION = 'feedback';
-
-// 云存储基础URL (COS)
-const COS_BASE_URL = 'https://dish-1367781796.cos.ap-guangzhou.myqcloud.com';
 
 /**
  * 检查云开发是否可用

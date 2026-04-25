@@ -1,90 +1,195 @@
 import { Request, Response } from 'express';
-import { paginated } from '../../../types/response';
+import { Prisma } from '@prisma/client';
+import { prisma } from '../../../lib/prisma';
+import { paginated, success, notFound, badRequest } from '../../../types/response';
+import { ContentStatus } from '@prisma/client';
 
-const db: any[] = [];
-let idCounter = 1;
+function mapIngredient(ing: any) {
+  return {
+    id: ing.id,
+    name: ing.name,
+    alias: ing.alias || '',
+    coverImage: ing.coverImage || '',
+    category: ing.category || '',
+    subCategory: (ing.tags as string[] | null)?.find((t: string) =>
+      ['vegetable', 'meat', 'seafood', 'grain', 'fruit', 'dairy', 'seasoning', 'other'].includes(t)
+    ) || '',
+    unit: ing.unit || '',
+    calories: ing.calories || 0,
+    protein: (ing.nutrition as any)?.protein || 0,
+    fat: (ing.nutrition as any)?.fat || 0,
+    carbs: (ing.nutrition as any)?.carbs || 0,
+    fiber: (ing.nutrition as any)?.fiber || 0,
+    sodium: (ing.nutrition as any)?.sodium || 0,
+    nutrition: ing.nutrition || {},
+    tags: ing.tags || [],
+    status: ing.status || 'ACTIVE',
+    remark: '',
+    createdAt: ing.createdAt,
+    updatedAt: ing.updatedAt,
+  };
+}
 
 export async function getIngredients(req: Request, res: Response) {
   const page = parseInt(req.query.page as string) || 1;
   const pageSize = parseInt(req.query.pageSize as string) || 20;
-  const keyword = (req.query.keyword as string || '').toLowerCase();
+  const keyword = (req.query.keyword as string) || '';
   const category = req.query.category as string;
   const status = req.query.status as string;
 
-  let filtered = [...db];
-
+  const where: Prisma.IngredientWhereInput = { isDeleted: false };
   if (keyword) {
-    filtered = filtered.filter(
-      i => i.name.toLowerCase().includes(keyword) || (i.alias && i.alias.toLowerCase().includes(keyword))
-    );
+    where.OR = [
+      { name: { contains: keyword, mode: 'insensitive' } },
+      { alias: { contains: keyword, mode: 'insensitive' } },
+    ];
   }
   if (category) {
-    filtered = filtered.filter(i => i.category === category);
+    where.category = category;
   }
   if (status) {
-    filtered = filtered.filter(i => i.status === status);
+    where.status = status as ContentStatus;
   }
 
-  const total = filtered.length;
-  const list = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const [total, list] = await Promise.all([
+    prisma.ingredient.count({ where }),
+    prisma.ingredient.findMany({
+      where,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      orderBy: { createdAt: 'desc' },
+    }),
+  ]);
 
   res.json({
     code: 200,
     message: 'success',
-    data: { page, pageSize, total, list },
+    data: { page, pageSize, total, list: list.map(mapIngredient) },
     pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
     timestamp: Date.now(),
   });
 }
 
+export async function getIngredientById(req: Request, res: Response) {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    res.status(400).json(badRequest('无效的食材 ID'));
+    return;
+  }
+
+  const ingredient = await prisma.ingredient.findUnique({ where: { id, isDeleted: false } });
+  if (!ingredient) {
+    res.status(404).json(notFound('食材不存在'));
+    return;
+  }
+
+  res.json(success(mapIngredient(ingredient)));
+}
+
 export async function createIngredient(req: Request, res: Response) {
-  const data = req.body;
-  const item = {
-    id: idCounter++,
-    name: data.name,
-    alias: data.alias || '',
-    category: data.category || 'vegetable',
-    subCategory: data.subCategory || '',
-    calories: data.calories || 0,
-    protein: data.protein || 0,
-    fat: data.fat || 0,
-    carbs: data.carbs || 0,
-    fiber: data.fiber || 0,
-    sodium: data.sodium || 0,
-    status: data.status || 'ACTIVE',
-    remark: data.remark || '',
-  };
-  db.push(item);
-  res.json({ code: 200, message: '创建成功', data: { id: item.id }, timestamp: Date.now() });
+  const body = req.body;
+  const {
+    name, alias, coverImage, category, unit, calories,
+    protein, fat, carbs, fiber, sodium, status = 'ACTIVE',
+  } = body;
+
+  if (!name) {
+    res.status(400).json(badRequest('食材名称不能为空'));
+    return;
+  }
+
+  const existing = await prisma.ingredient.findFirst({
+    where: { name, isDeleted: false },
+  });
+  if (existing) {
+    res.status(409).json({ code: 409, message: '食材已存在', timestamp: Date.now() });
+    return;
+  }
+
+  const result = await prisma.ingredient.create({
+    data: {
+      name,
+      alias: alias || null,
+      coverImage: coverImage || null,
+      category: category || 'other',
+      unit: unit || null,
+      calories: calories || null,
+      nutrition: { protein, fat, carbs, fiber, sodium },
+      status: (status as ContentStatus) || 'ACTIVE',
+    },
+  });
+
+  res.json(success({ id: result.id }, '创建成功'));
 }
 
 export async function updateIngredient(req: Request, res: Response) {
   const id = parseInt(req.params.id);
-  const idx = db.findIndex(i => i.id === id);
-  if (idx === -1) {
-    res.status(404).json({ code: 404, message: '食材不存在', timestamp: Date.now() });
+  if (isNaN(id)) {
+    res.status(400).json(badRequest('无效的食材 ID'));
     return;
   }
-  const data = req.body;
-  db[idx] = { ...db[idx], ...data, id };
-  res.json({ code: 200, message: '更新成功', data: { id }, timestamp: Date.now() });
+
+  const existing = await prisma.ingredient.findUnique({ where: { id, isDeleted: false } });
+  if (!existing) {
+    res.status(404).json(notFound('食材不存在'));
+    return;
+  }
+
+  const { name, alias, coverImage, category, unit, calories, protein, fat, carbs, fiber, sodium, status } = req.body;
+
+  const result = await prisma.ingredient.update({
+    where: { id },
+    data: {
+      ...(name !== undefined && { name }),
+      ...(alias !== undefined && { alias }),
+      ...(coverImage !== undefined && { coverImage }),
+      ...(category !== undefined && { category }),
+      ...(unit !== undefined && { unit }),
+      ...(calories !== undefined && { calories }),
+      ...(status !== undefined && { status }),
+      ...(protein !== undefined || fat !== undefined || carbs !== undefined || fiber !== undefined || sodium !== undefined
+        ? {
+            nutrition: {
+              ...(existing.nutrition as object || {}),
+              ...(protein !== undefined && { protein }),
+              ...(fat !== undefined && { fat }),
+              ...(carbs !== undefined && { carbs }),
+              ...(fiber !== undefined && { fiber }),
+              ...(sodium !== undefined && { sodium }),
+            },
+          }
+        : {}),
+    },
+  });
+
+  res.json(success({ id: result.id }, '更新成功'));
 }
 
 export async function deleteIngredient(req: Request, res: Response) {
   const id = parseInt(req.params.id);
-  const idx = db.findIndex(i => i.id === id);
-  if (idx === -1) {
-    res.status(404).json({ code: 404, message: '食材不存在', timestamp: Date.now() });
+  if (isNaN(id)) {
+    res.status(400).json(badRequest('无效的食材 ID'));
     return;
   }
-  db.splice(idx, 1);
-  res.json({ code: 200, message: '删除成功', data: null, timestamp: Date.now() });
+
+  const existing = await prisma.ingredient.findUnique({ where: { id, isDeleted: false } });
+  if (!existing) {
+    res.status(404).json(notFound('食材不存在'));
+    return;
+  }
+
+  await prisma.ingredient.update({
+    where: { id },
+    data: { isDeleted: true },
+  });
+
+  res.json(success(null, '删除成功'));
 }
 
 export async function batchImportIngredients(req: Request, res: Response) {
   const items: any[] = req.body;
   if (!Array.isArray(items)) {
-    res.status(400).json({ code: 400, message: '请传入食材数组', timestamp: Date.now() });
+    res.status(400).json(badRequest('请传入食材数组'));
     return;
   }
 
@@ -101,23 +206,26 @@ export async function batchImportIngredients(req: Request, res: Response) {
 
   for (const item of items) {
     if (!item.name) { skipped++; continue; }
-    const exists = db.some(i => i.name === item.name);
+
+    const exists = await prisma.ingredient.findFirst({ where: { name: item.name, isDeleted: false } });
     if (exists) { skipped++; continue; }
 
-    db.push({
-      id: idCounter++,
-      name: item.name,
-      alias: item.alias || '',
-      category: categoryMap[item.category] || 'other',
-      subCategory: item.subCategory || '',
-      calories: item.calories || 0,
-      protein: item.protein || 0,
-      fat: item.fat || 0,
-      carbs: item.carbs || 0,
-      fiber: item.fiber || 0,
-      sodium: item.sodium || 0,
-      status: item.selected === false ? 'INACTIVE' : 'ACTIVE',
-      remark: '',
+    await prisma.ingredient.create({
+      data: {
+        name: item.name,
+        alias: item.alias || null,
+        category: categoryMap[item.category] || 'other',
+        unit: item.unit || null,
+        calories: item.calories || null,
+        nutrition: {
+          protein: item.protein || 0,
+          fat: item.fat || 0,
+          carbs: item.carbs || 0,
+          fiber: item.fiber || 0,
+          sodium: item.sodium || 0,
+        },
+        status: item.selected === false ? 'OFFLINE' : 'ACTIVE',
+      },
     });
     imported++;
   }

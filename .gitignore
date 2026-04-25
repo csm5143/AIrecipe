@@ -1,72 +1,17 @@
-# ==================== Dependencies ====================
-node_modules/
-.pnp
-.pnp.js
-
-# ==================== Build Outputs ====================
-dist/
-build/
-output/
-*.tsbuildinfo
-
-# ==================== Logs ====================
-logs/
-*.log
-npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-
-# ==================== Editor Directories & Files ====================
-.vscode/
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-.idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-*.swo
-*~
-
-# ==================== OS Files ====================
-.DS_Store
-Thumbs.db
-
-# ==================== Environment Files ====================
+node_modules
+dist
 .env
 .env.local
-.env.*.local
-
-# ==================== WeChat Mini Program ====================
-project.private.config.json
-
-# ==================== Uploads & Temp Files ====================
-*.tmp
-*.temp
-server/admin-api/uploads/*
-!server/admin-api/uploads/.gitkeep
-
-# ==================== Test Coverage ====================
-coverage/
-.nyc_output/
-
-# ==================== Docker ====================
-*.dockerignore
-
-# ==================== Sub-project Build Outputs ====================
-miniprogram/node_modules/
-cloudfunctions/node_modules/
-client/admin-web/node_modules/
-client/admin-web/dist/
-server/admin-api/node_modules/
-client/mobile-app/node_modules/
-client/mobile-app/dist/
-packages/*/node_modules/
-packages/*/dist/
-packages/*/.turbo/
-
+.env.production
+*.log
+npm-debug.log*
+.DS_Store
+.vscode
+.idea
+*.local
+coverage
+.nyc_output
+server/admin-api/uploads
+server/admin-api/logs
+miniprogram/cloudbaserc.json
+cloudbaserc.json

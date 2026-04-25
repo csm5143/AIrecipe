@@ -11,8 +11,10 @@ Component({
   },
 
   methods: {
-    switchTab(e: WechatMiniprogram.BaseEvent) {
-      const { path, index } = e.currentTarget.dataset as { path?: string; index?: number };
+    switchTab(e) {
+      const dataset = e.currentTarget.dataset;
+      const path = dataset.path;
+      const index = dataset.index;
       if (path == null || index == null) return;
       wx.switchTab({
         url: path,

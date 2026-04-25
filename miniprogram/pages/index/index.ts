@@ -17,28 +17,100 @@ interface HotRecipesRaw {
   hotRecipes: HotDish[];
 }
 
+// 热门菜谱数据（从 hotRecipes.json 内嵌，共80道菜品）
+const HOT_RECIPES_DATA: HotRecipesRaw = {
+  "lastUpdated": "2026-04-11",
+  "description": "首页热门菜库，包含80道精选热门菜品，每天按日期轮换展示24道",
+  "hotRecipes": [
+    { "id": "34", "name": "皮蛋瘦肉粥", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/皮蛋瘦肉粥.png", "category": "breakfast" },
+    { "id": "18", "name": "鸡蛋饼", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/鸡蛋饼.png", "category": "breakfast" },
+    { "id": "76", "name": "红枣枸杞小米粥", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/红枣枸杞小米粥.png", "category": "breakfast" },
+    { "id": "379", "name": "八宝粥", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/八宝粥.png", "category": "breakfast" },
+    { "id": "581", "name": "燕麦粥", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/燕麦粥.png", "category": "breakfast" },
+    { "id": "479", "name": "南瓜小米粥", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/南瓜小米粥.png", "category": "breakfast" },
+    { "id": "416", "name": "红豆枸杞小米粥", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/红豆枸杞小米粥.png", "category": "breakfast" },
+    { "id": "398", "name": "豆腐蒸蛋", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/豆腐蒸蛋.png", "category": "breakfast" },
+    { "id": "515", "name": "全麦三明治", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/全麦三明治.png", "category": "breakfast" },
+    { "id": "6", "name": "西红柿炒鸡蛋", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/西红柿炒鸡蛋.png", "category": "breakfast" },
+    { "id": "516", "name": "全麦吐司", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/全麦吐司.png", "category": "breakfast" },
+    { "id": "384", "name": "包子", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/包子.png", "category": "breakfast" },
+    { "id": "420", "name": "红枣枸杞豆浆", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/红枣枸杞豆浆.png", "category": "breakfast" },
+    { "id": "555", "name": "五谷豆浆", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/五谷豆浆.png", "category": "breakfast" },
+    { "id": "141", "name": "蛋挞", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/蛋挞.png", "category": "breakfast" },
+    { "id": "570", "name": "香菇瘦肉粥", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/香菇瘦肉粥.png", "category": "breakfast" },
+    { "id": "418", "name": "红豆薏米粥", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/红豆薏米粥.png", "category": "breakfast" },
+    { "id": "2", "name": "番茄鸡蛋面", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/番茄鸡蛋面.png", "category": "lunch" },
+    { "id": "331", "name": "鱼汤面", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/鱼汤面.png", "category": "lunch" },
+    { "id": "333", "name": "牛肉面", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/牛肉面.png", "category": "lunch" },
+    { "id": "17", "name": "番茄牛腩面", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/番茄牛腩面.png", "category": "lunch" },
+    { "id": "438", "name": "菌菇豆腐煲", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/菌菇豆腐煲.png", "category": "lunch" },
+    { "id": "439", "name": "咖喱鸡丁饭", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/咖喱鸡丁饭.png", "category": "lunch" },
+    { "id": "171", "name": "地三鲜", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/地三鲜.png", "category": "lunch" },
+    { "id": "178", "name": "干煸四季豆", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/干煸四季豆.png", "category": "lunch" },
+    { "id": "201", "name": "番茄金针菇豆腐汤", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/番茄金针菇豆腐汤.png", "category": "lunch" },
+    { "id": "437", "name": "京酱肉丝", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/京酱肉丝.png", "category": "lunch" },
+    { "id": "5", "name": "鸡蛋炒饭", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/鸡蛋炒饭.png", "category": "lunch" },
+    { "id": "276", "name": "蛋炒饭", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/蛋炒饭.png", "category": "lunch" },
+    { "id": "430", "name": "鲫鱼豆腐汤", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/鲫鱼豆腐汤.png", "category": "lunch" },
+    { "id": "65", "name": "海带排骨汤", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/海带排骨汤.png", "category": "lunch" },
+    { "id": "224", "name": "冬瓜排骨汤", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/冬瓜排骨汤.png", "category": "lunch" },
+    { "id": "15", "name": "酸辣土豆丝", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/酸辣土豆丝.png", "category": "lunch" },
+    { "id": "4", "name": "青椒土豆丝", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/青椒土豆丝.png", "category": "lunch" },
+    { "id": "308", "name": "青椒肉丝", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/青椒肉丝.png", "category": "lunch" },
+    { "id": "300", "name": "宫保鸡丁", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/宫保鸡丁.png", "category": "lunch" },
+    { "id": "389", "name": "彩蔬鸡丁饭", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/彩蔬鸡丁饭.png", "category": "lunch" },
+    { "id": "22", "name": "麻婆豆腐", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/麻婆豆腐.png", "category": "dinner" },
+    { "id": "535", "name": "酸菜鱼", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/酸菜鱼.png", "category": "dinner" },
+    { "id": "533", "name": "松鼠鳜鱼", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/松鼠鳜鱼.png", "category": "dinner" },
+    { "id": "60", "name": "清蒸鲈鱼", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/清蒸鲈鱼.png", "category": "dinner" },
+    { "id": "8", "name": "红烧肉", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/红烧肉.png", "category": "dinner" },
+    { "id": "13", "name": "土豆炖牛肉", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/土豆炖牛肉.png", "category": "dinner" },
+    { "id": "294", "name": "水煮牛肉", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/水煮牛肉.png", "category": "dinner" },
+    { "id": "182", "name": "回锅肉", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/回锅肉.png", "category": "dinner" },
+    { "id": "3", "name": "可乐鸡翅", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/可乐鸡翅.png", "category": "dinner" },
+    { "id": "545", "name": "糖醋里脊", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/糖醋里脊.png", "category": "dinner" },
+    { "id": "7", "name": "糖醋排骨", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/糖醋排骨.png", "category": "dinner" },
+    { "id": "10", "name": "鱼香肉丝", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/鱼香肉丝.png", "category": "dinner" },
+    { "id": "12", "name": "红烧排骨", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/红烧排骨.png", "category": "dinner" },
+    { "id": "20", "name": "红烧茄子", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/红烧茄子.png", "category": "dinner" },
+    { "id": "382", "name": "白灼虾", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/白灼虾.png", "category": "dinner" },
+    { "id": "46", "name": "椒盐虾", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/椒盐虾.png", "category": "dinner" },
+    { "id": "580", "name": "香辣蟹", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/香辣蟹.png", "category": "dinner" },
+    { "id": "301", "name": "辣子鸡丁", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/辣子鸡丁.png", "category": "dinner" },
+    { "id": "165", "name": "手撕包菜", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/手撕包菜.png", "category": "dinner" },
+    { "id": "164", "name": "辣椒炒肉", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/辣椒炒肉.png", "category": "dinner" },
+    { "id": "343", "name": "小炒牛肉", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/小炒牛肉.png", "category": "dinner" },
+    { "id": "370", "name": "爆炒羊肉", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/爆炒羊肉.png", "category": "dinner" },
+    { "id": "365", "name": "香煎牛排", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/香煎牛排.png", "category": "dinner" },
+    { "id": "471", "name": "迷迭香烤牛排", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/迷迭香烤牛排.png", "category": "dinner" },
+    { "id": "574", "name": "香煎牛排配芦笋", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/香煎牛排配芦笋.png", "category": "dinner" },
+    { "id": "220", "name": "白萝卜炖排骨", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/白萝卜炖排骨.png", "category": "dinner" },
+    { "id": "298", "name": "芹菜炒牛肉", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/芹菜炒牛肉.png", "category": "dinner" },
+    { "id": "521", "name": "沙茶牛肉", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/沙茶牛肉.png", "category": "dinner" },
+    { "id": "485", "name": "牛骨白萝卜汤", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/牛骨白萝卜汤.png", "category": "dinner" },
+    { "id": "167", "name": "鱼香茄子", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/鱼香茄子.png", "category": "dinner" },
+    { "id": "221", "name": "清炒白菜", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/清炒白菜.png", "category": "dinner" },
+    { "id": "66", "name": "韭菜炒鸡蛋", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/韭菜炒鸡蛋.png", "category": "dinner" },
+    { "id": "223", "name": "清炒油麦菜", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/清炒油麦菜.png", "category": "dinner" },
+    { "id": "19", "name": "紫菜豆腐汤", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/紫菜豆腐汤.png", "category": "dinner" },
+    { "id": "585", "name": "鱼头汤", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/鱼头汤.png", "category": "dinner" },
+    { "id": "226", "name": "冬瓜老鸭汤", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/冬瓜老鸭汤.png", "category": "dinner" },
+    { "id": "392", "name": "虫草花胶鸡汤", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/虫草花胶鸡汤.png", "category": "dinner" },
+    { "id": "426", "name": "花胶鸡汤", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/花胶鸡汤.png", "category": "dinner" },
+    { "id": "469", "name": "毛血旺", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/毛血旺.png", "category": "dinner" },
+    { "id": "408", "name": "干锅牛蛙", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/干锅牛蛙.png", "category": "dinner" },
+    { "id": "523", "name": "烧鹅", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/烧鹅.png", "category": "dinner" },
+    { "id": "115", "name": "佛跳墙", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/佛跳墙.png", "category": "dinner" },
+    { "id": "109", "name": "烤羊排", "coverUrl": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/所有菜品/烤羊排.png", "category": "dinner" }
+  ]
+};
+
 /**
  * 加载本地热门菜谱数据
  */
 function loadHotRecipesData(): HotDish[] {
-  try {
-    const fsm = wx.getFileSystemManager();
-    const candidates = [
-      'data/hotRecipes.json',
-      '/data/hotRecipes.json',
-      '/miniprogram/data/hotRecipes.json'
-    ];
-    for (const p of candidates) {
-      try {
-        const content = fsm.readFileSync(p, 'utf8') as string;
-        if (content && content.trim()) {
-          const parsed = JSON.parse(content) as HotRecipesRaw;
-          return parsed.hotRecipes || [];
-        }
-      } catch (_e) {}
-    }
-  } catch (_e) {}
-  return [];
+  console.log('[index] 加载热门菜谱数据，数量:', HOT_RECIPES_DATA.hotRecipes.length);
+  return HOT_RECIPES_DATA.hotRecipes;
 }
 
 // 本地热门菜库数据
@@ -89,12 +161,11 @@ function shuffleArray<T>(arr: T[], random: () => number): T[] {
  * 从本地热门菜库加载当日菜品（立即返回）
  */
 function getLocalHotRecipes(): HotDish[] {
-  // hotRecipesData 已经是 HotDish[] 数组
   return hotRecipesData.map(r => ({
-    id: r.id,
+    id: String(r.id),
     name: r.name,
-    coverUrl: r.coverImage || '',
-    category: r.category,
+    coverUrl: r.coverUrl || r.coverImage || '',
+    category: r.category || 'lunch',
   }));
 }
 
@@ -179,12 +250,9 @@ Page({
     const seed = dateToSeed(today);
     const todayStr = this._getTodayString();
 
-    console.log('[首页] _loadDailyHot 开始, today:', todayStr);
-
     // 本地热门菜库已有完整图片，立即显示
     const localHot = getLocalHotRecipes();
     if (localHot && localHot.length > 0) {
-      console.log('[首页] 使用本地热门菜库，立即显示');
       this._updateHotDishesFromLocal(localHot, todayStr);
     }
   },
@@ -194,8 +262,6 @@ Page({
     const dailyHot = shuffleArray(localHot, seededRandom(dateToSeed(new Date())));
     const displayed = dailyHot.slice(0, INITIAL_COUNT);
     const hasMore = dailyHot.length > INITIAL_COUNT;
-
-    console.log('[首页] 更新热门菜品, hotDishes:', dailyHot.length, 'displayed:', displayed.length);
 
     this.setData({
       hotDishes: displayed,

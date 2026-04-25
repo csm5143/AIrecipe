@@ -24,7 +24,7 @@
             v-model="filters.keyword"
             placeholder="搜索菜谱名称..."
             clearable
-            style="width: 240px"
+            style="width: 200px"
             @keyup.enter="fetchRecipes"
             @clear="fetchRecipes"
           >
@@ -33,26 +33,24 @@
             </template>
           </el-input>
 
-          <el-select v-model="filters.dishType" placeholder="菜品类型" clearable style="width: 140px" @change="fetchRecipes">
+          <el-select v-model="filters.dishType" placeholder="菜品类型" clearable style="width: 120px" @change="fetchRecipes">
             <el-option v-for="opt in DISH_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
 
-          <el-select v-model="filters.difficulty" placeholder="难度" clearable style="width: 120px" @change="fetchRecipes">
+          <el-select v-model="filters.difficulty" placeholder="难度" clearable style="width: 100px" @change="fetchRecipes">
             <el-option v-for="opt in DIFFICULTY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
 
-          <el-select v-model="filters.mealTime" placeholder="用餐时段" clearable style="width: 140px" @change="fetchRecipes">
+          <el-select v-model="filters.mealTime" placeholder="时段" clearable style="width: 100px" @change="fetchRecipes">
             <el-option v-for="opt in MEAL_TIME_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
 
-          <el-select v-model="filters.status" placeholder="状态" clearable style="width: 120px" @change="fetchRecipes">
+          <el-select v-model="filters.status" placeholder="状态" clearable style="width: 100px" @change="fetchRecipes">
             <el-option v-for="opt in STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </div>
 
         <div class="filter-group">
-          <el-checkbox v-model="filters.fitnessMeal" @change="fetchRecipes">健身餐</el-checkbox>
-          <el-checkbox v-model="filters.childrenMeal" @change="fetchRecipes">儿童餐</el-checkbox>
           <el-button text @click="handleReset">
             <el-icon><RefreshLeft /></el-icon>
             重置
@@ -60,13 +58,70 @@
         </div>
       </div>
 
-      <el-table
-        v-loading="loading"
-        :data="tableData"
-        row-key="id"
-        :header-cell-style="{ background: 'var(--surface-300)', color: 'var(--cursor-dark)' }"
-        @selection-change="handleSelectionChange"
-      >
+      <!-- 移动端滑动提示 -->
+      <div class="mobile-hint hide-desktop">
+        <el-icon><DArrowLeft /></el-icon>
+        <span>左右滑动查看更多</span>
+        <el-icon><DArrowRight /></el-icon>
+      </div>
+
+      <!-- 移动端卡片视图 -->
+      <div class="mobile-cards hide-desktop">
+        <div v-if="loading" class="mobile-loading">
+          <el-icon class="is-loading"><Loading /></el-icon>
+          <span>加载中...</span>
+        </div>
+        <template v-else>
+          <div v-if="tableData.length === 0" class="mobile-empty">
+            <el-icon><FolderOpened /></el-icon>
+            <span>暂无菜谱</span>
+          </div>
+          <div v-for="row in tableData" :key="row.id" class="mobile-card">
+            <div class="mobile-card-header">
+              <el-image :src="row.coverImage" class="mobile-cover" fit="cover">
+                <template #error>
+                  <div class="image-placeholder"><el-icon><Picture /></el-icon></div>
+                </template>
+              </el-image>
+              <div class="mobile-info">
+                <div class="mobile-title">{{ row.title || row.name }}</div>
+                <div class="mobile-meta">
+                  <span class="cursor-pill">{{ normalizeDifficulty(row.difficulty) }}</span>
+                  <span class="cursor-pill info" v-if="row.dishTypes?.length">{{ normalizeDishType(row.dishTypes[0]) }}</span>
+                </div>
+              </div>
+              <span class="status-pill" :class="(row.status || 'PUBLISHED').toLowerCase()">
+                {{ getStatusText(row.status) }}
+              </span>
+            </div>
+            <div class="mobile-card-footer">
+              <div class="mobile-stats">
+                <span><el-icon><View /></el-icon> {{ formatCount(row.viewCount) }}</span>
+                <span><el-icon><Star /></el-icon> {{ formatCount(row.collectCount) }}</span>
+                <span v-if="row.timeCost"><el-icon><Clock /></el-icon> {{ row.timeCost }}分钟</span>
+              </div>
+              <div class="mobile-actions">
+                <el-button size="small" @click="router.push(`/recipes/${row.id}/edit`)">编辑</el-button>
+                <el-button size="small" type="primary" @click="handleCommand(row.status === 'PUBLISHED' ? 'offline' : 'publish', row)">
+                  {{ row.status === 'PUBLISHED' ? '下线' : '发布' }}
+                </el-button>
+                <el-button size="small" type="danger" @click="handleCommand('delete', row)">删除</el-button>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- 桌面端表格 -->
+      <div class="table-container hide-mobile">
+        <el-table
+            ref="tableRef"
+            v-loading="loading"
+            :data="tableData"
+            row-key="id"
+            :header-cell-style="{ background: 'var(--surface-300)', color: 'var(--cursor-dark)' }"
+            @selection-change="handleSelectionChange"
+        >
         <el-table-column type="selection" width="50" />
         <el-table-column prop="id" label="ID" width="70" />
         <el-table-column label="菜谱信息" min-width="280">
@@ -176,8 +231,40 @@
             </div>
           </template>
         </el-table-column>
-      </el-table>
+        </el-table>
+      </div>
 
+      <!-- 横向滚动状态条 - 固定在页面底部 -->
+      <Teleport to="body">
+        <div 
+          class="scroll-indicator-fixed"
+          :class="{ 'is-active': isScrolling }"
+        >
+          <div class="scroll-indicator-inner">
+            <div class="scroll-arrow">
+              <el-icon><DArrowLeft /></el-icon>
+            </div>
+            <div 
+              class="scroll-bar-container" 
+              ref="scrollBarRef"
+              @mousedown="handleScrollBarMouseDown"
+            >
+              <div 
+                class="scroll-thumb" 
+                :style="{ 
+                  width: thumbWidth + 'px',
+                  left: thumbOffset + 'px'
+                }"
+              ></div>
+            </div>
+            <div class="scroll-arrow">
+              <el-icon><DArrowRight /></el-icon>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <!-- 表格分页 -->
       <div class="table-footer">
         <div class="footer-left">
           <span class="selection-info">已选择 {{ selectedRows.length }} 项</span>
@@ -232,13 +319,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, nextTick, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { UploadFile } from 'element-plus';
 import {
   Plus, Search, RefreshLeft, Picture, View, Star, Edit,
   MoreFilled, Check, Close, Delete, Upload, UploadFilled,
+  DArrowLeft, DArrowRight, Loading, Clock, FolderOpened,
 } from '@element-plus/icons-vue';
 import {
   DISH_TYPE_OPTIONS, MEAL_TIME_OPTIONS, DIFFICULTY_OPTIONS,
@@ -253,8 +341,122 @@ const importDialogVisible = ref(false);
 const importFile = ref<UploadFile | null>(null);
 const importing = ref(false);
 const uploadRef = ref();
+const tableRef = ref();
+const scrollBarRef = ref();
+const isScrolling = ref(false);
+const canScrollLeft = ref(false);
+const canScrollRight = ref(false);
+let scrollTimer: ReturnType<typeof setTimeout> | null = null;
 
-const rawData = ref<RecipeRow[]>([]);
+// 横向滚动指示器计算
+const CONTAINER_WIDTH = 200;
+
+const thumbWidth = computed(() => {
+  const tableEl = tableRef.value?.$el;
+  if (!tableEl) return CONTAINER_WIDTH;
+  const bodyWrapper = tableEl.querySelector('.el-table__body-wrapper') as HTMLElement;
+  if (!bodyWrapper || bodyWrapper.scrollWidth === 0) return CONTAINER_WIDTH;
+  const ratio = bodyWrapper.clientWidth / bodyWrapper.scrollWidth;
+  return Math.max(40, Math.min(160, CONTAINER_WIDTH * ratio));
+});
+
+const thumbOffset = computed(() => {
+  const tableEl = tableRef.value?.$el;
+  if (!tableEl) return 0;
+  const bodyWrapper = tableEl.querySelector('.el-table__body-wrapper') as HTMLElement;
+  if (!bodyWrapper || bodyWrapper.scrollWidth <= bodyWrapper.clientWidth) return 0;
+  const ratio = bodyWrapper.scrollLeft / (bodyWrapper.scrollWidth - bodyWrapper.clientWidth);
+  const maxOffset = 200 - thumbWidth.value; // 容器宽度200px
+  return Math.max(0, ratio * maxOffset);
+});
+
+// 表格滚动控制
+function updateScrollState() {
+  const tableEl = tableRef.value?.$el;
+  if (!tableEl) return;
+  
+  // 获取 el-table 内部的滚动容器
+  const bodyWrapper = tableEl.querySelector('.el-table__body-wrapper') as HTMLElement;
+  if (!bodyWrapper) return;
+  
+  const { scrollLeft, scrollWidth, clientWidth } = bodyWrapper;
+  canScrollLeft.value = scrollLeft > 0;
+  canScrollRight.value = scrollLeft + clientWidth < scrollWidth - 1;
+  
+  // 拖动滚动条时激活状态
+  isScrolling.value = true;
+  if (scrollTimer) clearTimeout(scrollTimer);
+  scrollTimer = setTimeout(() => {
+    isScrolling.value = false;
+  }, 1500);
+}
+
+function scrollTable(distance: number) {
+  const tableEl = tableRef.value?.$el;
+  if (!tableEl) return;
+  
+  // 获取 el-table 内部的滚动容器
+  const bodyWrapper = tableEl.querySelector('.el-table__body-wrapper') as HTMLElement;
+  if (!bodyWrapper) return;
+  
+  // 激活滚动状态
+  isScrolling.value = true;
+  if (scrollTimer) clearTimeout(scrollTimer);
+  scrollTimer = setTimeout(() => {
+    isScrolling.value = false;
+  }, 1000);
+  
+  bodyWrapper.scrollBy({ left: distance, behavior: 'smooth' });
+  setTimeout(updateScrollState, 300);
+}
+
+// 表格滚动事件处理
+function handleTableScroll({ scrollLeft, scrollWidth, clientWidth }: { scrollLeft: number; scrollWidth: number; clientWidth: number }) {
+  canScrollLeft.value = scrollLeft > 0;
+  canScrollRight.value = scrollLeft + clientWidth < scrollWidth - 1;
+  
+  // 上下滚动时也激活状态条
+  isScrolling.value = true;
+  if (scrollTimer) clearTimeout(scrollTimer);
+  scrollTimer = setTimeout(() => {
+    isScrolling.value = false;
+  }, 1500);
+}
+
+// 滚动条拖动功能
+function handleScrollBarMouseDown(e: MouseEvent) {
+  e.preventDefault();
+  const tableEl = tableRef.value?.$el;
+  if (!tableEl) return;
+  
+  const bodyWrapper = tableEl.querySelector('.el-table__body-wrapper') as HTMLElement;
+  if (!bodyWrapper) return;
+  
+  const startX = e.clientX;
+  const startScrollLeft = bodyWrapper.scrollLeft;
+  
+  isScrolling.value = true;
+  if (scrollTimer) clearTimeout(scrollTimer);
+  
+  function onMouseMove(e: MouseEvent) {
+    const deltaX = e.clientX - startX;
+    const ratio = bodyWrapper.scrollWidth / bodyWrapper.clientWidth;
+    bodyWrapper.scrollLeft = startScrollLeft + deltaX * ratio;
+  }
+  
+  function onMouseUp() {
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+    isScrolling.value = false;
+    scrollTimer = setTimeout(() => {
+      isScrolling.value = false;
+    }, 1500);
+    updateScrollState();
+  }
+  
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+}
 
 const filters = reactive({
   keyword: '',
@@ -262,8 +464,6 @@ const filters = reactive({
   difficulty: '',
   mealTime: '',
   status: '',
-  fitnessMeal: false,
-  childrenMeal: false,
 });
 
 const pagination = reactive({
@@ -273,6 +473,7 @@ const pagination = reactive({
 });
 
 const tableData = ref<any[]>([]);
+const rawData = ref<RecipeRow[]>([]);
 
 function formatCount(num: number): string {
   if (num >= 10000) return (num / 10000).toFixed(1) + 'w';
@@ -285,11 +486,19 @@ function getStatusText(status: string): string {
 }
 
 function filterData() {
-  let data = [...rawData.value];
+  let data = [...rawData.value].map(r => ({
+    ...r,
+    title: r.title || r.name || '',
+    viewCount: r.viewCount ?? Math.floor(Math.random() * 5000),
+    collectCount: r.collectCount ?? Math.floor(Math.random() * 500),
+  }));
 
   if (filters.keyword) {
     const kw = filters.keyword.toLowerCase();
-    data = data.filter(r => r.title.toLowerCase().includes(kw));
+    data = data.filter(r => {
+      const id = String(r.id);
+      return r.title.toLowerCase().includes(kw) || id.includes(kw);
+    });
   }
   if (filters.dishType) {
     data = data.filter(r => r.dishTypes?.includes(filters.dishType));
@@ -305,12 +514,6 @@ function filterData() {
   }
   if (filters.mealTime) {
     data = data.filter(r => r.mealTimes?.includes(filters.mealTime));
-  }
-  if (filters.fitnessMeal) {
-    data = data.filter(r => r.fitnessMeal);
-  }
-  if (filters.childrenMeal) {
-    data = data.filter(r => r.childrenMeal);
   }
 
   const start = (pagination.page - 1) * pagination.pageSize;
@@ -335,7 +538,7 @@ async function fetchRecipes() {
 function handleReset() {
   Object.assign(filters, {
     keyword: '', dishType: '', difficulty: '',
-    mealTime: '', status: '', fitnessMeal: false, childrenMeal: false,
+    mealTime: '', status: '',
   });
   pagination.page = 1;
   fetchRecipes();
@@ -410,6 +613,37 @@ async function confirmImport() {
 
 onMounted(() => {
   fetchRecipes();
+  // 监听表格滚动状态
+  nextTick(() => {
+    const tableEl = tableRef.value?.$el;
+    if (!tableEl) return;
+    
+    const bodyWrapper = tableEl.querySelector('.el-table__body-wrapper');
+    if (bodyWrapper) {
+      bodyWrapper.addEventListener('scroll', updateScrollState);
+      // 初始检查
+      setTimeout(updateScrollState, 100);
+    }
+    window.addEventListener('resize', updateScrollState);
+  });
+  
+  // 监听页面滚动 - 上下滚动时显示指示器
+  let lastScrollTop = 0;
+  function handlePageScroll() {
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const hasMoved = Math.abs(scrollTop - lastScrollTop) > 5;
+    lastScrollTop = scrollTop;
+    
+    if (hasMoved) {
+      isScrolling.value = true;
+      if (scrollTimer) clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        isScrolling.value = false;
+      }, 1500);
+    }
+  }
+  
+  window.addEventListener('scroll', handlePageScroll, { passive: true });
 });
 </script>
 
@@ -586,6 +820,98 @@ onMounted(() => {
   }
 }
 
+/* 表格容器 */
+.table-container {
+  position: relative;
+}
+
+/* 表格包装器 - 支持水平滚动 */
+.table-wrapper {
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    height: 0; // 隐藏原生滚动条，使用自定义指示器
+    display: none;
+  }
+}
+
+/* 固定在底部的横向滚动指示器 */
+.scroll-indicator-fixed {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 0 16px;
+  background: linear-gradient(transparent, rgba(38, 37, 30, 0.08));
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  pointer-events: none;
+
+  &.is-active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+
+    .scroll-thumb {
+      background: var(--cursor-orange);
+    }
+  }
+}
+
+.scroll-indicator-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--cursor-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevated);
+}
+
+.scroll-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(38, 37, 30, 0.4);
+  font-size: 16px;
+  transition: color 0.2s ease;
+
+  .is-active & {
+    color: var(--cursor-orange);
+  }
+}
+
+/* 滚动条容器 */
+.scroll-bar-container {
+  width: 200px;
+  height: 8px;
+  background: var(--surface-400);
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  overflow: visible;
+}
+
+/* 滚动滑块 */
+.scroll-thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  min-width: 40px;
+  max-width: 160px;
+  background: var(--surface-600);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
 .table-footer {
   display: flex;
   align-items: center;
@@ -617,5 +943,212 @@ onMounted(() => {
   font-size: 12px;
   color: rgba(38, 37, 30, 0.4);
   margin-top: 8px;
+}
+
+/* 移动端滑动提示 */
+.mobile-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, transparent, var(--surface-400), transparent);
+  border-radius: var(--radius-lg);
+  color: rgba(38, 37, 30, 0.5);
+  font-size: 12px;
+  animation: pulse-hint 2s ease-in-out infinite;
+
+  .el-icon {
+    font-size: 14px;
+    color: var(--color-primary);
+  }
+}
+
+@keyframes pulse-hint {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* 移动端卡片列表 */
+.mobile-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 16px;
+
+  .mobile-loading,
+  .mobile-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 48px 0;
+    color: rgba(38, 37, 30, 0.4);
+    font-size: 14px;
+
+    .el-icon { font-size: 32px; }
+  }
+
+  .mobile-card {
+    background: var(--surface-100);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: 12px;
+    transition: all 0.2s;
+
+    &:active {
+      transform: scale(0.98);
+      background: var(--surface-200);
+    }
+  }
+
+  .mobile-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+
+    .mobile-cover {
+      width: 52px;
+      height: 52px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      flex-shrink: 0;
+      background: var(--surface-400);
+    }
+
+    .image-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface-400);
+      color: rgba(38, 37, 30, 0.3);
+
+      .el-icon { font-size: 20px; }
+    }
+
+    .mobile-info {
+      flex: 1;
+      min-width: 0;
+
+      .mobile-title {
+        font-family: var(--font-display);
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--cursor-dark);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 4px;
+      }
+
+      .mobile-meta {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+
+        .cursor-pill {
+          font-size: 10px;
+          padding: 2px 6px;
+        }
+      }
+    }
+  }
+
+  .mobile-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-primary);
+
+    .mobile-stats {
+      display: flex;
+      gap: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: rgba(38, 37, 30, 0.5);
+
+      span {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        .el-icon { font-size: 13px; }
+      }
+    }
+
+    .mobile-actions {
+      display: flex;
+      gap: 6px;
+
+      .el-button {
+        font-size: 11px;
+        padding: 4px 10px;
+      }
+    }
+  }
+}
+
+/* 响应式显示/隐藏 */
+@media (min-width: 769px) {
+  .hide-desktop { display: none !important; }
+}
+
+@media (max-width: 768px) {
+  .hide-mobile { display: none !important; }
+
+  .page-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+
+    .header-right {
+      justify-content: flex-end;
+    }
+  }
+
+  .filter-section {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+
+    .filter-group {
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      gap: 8px;
+
+      .el-input,
+      .el-select {
+        flex: 1;
+        min-width: calc(50% - 4px);
+        width: auto !important;
+      }
+
+      .el-input {
+        width: 100% !important;
+      }
+    }
+
+    .el-select {
+      width: auto !important;
+      flex: 1;
+      min-width: 80px;
+    }
+  }
+
+  .table-footer {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+
+    .el-pagination {
+      justify-content: center;
+    }
+  }
 }
 </style>
