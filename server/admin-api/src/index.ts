@@ -1,5 +1,7 @@
+// 加载环境变量（必须放在最前面）
+import 'dotenv/config';
+
 import 'reflect-metadata';
-import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -19,8 +21,6 @@ import analyticsRoutes from './modules/analytics/routes/analytics.routes';
 import uploadRoutes from './modules/upload/routes/upload.routes';
 import systemRoutes from './modules/system/routes/system.routes';
 
-dotenv.config();
-
 const app = express();
 
 // ==================== 全局中间件 ====================
@@ -29,10 +29,25 @@ const app = express();
 app.use(helmet());
 
 // CORS
-app.use(cors({
-  origin: config.cors.origin,
-  credentials: config.cors.credentials,
-}));
+const corsOptions: cors.CorsOptions = {
+  credentials: true,
+  origin: (origin, callback) => {
+    // 允许没有 origin 的请求（如 Postman、curl）
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:3001',
+    ];
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`Origin ${origin} not allowed by CORS policy`));
+    }
+  },
+};
+app.use(cors(corsOptions));
 
 // 请求体解析
 app.use(express.json({ limit: '10mb' }));

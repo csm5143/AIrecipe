@@ -3,8 +3,7 @@
  * 使用云函数上传头像到 COS，反馈图片到 feedback 文件夹
  */
 
-// 云存储基础URL
-const COS_BASE_URL = 'https://dish-1367781796.cos.ap-guangzhou.myqcloud.com';
+import { COS_CONFIG, COS_FOLDERS, getCOSUrl as getCOSUrlFromCos } from './cos';
 
 // 云函数返回结果类型
 interface CloudFunctionResult {
@@ -181,12 +180,10 @@ export function chooseImageAsBase64(count: number = 1): Promise<string[]> {
  * @returns COS 完整 URL
  */
 export function getCOSUrl(fileID: string): string {
-  if (!fileID) return '';
-  if (fileID.startsWith('http')) return fileID;
-  return `${COS_BASE_URL}/${fileID}`;
+  return getCOSUrlFromCos(fileID);
 }
 
-export { COS_BASE_URL };
+export { COS_CONFIG, COS_FOLDERS };
 
 /**
  * 测试云函数签名（调试用）

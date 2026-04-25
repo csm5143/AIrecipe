@@ -1,0 +1,44 @@
+# ===========================================
+# Stage 1: Build
+# ===========================================
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# 安装 pnpm
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+
+# 复制根 workspace 配置（pnpm workspace）
+COPY package.json pnpm-lock.yaml ./
+COPY packages/shared-types packages/shared-types/
+
+# 安装根依赖（包含 shared-types 构建）
+RUN pnpm install --frozen-lockfile
+
+# 复制 admin-web 源码
+COPY client/admin-web ./client/admin-web
+
+# 构建 admin-web
+WORKDIR /app/client/admin-web
+RUN pnpm build
+
+# ===========================================
+# Stage 2: Nginx serve
+# ===========================================
+FROM nginx:alpine AS production
+
+# 删除默认站点配置
+RUN rm -rf /etc/nginx/conf.d/default.conf
+
+# 从构建阶段复制产物
+COPY --from=builder /app/client/admin-web/dist /usr/share/nginx/html
+
+# 复制 nginx 配置
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# 创建 uploads 目录
+RUN mkdir -p /usr/share/nginx/html/uploads
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
