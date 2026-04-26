@@ -2,7 +2,6 @@
 import { recognizeImage, IngredientRecognitionResult } from '../../utils/ingredientRecognize'
 import { loadIngredientsJson } from '../../utils/dataLoader'
 import { getFallbackIngredients } from '../../utils/fallbackIngredients'
-import { isFormalUser, checkScanAccess, consumeScanCountIfNeeded, getDisplayRemainingCount } from '../../utils/userAuth'
 
 Component({
   data: {
@@ -22,44 +21,13 @@ Component({
     mappingCandidates: [] as { name: string; category: string }[],
     // 待处理队列
     pendingMapping: [] as string[],
-    // 剩余拍照次数
-    remainingCount: 3,
     // 图片模糊提示
     showBlurTip: false,
   },
 
-  lifetimes: {
-    attached() {
-      this.updateRemainingCount();
-    }
-  },
-
-  pageLifetimes: {
-    show() {
-      this.updateRemainingCount();
-    }
-  },
-
   methods: {
-    // 更新剩余次数显示（仅游客/未登录显示）
-    updateRemainingCount() {
-      const count = getDisplayRemainingCount();
-      this.setData({ remainingCount: count });
-    },
-
     // 从相册选择多张图片（一次选完）
     onChooseImages() {
-      const { canUse } = checkScanAccess();
-      if (!canUse) {
-        wx.showModal({
-          title: '提示',
-          content: '今日次数已用尽，请明天再来~',
-          showCancel: false,
-          confirmText: '我知道了'
-        });
-        return;
-      }
-
       wx.chooseMedia({
         count: 9,  // 最多选择9张图片
         mediaType: ['image'],
@@ -88,17 +56,6 @@ Component({
 
     // 拍照（单张）
     onTakePhoto() {
-      const { canUse } = checkScanAccess();
-      if (!canUse) {
-        wx.showModal({
-          title: '提示',
-          content: '今日次数已用尽，请明天再来~',
-          showCancel: false,
-          confirmText: '我知道了'
-        });
-        return;
-      }
-
       wx.chooseMedia({
         count: 1,
         mediaType: ['image'],
@@ -430,17 +387,6 @@ Component({
     async handleImageRecognition(imagePaths: string[]) {
       if (imagePaths.length === 0) return
 
-      // 消耗一次拍照次数（仅游客需要消耗）
-      if (!consumeScanCountIfNeeded()) {
-        wx.showModal({
-          title: '提示',
-          content: '今日次数已用尽，请明天再来~',
-          showCancel: false,
-          confirmText: '我知道了'
-        })
-        return
-      }
-
       this.setData({
         recognizing: true,
         recognizingIndex: 0,
@@ -500,7 +446,6 @@ Component({
           selectedIngredients: allSelected,
           showResult: true,
           canGenerate: allSelected.length > 0,
-          remainingCount: getDisplayRemainingCount(),
           showBlurTip: isLikelyBlurry,
         })
 

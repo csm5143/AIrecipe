@@ -276,6 +276,22 @@ export async function loadRecipesFromCloud(): Promise<Recipe[] | null> {
     return null;
   }
 
+  // #region debug log hypothesis C
+  fetch('http://127.0.0.1:7659/ingest/62624b2e-6afb-4a90-931b-dedcd7320e0a', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '674cb7' },
+    body: JSON.stringify({
+      sessionId: '674cb7',
+      location: 'cloudService.ts:loadRecipesFromCloud:START',
+      message: 'Cloud database query starting',
+      data: { collection: RECIPES_COLLECTION },
+      runId: 'run1',
+      hypothesisId: 'C',
+      timestamp: Date.now()
+    })
+  }).catch(() => {});
+  // #endregion
+
   try {
     const db = wx.cloud.database();
     const DEFAULT_LIMIT = 20;  // 云数据库默认每次最多返回20条
@@ -294,6 +310,22 @@ export async function loadRecipesFromCloud(): Promise<Recipe[] | null> {
         .skip(skip)
         .limit(batchSize)
         .get();
+
+      // #region debug log hypothesis C
+      fetch('http://127.0.0.1:7659/ingest/62624b2e-6afb-4a90-931b-dedcd7320e0a', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '674cb7' },
+        body: JSON.stringify({
+          sessionId: '674cb7',
+          location: 'cloudService.ts:loadRecipesFromCloud:BATCH_RESULT',
+          message: 'Cloud database batch result',
+          data: { skip, count: result.data?.length || 0, totalSoFar: totalRecipes.length },
+          runId: 'run1',
+          hypothesisId: 'C',
+          timestamp: Date.now()
+        })
+      }).catch(() => {});
+      // #endregion
 
       const count = (result.data && result.data.length) || 0;
       
@@ -319,7 +351,23 @@ export async function loadRecipesFromCloud(): Promise<Recipe[] | null> {
 
     console.log(`[CloudService] 从云端加载了 ${totalRecipes.length} 条菜谱`);
     return totalRecipes as Recipe[];
-  } catch (e) {
+  } catch (e: any) {
+    // #region debug log hypothesis C
+    fetch('http://127.0.0.1:7659/ingest/62624b2e-6afb-4a90-931b-dedcd7320e0a', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '674cb7' },
+      body: JSON.stringify({
+        sessionId: '674cb7',
+        location: 'cloudService.ts:loadRecipesFromCloud:ERROR',
+        message: 'Cloud database query failed',
+        data: { error: e.message, errMsg: e.errMsg, stack: e.stack },
+        runId: 'run1',
+        hypothesisId: 'C',
+        timestamp: Date.now()
+      })
+    }).catch(() => {});
+    // #endregion
+
     console.error('[CloudService] 从云端加载菜谱失败', e);
     return null;
   }

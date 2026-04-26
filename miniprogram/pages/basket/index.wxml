@@ -45,7 +45,7 @@
               <view class="merged-dot merged-dot-core"></view>
               <text class="merged-name">{{item.name}}</text>
               <text class="merged-amount">{{item.amount}}</text>
-              <text wx:if="{{item.owned}}" class="owned-tag">✓</text>
+              <text wx:if="{{item.owned}}" class="owned-tag"></text>
             </view>
           </block>
           <block wx:if="{{mergedSeasoningList.length > 0}}">
@@ -55,7 +55,7 @@
               <view class="merged-dot merged-dot-seasoning"></view>
               <text class="merged-name">{{item.name}}</text>
               <text class="merged-amount">{{item.amount}}</text>
-              <text wx:if="{{item.owned}}" class="owned-tag">✓</text>
+              <text wx:if="{{item.owned}}" class="owned-tag"></text>
             </view>
           </block>
         </view>
@@ -128,7 +128,7 @@
             </view>
             <view class="ingredient-row-right">
               <text class="ingredient-amount">{{ing.amount}}</text>
-              <text wx:if="{{ing.owned}}" class="owned-tag">✓</text>
+              <text wx:if="{{ing.owned}}" class="owned-tag"></text>
               <image
                 class="ingredient-pass-img"
                 src="/assets/通过.png"

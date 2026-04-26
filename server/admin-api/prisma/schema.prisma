@@ -395,3 +395,77 @@ enum NoticeTarget {
   NEW_USER
   ACTIVE_USER
 }
+
+// ==================== 用户上传菜谱 ====================
+model UserRecipe {
+  id           Int       @id @default(autoincrement())
+  recipeId     String    @unique  // 自定义ID格式: ur_时间戳_随机字符串
+  openid       String
+  nickname     String?
+  avatar       String?
+
+  // 菜谱内容
+  title        String
+  coverImage   String?
+  description  String?
+  difficulty   RecipeDifficulty @default(NORMAL)
+  cookingTime  Int       @default(30)
+  servings     Int       @default(2)
+
+  // 食材和步骤（JSON格式存储）
+  ingredients  Json      @default("[]")
+  steps       Json      @default("[]")
+  tips        String?
+
+  // 分类标签
+  tags         Json      @default("[]")
+  mealTimes   Json      @default("[]")
+  dishTypes    Json      @default("[]")
+
+  // 审核状态
+  status       UserRecipeStatus @default(PENDING)
+  rejectReason String?
+
+  // 互动数据
+  viewCount    Int       @default(0)
+  likeCount    Int       @default(0)
+
+  // 时间戳
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  publishedAt  DateTime?
+
+  // 关联
+  likes        UserRecipeLike[]
+
+  @@index([openid])
+  @@index([status])
+  @@index([createdAt])
+  @@map("user_recipes")
+}
+
+enum RecipeDifficulty {
+  EASY
+  NORMAL
+  HARD
+}
+
+enum UserRecipeStatus {
+  PENDING     // 待审核
+  APPROVED    // 已通过
+  REJECTED    // 已拒绝
+}
+
+// ==================== 用户菜谱点赞 ====================
+model UserRecipeLike {
+  id           Int       @id @default(autoincrement())
+  recipeId     String
+  openid       String
+  createdAt    DateTime  @default(now())
+
+  recipe       UserRecipe @relation(fields: [recipeId], references: [recipeId], onDelete: Cascade)
+
+  @@unique([recipeId, openid])
+  @@index([openid])
+  @@map("user_recipe_likes")
+}

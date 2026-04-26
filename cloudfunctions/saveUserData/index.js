@@ -10,7 +10,6 @@ const db = cloud.database();
 
 // 集合名称
 const USERS_COLLECTION = 'users';
-const VISITORS_COLLECTION = 'visitors';
 
 exports.main = async (event, context) => {
   const { action, data } = event;
@@ -63,14 +62,12 @@ exports.main = async (event, context) => {
 };
 
 /**
- * 保存收藏列表（旧版兼容）
+ * 保存收藏列表
  */
 async function saveFavorites(openid, data) {
-  const { favorites, isVisitor } = data;
-  const collectionName = isVisitor ? VISITORS_COLLECTION : USERS_COLLECTION;
-  const identifier = isVisitor ? data.anonymousId : openid;
+  const { favorites } = data;
 
-  return await updateOrCreateRecord(collectionName, identifier, {
+  return await updateOrCreateRecord(USERS_COLLECTION, openid, {
     favorites: favorites || [],
     favoritesUpdatedAt: Date.now()
   });
@@ -80,14 +77,12 @@ async function saveFavorites(openid, data) {
  * 保存收藏夹列表
  */
 async function saveCollections(openid, data) {
-  const { collections, isVisitor } = data;
-  const collectionName = isVisitor ? VISITORS_COLLECTION : USERS_COLLECTION;
-  const identifier = isVisitor ? data.anonymousId : openid;
+  const { collections } = data;
 
   try {
     // 查询用户现有收藏夹
-    const existResult = await db.collection(collectionName)
-      .where({ identifier: identifier })
+    const existResult = await db.collection(USERS_COLLECTION)
+      .where({ identifier: openid })
       .limit(1)
       .get();
 
@@ -98,16 +93,16 @@ async function saveCollections(openid, data) {
 
     if (existResult.data && existResult.data.length > 0) {
       // 更新
-      await db.collection(collectionName)
+      await db.collection(USERS_COLLECTION)
         .doc(existResult.data[0]._id)
         .update({
           data: updateData
         });
     } else {
       // 创建
-      await db.collection(collectionName).add({
+      await db.collection(USERS_COLLECTION).add({
         data: {
-          identifier: identifier,
+          identifier: openid,
           ...updateData,
           createdAt: Date.now()
         }
@@ -127,11 +122,9 @@ async function saveCollections(openid, data) {
  * 保存小菜篮数据
  */
 async function saveBasket(openid, data) {
-  const { basket, isVisitor } = data;
-  const collectionName = isVisitor ? VISITORS_COLLECTION : USERS_COLLECTION;
-  const identifier = isVisitor ? data.anonymousId : openid;
+  const { basket } = data;
 
-  return await updateOrCreateRecord(collectionName, identifier, {
+  return await updateOrCreateRecord(USERS_COLLECTION, openid, {
     basket: basket || {},
     basketUpdatedAt: Date.now()
   });
@@ -141,11 +134,9 @@ async function saveBasket(openid, data) {
  * 保存健身目标
  */
 async function saveFitnessGoal(openid, data) {
-  const { goal, isVisitor } = data;
-  const collectionName = isVisitor ? VISITORS_COLLECTION : USERS_COLLECTION;
-  const identifier = isVisitor ? data.anonymousId : openid;
+  const { goal } = data;
 
-  return await updateOrCreateRecord(collectionName, identifier, {
+  return await updateOrCreateRecord(USERS_COLLECTION, openid, {
     fitnessGoal: goal || {},
     fitnessGoalUpdatedAt: Date.now()
   });
@@ -155,11 +146,9 @@ async function saveFitnessGoal(openid, data) {
  * 保存儿童阶段信息
  */
 async function saveChildrenStage(openid, data) {
-  const { stage, isVisitor } = data;
-  const collectionName = isVisitor ? VISITORS_COLLECTION : USERS_COLLECTION;
-  const identifier = isVisitor ? data.anonymousId : openid;
+  const { stage } = data;
 
-  return await updateOrCreateRecord(collectionName, identifier, {
+  return await updateOrCreateRecord(USERS_COLLECTION, openid, {
     childrenStage: stage || {},
     childrenStageUpdatedAt: Date.now()
   });
@@ -169,13 +158,9 @@ async function saveChildrenStage(openid, data) {
  * 获取用户数据
  */
 async function getUserData(openid, data) {
-  const { isVisitor } = data;
-  const collectionName = isVisitor ? VISITORS_COLLECTION : USERS_COLLECTION;
-  const identifier = isVisitor ? data.anonymousId : openid;
-
   try {
-    const result = await db.collection(collectionName)
-      .where({ identifier: identifier })
+    const result = await db.collection(USERS_COLLECTION)
+      .where({ identifier: openid })
       .limit(1)
       .get();
 
@@ -200,11 +185,9 @@ async function getUserData(openid, data) {
  * 保存用户资料
  */
 async function saveUserProfile(openid, data) {
-  const { nickname, avatar, isVisitor } = data;
-  const collectionName = isVisitor ? VISITORS_COLLECTION : USERS_COLLECTION;
-  const identifier = isVisitor ? data.anonymousId : openid;
+  const { nickname, avatar } = data;
 
-  return await updateOrCreateRecord(collectionName, identifier, {
+  return await updateOrCreateRecord(USERS_COLLECTION, openid, {
     nickname: nickname || '',
     avatar: avatar || '',
     profileUpdatedAt: Date.now()
@@ -215,11 +198,9 @@ async function saveUserProfile(openid, data) {
  * 合并用户数据（用于数据迁移）
  */
 async function mergeUserData(openid, data) {
-  const { mergeData, isVisitor } = data;
-  const collectionName = isVisitor ? VISITORS_COLLECTION : USERS_COLLECTION;
-  const identifier = isVisitor ? data.anonymousId : openid;
+  const { mergeData } = data;
 
-  return await updateOrCreateRecord(collectionName, identifier, {
+  return await updateOrCreateRecord(USERS_COLLECTION, openid, {
     ...mergeData,
     mergedAt: Date.now()
   });

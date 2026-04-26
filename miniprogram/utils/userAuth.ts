@@ -1,6 +1,9 @@
 // 用户信息管理工具（支持微信头像选择器 + 本地存储）
+// 核心改进：支持手机号绑定、JWT Token 管理
 
 const USER_INFO_KEY = 'userInfo';
+const AUTH_TOKEN_KEY = 'authToken';
+const OPENID_KEY = 'savedOpenid';
 
 /**
  * 获取用户信息
@@ -15,6 +18,7 @@ export function getUserInfo(): any {
         avatar: info.avatar || '',
         loginState: info.loginState || false,
         loginTime: info.loginTime || 0,
+        phoneNumber: info.phoneNumber || '',
         ...info
       };
     }
@@ -25,7 +29,8 @@ export function getUserInfo(): any {
     nickname: '',
     avatar: '',
     loginState: false,
-    loginTime: 0
+    loginTime: 0,
+    phoneNumber: ''
   };
 }
 
@@ -59,16 +64,14 @@ export function isLoggedIn(): boolean {
  * 保存用户自行输入的昵称和选择的头像
  * @param nickname 昵称
  * @param avatar 头像URL
- * @param isGuest 是否为游客
  * @param openid 微信 openid（可选，用于持久化登录）
  */
-export function saveUserProfile(nickname: string, avatar: string, isGuest: boolean = false, openid?: string): any {
+export function saveUserProfile(nickname: string, avatar: string, openid?: string): any {
   const current = getUserInfo();
   const info: any = {
     nickname: nickname.trim(),
     avatar: avatar,
     loginState: true,
-    isGuest,
     loginTime: Date.now()
   };
 
@@ -79,8 +82,65 @@ export function saveUserProfile(nickname: string, avatar: string, isGuest: boole
     info.openid = current.openid;
   }
 
+  // 保留手机号
+  if (current.phoneNumber) {
+    info.phoneNumber = current.phoneNumber;
+  }
+
   saveUserInfo(info);
   return info;
+}
+
+/**
+ * 设置用户手机号
+ */
+export function setPhoneNumber(phoneNumber: string): void {
+  const current = getUserInfo();
+  current.phoneNumber = phoneNumber;
+  saveUserInfo(current);
+}
+
+/**
+ * 获取用户手机号
+ */
+export function getPhoneNumber(): string {
+  const info = getUserInfo();
+  return info.phoneNumber || '';
+}
+
+/**
+ * 获取认证 Token
+ */
+export function getAuthToken(): string {
+  return wx.getStorageSync(AUTH_TOKEN_KEY) || '';
+}
+
+/**
+ * 设置认证 Token
+ */
+export function setAuthToken(token: string): void {
+  wx.setStorageSync(AUTH_TOKEN_KEY, token);
+}
+
+/**
+ * 清除认证 Token
+ */
+export function clearAuthToken(): void {
+  wx.removeStorageSync(AUTH_TOKEN_KEY);
+}
+
+/**
+ * 获取保存的 OpenID
+ */
+export function getSavedOpenid(): string {
+  return wx.getStorageSync(OPENID_KEY) || '';
+}
+
+/**
+ * 保存 OpenID
+ */
+export function setSavedOpenid(openid: string): void {
+  wx.setStorageSync(OPENID_KEY, openid);
 }
 
 /**
@@ -88,7 +148,19 @@ export function saveUserProfile(nickname: string, avatar: string, isGuest: boole
  */
 export function logout(): void {
   try {
+    // 清除用户信息，但保留 openid 和 token
+    const savedOpenid = getSavedOpenid();
+    const savedToken = getAuthToken();
+    
     wx.removeStorageSync(USER_INFO_KEY);
+    
+    // 保留必要信息用于重新登录
+    if (savedOpenid) {
+      wx.setStorageSync(OPENID_KEY, savedOpenid);
+    }
+    if (savedToken) {
+      wx.setStorageSync(AUTH_TOKEN_KEY, savedToken);
+    }
   } catch (e) {
     console.error('退出登录失败', e);
   }
@@ -108,182 +180,47 @@ export function getLoginStatusText(): string {
   return info.nickname;
 }
 
-// 拍照识别次数限制
-const SCAN_COUNT_KEY = 'scanCount';
+/**
+ * 检查是否为正式用户
+ */
+export function isFormalUser(): boolean {
+  const info = getUserInfo();
+  return info.loginState && !!info.nickname;
+}
+
+/**
+ * 获取用户唯一标识
+ */
+export function getUserIdentifier(): string | null {
+  const info = getUserInfo();
+  if (!info.loginState) {
+    return null;
+  }
+  return info.openid || null;
+}
+
+/**
+ * 获取 Openid（用于API调用）
+ */
+export function getOpenid(): string | null {
+  const info = getUserInfo();
+  return info.openid || getSavedOpenid() || null;
+}
 
 /**
  * 获取用户类型
- * @returns 'user' | 'visitor' | 'none'
+ * @returns 'user' | 'none'
  */
-export function getUserType(): 'user' | 'visitor' | 'none' {
+export function getUserType(): 'user' | 'none' {
   const info = getUserInfo();
-  if (!info.loginState) {
+  if (!info.loginState || !info.nickname) {
     return 'none';
-  }
-  if (info.isGuest === true) {
-    return 'visitor';
   }
   return 'user';
 }
 
 /**
- * 获取用户唯一标识
- * 正式用户: openid
- * 游客: anonymous_id (本地生成并存储)
- */
-export function getUserIdentifier(): string | null {
-  const info = getUserInfo();
-
-  if (!info.loginState) {
-    return null;
-  }
-
-  // 正式用户使用 openid
-  if (info.openid) {
-    return info.openid;
-  }
-
-  // 游客使用匿名ID
-  let anonymousId = info.anonymousId;
-  if (!anonymousId) {
-    anonymousId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
-    info.anonymousId = anonymousId;
-    wx.setStorageSync(USER_INFO_KEY, JSON.stringify(info));
-  }
-
-  return anonymousId;
-}
-const SCAN_COUNT_RESET_HOURS = 24; // 24小时后重置次数
-const MAX_SCAN_COUNT = 3; // 每天最多3次
-
-/**
- * 检查是否为正式用户（未登录或游客都不算正式用户）
- */
-export function isFormalUser(): boolean {
-  const info = getUserInfo();
-  return info.loginState && !!info.nickname && info.isGuest !== true;
-}
-
-/**
- * 获取当天剩余拍照次数
- */
-export function getRemainingScanCount(): number {
-  try {
-    const data = wx.getStorageSync(SCAN_COUNT_KEY);
-    if (!data) return MAX_SCAN_COUNT;
-
-    const { count, date } = typeof data === 'string' ? JSON.parse(data) : data;
-    const today = getDateString();
-
-    // 新的一天，重置次数
-    if (date !== today) {
-      return MAX_SCAN_COUNT;
-    }
-
-    return Math.max(0, MAX_SCAN_COUNT - count);
-  } catch (e) {
-    return MAX_SCAN_COUNT;
-  }
-}
-
-/**
- * 消耗一次拍照次数
- */
-export function consumeScanCount(): boolean {
-  try {
-    const data = wx.getStorageSync(SCAN_COUNT_KEY);
-    const today = getDateString();
-
-    let currentCount = 0;
-
-    if (data) {
-      const parsed = typeof data === 'string' ? JSON.parse(data) : data;
-      // 新的一天，重置次数
-      if (parsed.date === today) {
-        currentCount = parsed.count || 0;
-      }
-    }
-
-    // 检查是否已达上限
-    if (currentCount >= MAX_SCAN_COUNT) {
-      return false;
-    }
-
-    // 保存新的计数
-    wx.setStorageSync(SCAN_COUNT_KEY, {
-      count: currentCount + 1,
-      date: today
-    });
-
-    return true;
-  } catch (e) {
-    console.error('更新拍照次数失败', e);
-    return true; // 出错时放行
-  }
-}
-
-/**
- * 获取拍照次数重置时间（次日凌晨）
- */
-export function getScanCountResetTime(): string {
-  const now = new Date();
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(0, 0, 0, 0);
-  return tomorrow.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-}
-
-/**
- * 获取当前日期字符串 (YYYY-MM-DD)
- */
-function getDateString(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-/**
- * 检查是否可以使用拍照功能（游客限制次数，正式用户不限）
- * 返回 { canUse: boolean, isGuest: boolean }
- */
-export function checkScanAccess(): { canUse: boolean; isGuest: boolean } {
-  // 正式用户直接通过
-  if (isFormalUser()) {
-    return { canUse: true, isGuest: false };
-  }
-
-  // 游客检查剩余次数
-  const remaining = getRemainingScanCount();
-  if (remaining <= 0) {
-    return { canUse: false, isGuest: true };
-  }
-
-  return { canUse: true, isGuest: true };
-}
-
-/**
- * 消耗一次拍照次数（仅游客需要消耗）
- * 返回是否成功消耗
- */
-export function consumeScanCountIfNeeded(): boolean {
-  // 只有非正式用户才需要消耗次数
-  if (isFormalUser()) {
-    return true;
-  }
-  return consumeScanCount();
-}
-
-/**
- * 获取剩余拍照次数（仅游客/未登录用户有意义的显示）
- */
-export function getDisplayRemainingCount(): number {
-  if (isFormalUser()) {
-    return -1; // 正式用户返回 -1，表示不显示
-  }
-  return getRemainingScanCount();
-}
-
-/**
- * 引导用户登录（正式用户）
+ * 引导用户登录
  */
 export function guideToLogin(callback?: () => void): void {
   wx.showModal({

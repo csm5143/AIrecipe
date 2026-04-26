@@ -5,7 +5,7 @@ export interface FeedbackItem {
   id: number;
   feedbackId: string;
   userIdentifier: string | null;
-  userType: 'user' | 'visitor' | 'guest';
+  userType: 'user';
   nickname?: string;
   avatar?: string;
   type: FeedbackType;

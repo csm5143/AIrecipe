@@ -1,6 +1,7 @@
 ﻿// 我的页面：用户信息、功能菜单
 
 import { getUserInfo, isLoggedIn } from '../../utils/userAuth';
+import { getPreferenceStats } from '../../utils/preferenceStore';
 // 获取收藏数量
 function getFavoriteCount(): number {
   try {
@@ -30,7 +31,8 @@ Page({
       avatar: ''
     },
     favoriteCount: 0,
-    fridgeItemCount: 0
+    fridgeItemCount: 0,
+    preferenceCount: 0
   },
 
   onLoad() {
@@ -51,6 +53,7 @@ Page({
     const info = getUserInfo();
     const favoriteCount = getFavoriteCount();
     const fridgeItemCount = getFridgeItemCount();
+    const stats = getPreferenceStats();
     this.setData({
       hasLogin,
       userInfo: {
@@ -58,7 +61,8 @@ Page({
         avatar: info.avatar || ''
       },
       favoriteCount,
-      fridgeItemCount
+      fridgeItemCount,
+      preferenceCount: stats.total
     });
   },
 
@@ -87,6 +91,11 @@ Page({
   // 跳转到小菜篮页面
   onGoToBasket() {
     wx.navigateTo({ url: '/pages/basket/index' });
+  },
+
+  // 跳转到偏好设置页面
+  onGoToPreference() {
+    wx.navigateTo({ url: '/pages/preference/index' });
   },
 
   // 问题反馈

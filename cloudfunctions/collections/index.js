@@ -23,7 +23,6 @@ const COS_BASE_URL = `https://${COS_BUCKET}.cos.${COS_REGION}.myqcloud.com`;
 const COLLECTIONS_COLLECTION = 'collections';
 const FAVORITES_COLLECTION = 'favorites';
 const USERS_COLLECTION = 'users';
-const VISITORS_COLLECTION = 'visitors';
 
 exports.main = async (event, context) => {
   const { action, data } = event;

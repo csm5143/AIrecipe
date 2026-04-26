@@ -22,8 +22,8 @@
   {
     "id": 2,
     "feedbackId": "FB2024002",
-    "userIdentifier": "visitor_002",
-    "userType": "visitor",
+    "userIdentifier": "user_002",
+    "userType": "user",
     "nickname": "",
     "avatar": "",
     "type": "suggest",
@@ -78,8 +78,8 @@
   {
     "id": 4,
     "feedbackId": "FB2024004",
-    "userIdentifier": "guest_004",
-    "userType": "guest",
+    "userIdentifier": "user_004",
+    "userType": "user",
     "nickname": "匿名用户",
     "avatar": "",
     "type": "other",
@@ -154,8 +154,8 @@
   {
     "id": 7,
     "feedbackId": "FB2024007",
-    "userIdentifier": "visitor_007",
-    "userType": "visitor",
+    "userIdentifier": "user_007",
+    "userType": "user",
     "nickname": "",
     "avatar": "",
     "type": "suggest",

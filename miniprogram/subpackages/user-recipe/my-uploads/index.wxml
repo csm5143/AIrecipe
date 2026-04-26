@@ -1,0 +1,93 @@
+<!-- 我的上传页面 -->
+
+<view class="page">
+  <!-- Tab导航 -->
+  <view class="tab-nav">
+    <view 
+      wx:for="{{tabs}}" 
+      wx:key="key"
+      class="tab-item {{currentTab === item.key ? 'active' : ''}}"
+      bindtap="onSwitchTab"
+      data-key="{{item.key}}"
+    >
+      {{item.label}}
+    </view>
+  </view>
+
+  <!-- 列表 -->
+  <view class="recipe-list" wx:if="{{recipes.length > 0}}">
+    <view 
+      wx:for="{{recipes}}" 
+      wx:key="recipeId"
+      class="recipe-card"
+      bindtap="onViewDetail"
+      data-id="{{item.recipeId}}"
+    >
+      <image class="recipe-cover" src="{{item.coverImage}}" mode="aspectFill" />
+      <view class="recipe-info">
+        <view class="recipe-header">
+          <text class="recipe-title">{{item.title}}</text>
+          <view 
+            class="status-badge" 
+            style="background: {{getStatusColor(item.status)}}20; color: {{getStatusColor(item.status)}}"
+          >
+            {{getStatusText(item.status)}}
+          </view>
+        </view>
+        <view class="recipe-meta">
+          <text class="meta-item">{{item.difficulty === 'easy' ? '简单' : item.difficulty === 'normal' ? '中等' : '困难'}}</text>
+          <text class="meta-dot">·</text>
+          <text class="meta-item">{{item.cookingTime}}分钟</text>
+          <text class="meta-dot">·</text>
+          <text class="meta-item">{{item.servings}}人份</text>
+        </view>
+        <view class="recipe-footer">
+          <text class="recipe-time">{{formatTime(item.createdAt)}}</text>
+          <view class="recipe-actions">
+            <text 
+              wx:if="{{item.status === 'rejected' && item.rejectReason}}" 
+              class="action-btn reason-btn"
+              catchtap="onViewRejectReason"
+              data-reason="{{item.rejectReason}}"
+            >
+              查看原因
+            </text>
+            <text 
+              wx:if="{{item.status !== 'approved'}}" 
+              class="action-btn delete-btn"
+              catchtap="onDeleteRecipe"
+              data-id="{{item.recipeId}}"
+            >
+              删除
+            </text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 加载更多 -->
+    <view class="load-more" wx:if="{{hasMore && !loading}}" bindtap="loadMore">
+      <text>加载更多</text>
+    </view>
+    <view class="no-more" wx:if="{{!hasMore && recipes.length > 0}}">
+      <text>没有更多了</text>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{recipes.length === 0 && !loading}}">
+    <image class="empty-icon" src="/assets/空状态.png" mode="aspectFit" />
+    <text class="empty-text">暂无上传记录</text>
+    <view class="empty-btn" bindtap="onUploadNew">上传第一道菜</view>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading && recipes.length === 0}}">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 上传按钮 -->
+  <view class="fab" bindtap="onUploadNew">
+    <text class="fab-icon">+</text>
+  </view>
+</view>

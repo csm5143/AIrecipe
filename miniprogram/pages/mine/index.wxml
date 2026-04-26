@@ -59,6 +59,16 @@
           <view class="menu-arrow">›</view>
         </view>
 
+        <!-- 偏好设置 -->
+        <view class="menu-item" bindtap="onGoToPreference">
+          <view class="menu-icon menu-icon--preference">
+            <image src="/assets/设置.png" mode="aspectFit" />
+          </view>
+          <view class="menu-text">饮食偏好</view>
+          <view class="menu-badge menu-badge--dot" wx:if="{{preferenceCount > 0}}"></view>
+          <view class="menu-arrow">›</view>
+        </view>
+
         <!-- 问题反馈 -->
         <view class="menu-item" bindtap="onFeedback">
           <view class="menu-icon menu-icon--feedback">

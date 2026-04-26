@@ -79,8 +79,6 @@
           <el-select v-model="filters.userType" placeholder="用户类型" clearable style="width: 120px">
             <el-option label="全部用户" value="" />
             <el-option label="正式用户" value="user" />
-            <el-option label="游客" value="visitor" />
-            <el-option label="访客" value="guest" />
           </el-select>
         </div>
         <div class="filter-right">
@@ -476,8 +474,6 @@ function getStatusText(status: string) {
 function getUserTypeText(userType: string) {
   const map: Record<string, string> = {
     user: '正式用户',
-    visitor: '游客',
-    guest: '访客',
   };
   return map[userType] || userType;
 }

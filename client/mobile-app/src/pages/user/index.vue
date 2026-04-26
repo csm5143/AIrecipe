@@ -4,7 +4,7 @@
       <view class="avatar">
         <text>{{ userStore.profile?.nickname?.charAt(0) || '游' }}</text>
       </view>
-      <text class="nickname">{{ userStore.profile?.nickname || '游客' }}</text>
+      <text class="nickname">{{ userStore.profile?.nickname || '未登录' }}</text>
     </view>
     <view class="menu-list">
       <view class="menu-item" @click="navigateTo('/pages/user/profile')">

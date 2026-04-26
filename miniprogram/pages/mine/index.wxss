@@ -255,6 +255,14 @@
   font-weight: 600;
 }
 
+.menu-badge--dot {
+  width: 16rpx;
+  height: 16rpx;
+  background-color: #f54e00;
+  padding: 0;
+  border-radius: 50%;
+}
+
 .menu-arrow {
   font-size: 36rpx;
   color: #c7c7cc;

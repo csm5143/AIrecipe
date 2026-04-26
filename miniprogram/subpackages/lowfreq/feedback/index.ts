@@ -3,10 +3,8 @@
  * 支持提交反馈到云数据库，同时保存到本地
  */
 
-import {
-  getUserType,
-} from '../../../utils/cloudUserData';
-import { submitFeedbackToCloud, getLocalFeedbackHistory, FEEDBACK_TYPE_MAP, type FeedbackType } from '../../../utils/cloudFeedback';
+import { getUserType } from '../../../utils/cloudUserData';
+import { submitFeedbackToCloud, FEEDBACK_TYPE_MAP, type FeedbackType } from '../../../utils/cloudFeedback';
 import { getUserInfo, isFormalUser } from '../../../utils/userAuth';
 
 interface FeedbackItem {
@@ -35,20 +33,27 @@ Page({
     imageList: [] as string[],
     contact: '',
     isSubmitting: false,
-    // 用户信息
-    userType: 'guest' as 'user' | 'visitor' | 'guest',
-    showUserTip: false
   },
 
   onLoad() {
-    // 获取用户类型
+    // 获取用户信息
+    const userInfo = getUserInfo();
     const userType = getUserType();
-    const showTip = userType === 'visitor' || userType === 'none';
     
-    this.setData({
-      userType: userType === 'user' ? 'user' : (userType === 'visitor' ? 'visitor' : 'guest'),
-      showUserTip: showTip
-    });
+    // 未登录用户提示登录
+    if (userType === 'none') {
+      wx.showModal({
+        title: '提示',
+        content: '登录后可提交反馈，是否前往登录？',
+        success: (res) => {
+          if (res.confirm) {
+            wx.navigateTo({
+              url: '/subpackages/lowfreq/login/index'
+            });
+          }
+        }
+      });
+    }
   },
 
   // 选择问题类型
@@ -117,6 +122,22 @@ Page({
 
   // 提交反馈
   async onSubmit() {
+    const userType = getUserType();
+    if (userType === 'none') {
+      wx.showModal({
+        title: '提示',
+        content: '请先登录后再提交反馈',
+        success: (res) => {
+          if (res.confirm) {
+            wx.navigateTo({
+              url: '/subpackages/lowfreq/login/index'
+            });
+          }
+        }
+      });
+      return;
+    }
+
     const { selectedType, selectedTypeLabel, content, contact, imageList } = this.data;
 
     // 验证必填项
@@ -210,20 +231,6 @@ Page({
     } catch (e) {
       console.error('[Feedback] 本地保存失败', e);
     }
-  },
-
-  // 查看用户类型说明
-  onShowUserTip() {
-    const tip = this.data.userType === 'guest' 
-      ? '您目前是游客身份，反馈数据将关联到您的匿名ID。登录后可将数据同步到账号下。'
-      : '您的反馈数据将关联到您的匿名ID，登录后可将数据同步到账号下。';
-    
-    wx.showModal({
-      title: '关于数据关联',
-      content: tip,
-      showCancel: false,
-      confirmText: '我知道了'
-    });
   },
 
   // 前往登录

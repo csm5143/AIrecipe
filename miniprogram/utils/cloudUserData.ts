@@ -1,25 +1,23 @@
 /**
  * 云端用户数据管理
- * 区分正式用户和游客，分别存储用户数据到云数据库
+ * 存储用户数据到云数据库
  * 环境 ID: cloud1-3gyq7jzx76f46edc
  */
 
 // 云数据库集合名称
-const USERS_COLLECTION = 'users';           // 正式用户数据
-const VISITORS_COLLECTION = 'visitors';    // 游客数据
+const USERS_COLLECTION = 'users';
 
 // 缓存配置
 const CACHE_KEY_USER_DATA = 'cloud_user_data';
-const CACHE_KEY_VISITOR_DATA = 'cloud_visitor_data';
 const CACHE_EXPIRE_MINUTES = 30; // 缓存30分钟
 
 // ==================== 类型定义 ====================
 
 export interface UserCloudData {
   identifier: string;           // 用户唯一标识
-  userType: 'user' | 'visitor'; // 用户类型
-  createdAt: number;             // 创建时间
-  updatedAt: number;             // 更新时间
+  userType: 'user';            // 用户类型
+  createdAt: number;           // 创建时间
+  updatedAt: number;           // 更新时间
   
   // 收藏数据
   favorites?: string[];
@@ -33,10 +31,10 @@ export interface UserCloudData {
   // 儿童信息
   childrenStage?: ChildrenStage;
   
-  // 用户头像（仅正式用户）
+  // 用户头像
   avatar?: string;
   
-  // 用户昵称（仅正式用户）
+  // 用户昵称
   nickname?: string;
 }
 
@@ -77,9 +75,7 @@ function getUserInfo(): any {
         avatar: info.avatar || '',
         loginState: info.loginState || false,
         loginTime: info.loginTime || 0,
-        isGuest: info.isGuest || false,
         openid: info.openid || '',
-        anonymousId: info.anonymousId || '',
         ...info
       };
     }
@@ -91,9 +87,7 @@ function getUserInfo(): any {
     avatar: '',
     loginState: false,
     loginTime: 0,
-    isGuest: false,
-    openid: '',
-    anonymousId: ''
+    openid: ''
   };
 }
 
@@ -120,7 +114,7 @@ function saveUserInfo(info: any): void {
  */
 function isFormalUser(): boolean {
   const info = getUserInfo();
-  return info.loginState && !!info.nickname && info.isGuest !== true;
+  return info.loginState && !!info.nickname;
 }
 
 /**
@@ -136,23 +130,18 @@ function isCloudAvailable(): boolean {
 
 /**
  * 获取用户类型
- * @returns 'user' | 'visitor' | 'none'
+ * @returns 'user' | 'none'
  */
-export function getUserType(): 'user' | 'visitor' | 'none' {
+export function getUserType(): 'user' | 'none' {
   const info = getUserInfo();
-  if (!info.loginState) {
+  if (!info.loginState || !info.nickname) {
     return 'none';
-  }
-  if (info.isGuest === true) {
-    return 'visitor';
   }
   return 'user';
 }
 
 /**
- * 获取用户唯一标识
- * 正式用户: openid
- * 游客: anonymous_id (本地生成并存储)
+ * 获取用户唯一标识（openid）
  */
 export function getUserIdentifier(): string | null {
   const info = getUserInfo();
@@ -161,20 +150,7 @@ export function getUserIdentifier(): string | null {
     return null;
   }
   
-  // 正式用户使用 openid
-  if (info.openid) {
-    return info.openid;
-  }
-  
-  // 游客使用匿名ID
-  let anonymousId = info.anonymousId;
-  if (!anonymousId) {
-    anonymousId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
-    info.anonymousId = anonymousId;
-    wx.setStorageSync('userInfo', JSON.stringify(info));
-  }
-  
-  return anonymousId;
+  return info.openid || null;
 }
 
 // ==================== 用户数据操作 ====================
@@ -195,9 +171,6 @@ export async function saveUserDataToCloud(data: UserCloudData): Promise<boolean>
     return false;
   }
 
-  const userType = getUserType();
-  const collectionName = userType === 'user' ? USERS_COLLECTION : VISITORS_COLLECTION;
-
   try {
     const db = wx.cloud.database();
     const now = Date.now();
@@ -206,13 +179,13 @@ export async function saveUserDataToCloud(data: UserCloudData): Promise<boolean>
     const cloudData: UserCloudData = {
       ...data,
       identifier: identifier,
-      userType: userType,
+      userType: 'user',
       updatedAt: now,
       createdAt: data.createdAt || now
     };
 
     // 查询是否已存在记录
-    const existResult = await db.collection(collectionName)
+    const existResult = await db.collection(USERS_COLLECTION)
       .where({ identifier: identifier })
       .limit(1)
       .get();
@@ -220,7 +193,7 @@ export async function saveUserDataToCloud(data: UserCloudData): Promise<boolean>
     if (existResult.data && existResult.data.length > 0) {
       // 更新现有记录
       const recordId = existResult.data[0]._id;
-      await db.collection(collectionName)
+      await db.collection(USERS_COLLECTION)
         .doc(recordId)
         .update({
           data: cloudData
@@ -228,7 +201,7 @@ export async function saveUserDataToCloud(data: UserCloudData): Promise<boolean>
       console.log('[CloudUserData] 用户数据已更新到云端');
     } else {
       // 新增记录
-      await db.collection(collectionName)
+      await db.collection(USERS_COLLECTION)
         .add({
           data: cloudData
         });
@@ -236,7 +209,7 @@ export async function saveUserDataToCloud(data: UserCloudData): Promise<boolean>
     }
 
     // 更新本地缓存
-    saveToLocalCache(userType, cloudData);
+    saveToLocalCache(cloudData);
     
     return true;
   } catch (e) {
@@ -264,17 +237,15 @@ export async function getUserDataFromCloud(): Promise<UserCloudData | null> {
     return null;
   }
 
-  const collectionName = userType === 'user' ? USERS_COLLECTION : VISITORS_COLLECTION;
-
   // 先检查本地缓存
-  const cached = getFromLocalCache(userType);
+  const cached = getFromLocalCache();
   if (cached) {
     return cached;
   }
 
   try {
     const db = wx.cloud.database();
-    const result = await db.collection(collectionName)
+    const result = await db.collection(USERS_COLLECTION)
       .where({ identifier: identifier })
       .limit(1)
       .get();
@@ -282,7 +253,7 @@ export async function getUserDataFromCloud(): Promise<UserCloudData | null> {
     if (result.data && result.data.length > 0) {
       const data = result.data[0] as UserCloudData;
       // 存入本地缓存
-      saveToLocalCache(userType, data);
+      saveToLocalCache(data);
       return data;
     }
 
@@ -395,23 +366,21 @@ export function restoreLocalData(cloudData: UserCloudData): boolean {
 
 // ==================== 本地缓存操作 ====================
 
-function saveToLocalCache(userType: 'user' | 'visitor', data: UserCloudData): void {
-  const key = userType === 'user' ? CACHE_KEY_USER_DATA : CACHE_KEY_VISITOR_DATA;
+function saveToLocalCache(data: UserCloudData): void {
   const cacheData = {
     data: data,
     timestamp: Date.now()
   };
   try {
-    wx.setStorageSync(key, JSON.stringify(cacheData));
+    wx.setStorageSync(CACHE_KEY_USER_DATA, JSON.stringify(cacheData));
   } catch (e) {
     console.warn('[CloudUserData] 保存本地缓存失败', e);
   }
 }
 
-function getFromLocalCache(userType: 'user' | 'visitor'): UserCloudData | null {
-  const key = userType === 'user' ? CACHE_KEY_USER_DATA : CACHE_KEY_VISITOR_DATA;
+function getFromLocalCache(): UserCloudData | null {
   try {
-    const raw = wx.getStorageSync(key);
+    const raw = wx.getStorageSync(CACHE_KEY_USER_DATA);
     if (!raw) return null;
     
     const cache = JSON.parse(raw);
@@ -420,7 +389,7 @@ function getFromLocalCache(userType: 'user' | 'visitor'): UserCloudData | null {
     
     // 缓存超过30分钟，视为过期
     if (cacheAge > CACHE_EXPIRE_MINUTES) {
-      wx.removeStorageSync(key);
+      wx.removeStorageSync(CACHE_KEY_USER_DATA);
       return null;
     }
     
@@ -436,7 +405,6 @@ function getFromLocalCache(userType: 'user' | 'visitor'): UserCloudData | null {
 export function clearUserDataCache(): void {
   try {
     wx.removeStorageSync(CACHE_KEY_USER_DATA);
-    wx.removeStorageSync(CACHE_KEY_VISITOR_DATA);
   } catch (e) {
     console.warn('[CloudUserData] 清除缓存失败', e);
   }

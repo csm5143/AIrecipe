@@ -63,8 +63,6 @@ async function submitFeedback(openid, data) {
     content,
     contact,
     images,         // 云存储文件ID数组（可以是 COS URL 或云存储fileID）
-    isVisitor,
-    anonymousId,
     nickname,
     avatar,
     appVersion,
@@ -83,8 +81,8 @@ async function submitFeedback(openid, data) {
   // 生成唯一反馈ID
   const fbId = feedbackId || `fb_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
   
-  const userIdentifier = isVisitor ? anonymousId : openid;
-  const userType = isVisitor ? 'visitor' : 'user';
+  const userIdentifier = openid;
+  const userType = 'user';
 
   // 处理图片链接：如果是云存储fileID，转换为COS URL
   let processedImages = [];
@@ -94,7 +92,7 @@ async function submitFeedback(openid, data) {
       if (img.startsWith('http')) {
         return img;
       }
-      // 如果是云存储fileID，拼接基���URL
+      // 如果是云存储fileID，拼接基础URL
       return `${COS_BASE_URL}/${img}`;
     });
   }
@@ -142,8 +140,8 @@ async function submitFeedback(openid, data) {
  * 获取反馈历史
  */
 async function getFeedbackHistory(openid, data) {
-  const { isVisitor, anonymousId, page = 1, pageSize = 20 } = data;
-  const userIdentifier = isVisitor ? anonymousId : openid;
+  const { page = 1, pageSize = 20 } = data;
+  const userIdentifier = openid;
 
   if (!userIdentifier) {
     return {
@@ -187,8 +185,8 @@ async function getFeedbackHistory(openid, data) {
  * 获取单条反馈状态
  */
 async function getFeedbackStatus(openid, data) {
-  const { feedbackId, isVisitor, anonymousId } = data;
-  const userIdentifier = isVisitor ? anonymousId : openid;
+  const { feedbackId } = data;
+  const userIdentifier = openid;
 
   if (!feedbackId) {
     return {
@@ -226,8 +224,8 @@ async function getFeedbackStatus(openid, data) {
  * 删除反馈（仅能删除自己的反馈，且状态为待处理时）
  */
 async function deleteFeedback(openid, data) {
-  const { feedbackId, isVisitor, anonymousId } = data;
-  const userIdentifier = isVisitor ? anonymousId : openid;
+  const { feedbackId } = data;
+  const userIdentifier = openid;
 
   if (!userIdentifier) {
     return {

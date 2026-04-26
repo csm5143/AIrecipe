@@ -20,7 +20,6 @@ import {
 import { loadIngredientsJson } from '../../utils/dataLoader';
 import { getFallbackIngredients } from '../../utils/fallbackIngredients';
 import { recognizeImage, type IngredientRecognitionResult } from '../../utils/ingredientRecognize';
-import { isFormalUser, checkScanAccess, consumeScanCountIfNeeded, getDisplayRemainingCount } from '../../utils/userAuth';
 
 Page({
   data: {
@@ -69,9 +68,6 @@ Page({
 
     // 空状态
     isEmpty: true,
-
-    // 剩余拍照次数
-    remainingCount: 3,
   },
 
   onLoad() {
@@ -80,7 +76,6 @@ Page({
 
   onShow() {
     this.refresh();
-    this.updateRemainingCount();
   },
 
   onReady() {
@@ -353,23 +348,7 @@ Page({
 
   // ==================== 拍照添加 ====================
 
-  updateRemainingCount() {
-    const count = getDisplayRemainingCount();
-    this.setData({ remainingCount: count });
-  },
-
   onTakePhoto() {
-    const { canUse } = checkScanAccess();
-    if (!canUse) {
-      wx.showModal({
-        title: '提示',
-        content: '今日次数已用尽，请明天再来~',
-        showCancel: false,
-        confirmText: '我知道了'
-      });
-      return;
-    }
-
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],
@@ -393,17 +372,6 @@ Page({
   },
 
   onChooseImage() {
-    const { canUse } = checkScanAccess();
-    if (!canUse) {
-      wx.showModal({
-        title: '提示',
-        content: '今日次数已用尽，请明天再来~',
-        showCancel: false,
-        confirmText: '我知道了'
-      });
-      return;
-    }
-
     wx.chooseMedia({
       count: 9,
       mediaType: ['image'],
