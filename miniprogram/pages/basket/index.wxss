@@ -40,6 +40,10 @@
   line-height: 1;
 }
 
+.stat-num.has-owned {
+  color: #10b981;
+}
+
 .stat-label {
   font-size: 24rpx;
   color: #8e8e93;
@@ -164,6 +168,21 @@
   font-size: 24rpx;
   color: #8e8e93;
   margin-left: 16rpx;
+}
+
+.merged-row.owned {
+  background: rgba(16, 185, 129, 0.06);
+}
+
+.merged-row.owned .merged-name {
+  color: #059669;
+}
+
+.owned-tag {
+  font-size: 24rpx;
+  color: #10b981;
+  font-weight: 600;
+  margin-left: 8rpx;
 }
 
 .merged-copy-btn {
@@ -325,18 +344,18 @@
 }
 
 /* 食材列表：与头部左对齐（左padding 20 + 与箭头同宽 56 + gap 12） */
-.ingredient-list {
+.basket-ingredient-list {
   max-height: 0;
   overflow: hidden;
   transition: max-height 0.25s ease-out;
 }
 
-.ingredient-list.visible {
+.basket-ingredient-list.visible {
   max-height: 2000rpx;
   transition: max-height 0.35s ease-in;
 }
 
-.ingredient-row {
+.basket-ingredient-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -344,6 +363,14 @@
   border-top: 1rpx solid #f0e6d8;
   gap: 16rpx;
   box-sizing: border-box;
+}
+
+.basket-ingredient-row.owned {
+  background: rgba(16, 185, 129, 0.06);
+}
+
+.basket-ingredient-row.owned .ingredient-name {
+  color: #059669;
 }
 
 .ingredient-row-left {

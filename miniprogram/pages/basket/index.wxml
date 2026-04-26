@@ -13,6 +13,11 @@
           <text class="stat-num">{{totalCount}}</text>
           <text class="stat-label">种食材</text>
         </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-num {{fridgeOwnedCount > 0 ? 'has-owned' : ''}}">{{fridgeOwnedCount}}</text>
+          <text class="stat-label">冰箱有</text>
+        </view>
       </view>
 
       <!-- 操作栏：合并 / 复制 / 清空 -->
@@ -36,19 +41,21 @@
         <view class="merged-list">
           <block wx:if="{{mergedCoreList.length > 0}}">
             <view class="merged-section-label">核心食材</view>
-            <view wx:for="{{mergedCoreList}}" wx:key="name" class="merged-row">
+            <view wx:for="{{mergedCoreList}}" wx:key="name" class="merged-row {{item.owned ? 'owned' : ''}}">
               <view class="merged-dot merged-dot-core"></view>
               <text class="merged-name">{{item.name}}</text>
               <text class="merged-amount">{{item.amount}}</text>
+              <text wx:if="{{item.owned}}" class="owned-tag">✓</text>
             </view>
           </block>
           <block wx:if="{{mergedSeasoningList.length > 0}}">
             <view class="merged-section-divider" wx:if="{{mergedCoreList.length > 0}}"></view>
             <view class="merged-section-label merged-section-label-sub">调料 / 辅料</view>
-            <view wx:for="{{mergedSeasoningList}}" wx:key="name" class="merged-row">
+            <view wx:for="{{mergedSeasoningList}}" wx:key="name" class="merged-row {{item.owned ? 'owned' : ''}}">
               <view class="merged-dot merged-dot-seasoning"></view>
               <text class="merged-name">{{item.name}}</text>
               <text class="merged-amount">{{item.amount}}</text>
+              <text wx:if="{{item.owned}}" class="owned-tag">✓</text>
             </view>
           </block>
         </view>
@@ -105,32 +112,33 @@
           </view>
 
           <view
-            class="ingredient-list {{expandedIds.indexOf(item.recipeId) !== -1 ? 'visible' : ''}}"
+            class="basket-ingredient-list {{expandedIds.indexOf(item.recipeId) !== -1 ? 'visible' : ''}}"
           >
-            <view
-              wx:for="{{item.ingredients}}"
-              wx:for-item="ing"
-              wx:key="name"
-              class="ingredient-row"
-            >
-              <view class="ingredient-row-left">
-                <view class="ingredient-dot-wrap">
-                  <view class="ingredient-dot"></view>
-                </view>
-                <text class="ingredient-name">{{ing.name}}</text>
+<view
+            wx:for="{{item.ingredients}}"
+            wx:for-item="ing"
+            wx:key="name"
+            class="basket-ingredient-row {{ing.owned ? 'owned' : ''}}"
+          >
+            <view class="ingredient-row-left">
+              <view class="ingredient-dot-wrap">
+                <view class="ingredient-dot"></view>
               </view>
-              <view class="ingredient-row-right">
-                <text class="ingredient-amount">{{ing.amount}}</text>
-                <image
-                  class="ingredient-pass-img"
-                  src="/assets/通过.png"
-                  mode="aspectFit"
-                  catchtap="onRemoveIngredient"
-                  data-recipe-id="{{item.recipeId}}"
-                  data-ingredient-name="{{ing.name}}"
-                />
-              </view>
+              <text class="ingredient-name">{{ing.name}}</text>
             </view>
+            <view class="ingredient-row-right">
+              <text class="ingredient-amount">{{ing.amount}}</text>
+              <text wx:if="{{ing.owned}}" class="owned-tag">✓</text>
+              <image
+                class="ingredient-pass-img"
+                src="/assets/通过.png"
+                mode="aspectFit"
+                catchtap="onRemoveIngredient"
+                data-recipe-id="{{item.recipeId}}"
+                data-ingredient-name="{{ing.name}}"
+              />
+            </view>
+          </view>
           </view>
         </view>
       </block>

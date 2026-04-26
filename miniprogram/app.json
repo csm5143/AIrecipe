@@ -10,7 +10,8 @@
     "pages/custom/index",
     "pages/mine/index",
     "pages/collections/index",
-    "pages/collection-detail/index"
+    "pages/collection-detail/index",
+    "pages/fridge/index"
   ],
   "subpackages": [
     {

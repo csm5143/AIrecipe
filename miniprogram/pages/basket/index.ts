@@ -13,6 +13,7 @@ import {
 } from '../../utils/shoppingList';
 import { isFormalUser, guideToLogin } from '../../utils/userAuth';
 import { syncDebounced } from '../../utils/dataSync';
+import { getFridgeItems } from '../../utils/fridgeStore';
 
 Page({
   data: {
@@ -23,7 +24,8 @@ Page({
     mergedCoreList: [] as BasketIngredient[],
     mergedSeasoningList: [] as BasketIngredient[],
     mergedTotalCount: 0,
-    expandedIds: [] as string[]
+    expandedIds: [] as string[],
+    fridgeOwnedCount: 0,
   },
 
   onLoad() {
@@ -59,15 +61,44 @@ Page({
       recipes.length > 0
         ? [recipes[0].recipeId]
         : [];
+
+    // 计算冰箱已有的食材名称集合
+    const fridgeItems = getFridgeItems();
+    const fridgeNames = new Set(fridgeItems.map(i => i.name));
+
+    // 为每个食材标记是否在冰箱中
+    const recipesWithOwned = recipes.map(recipe => ({
+      ...recipe,
+      ingredients: recipe.ingredients.map(ing => ({
+        ...ing,
+        owned: fridgeNames.has(ing.name)
+      }))
+    }));
+
+    // 计算冰箱已有的食材数量（去重）
+    const allIngredientNames = new Set<string>();
+    recipes.forEach(r => {
+      r.ingredients.forEach(ing => {
+        allIngredientNames.add(ing.name);
+      });
+    });
+    let fridgeOwnedCount = 0;
+    fridgeNames.forEach(name => {
+      if (allIngredientNames.has(name)) {
+        fridgeOwnedCount++;
+      }
+    });
+
     this.setData({
-      recipes,
+      recipes: recipesWithOwned,
       totalCount,
       recipeCount,
       expandedIds,
       showMerged: false,
       mergedCoreList: [],
       mergedSeasoningList: [],
-      mergedTotalCount: 0
+      mergedTotalCount: 0,
+      fridgeOwnedCount
     });
   },
 
@@ -143,11 +174,17 @@ Page({
     const { showMerged } = this.data;
     if (!showMerged) {
       const { core, seasoning } = getMergedIngredientsSplit();
+      // 获取冰箱食材名称
+      const fridgeItems = getFridgeItems();
+      const fridgeNames = new Set(fridgeItems.map(i => i.name));
+      // 为合并食材添加 owned 状态
+      const coreWithOwned = core.map(ing => ({ ...ing, owned: fridgeNames.has(ing.name) }));
+      const seasoningWithOwned = seasoning.map(ing => ({ ...ing, owned: fridgeNames.has(ing.name) }));
       const mergedTotalCount = core.length + seasoning.length;
       this.setData({
         showMerged: true,
-        mergedCoreList: core,
-        mergedSeasoningList: seasoning,
+        mergedCoreList: coreWithOwned,
+        mergedSeasoningList: seasoningWithOwned,
         mergedTotalCount
       });
     } else {

@@ -31,29 +31,36 @@
       <view class="section">
         <view class="section-title-row">
           <text class="section-title">食材清单</text>
+          <!-- 加入小菜篮 -->
           <view class="basket-add-btn {{isInBasket ? 'basket-add-btn--added' : ''}}" bindtap="onAddAllToBasket">
             <image
               class="basket-add-icon-img"
-              src="{{isInBasket ? '/assets/添加.png' : '/assets/添加.png'}}"
+              src="/assets/添加.png"
               mode="aspectFit"
             />
             <text class="basket-add-text">{{isInBasket ? '已加入' : '小菜篮'}}</text>
           </view>
         </view>
+
         <view class="ingredient-list">
           <block wx:for="{{allIngredients}}" wx:key="name">
-            <view class="ingredient-row">
+            <view class="ingredient-row {{isIngredientOwned(item.name) ? 'owned' : ''}}">
               <text class="ingredient-name">{{item.name}}</text>
-              <text class="ingredient-amount">{{item.amount}}</text>
+              <view class="ingredient-right">
+                <text class="ingredient-amount">{{item.amount}}</text>
+                <text wx:if="{{isIngredientOwned(item.name)}}" class="ingredient-owned-tag">✓</text>
+              </view>
             </view>
           </block>
         </view>
       </view>
 
-      <view class="section" wx:if="{{showIngredientCompare}}">
-        <view class="section-title">与我的食材对比</view>
+      <view class="section" wx:if="{{showIngredientCompare && hasFridge}}">
+        <view class="section-title-row">
+          <text class="section-title">食材对比</text>
+        </view>
 
-        <!-- 进度摘要：仅统计核心食材 -->
+        <!-- 进度条 -->
         <view class="compare-summary">
           <text class="compare-summary-label">核心</text>
           <view class="compare-progress-bar">
@@ -65,10 +72,9 @@
           <text class="compare-summary-text">
             {{ownedCore.length}} / {{ownedCore.length + missingCore.length}}
           </text>
-          
         </view>
 
-        <!-- 已备：核心 + 可选调料合并一行 -->
+        <!-- 已备齐 -->
         <view class="compare-row" wx:if="{{ownedCore.length || ownedOptional.length}}">
           <text class="compare-label compare-label--owned">已备</text>
           <view class="compare-tags">
@@ -85,7 +91,7 @@
           </view>
         </view>
 
-        <!-- 缺少：仅核心 -->
+        <!-- 缺少 -->
         <view class="compare-row" wx:if="{{missingCore.length}}">
           <text class="compare-label compare-label--missing">缺少</text>
           <view class="compare-tags">
@@ -97,7 +103,7 @@
           </view>
         </view>
 
-        <!-- 可选：还缺的调料 -->
+        <!-- 可选调料 -->
         <view class="compare-row" wx:if="{{missingOptional.length}}">
           <text class="compare-label compare-label--optional">可选</text>
           <view class="compare-tags">
@@ -111,7 +117,7 @@
 
         <!-- 全部已齐 -->
         <view class="compare-all-done" wx:if="{{!missingCore.length && !missingOptional.length}}">
-          ✓ 所有食材已备齐
+          ✓ 食材已备齐，可以开始制作！
         </view>
       </view>
 

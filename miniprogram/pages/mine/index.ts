@@ -11,6 +11,17 @@ function getFavoriteCount(): number {
   }
 }
 
+// 获取冰箱食材数量
+function getFridgeItemCount(): number {
+  try {
+    const items = wx.getStorageSync('littleFridgeV2') || '[]';
+    const data = JSON.parse(items);
+    return Array.isArray(data) ? data.length : 0;
+  } catch (e) {
+    return 0;
+  }
+}
+
 Page({
   data: {
     hasLogin: false,
@@ -18,7 +29,8 @@ Page({
       nickname: '',
       avatar: ''
     },
-    favoriteCount: 0
+    favoriteCount: 0,
+    fridgeItemCount: 0
   },
 
   onLoad() {
@@ -38,13 +50,15 @@ Page({
     const hasLogin = isLoggedIn();
     const info = getUserInfo();
     const favoriteCount = getFavoriteCount();
+    const fridgeItemCount = getFridgeItemCount();
     this.setData({
       hasLogin,
       userInfo: {
         nickname: info.nickname || '',
         avatar: info.avatar || ''
       },
-      favoriteCount
+      favoriteCount,
+      fridgeItemCount
     });
   },
 
@@ -63,6 +77,16 @@ Page({
     wx.switchTab({
       url: '/pages/collections/index'
     });
+  },
+
+  // 跳转到小冰箱页面
+  onGoToFridge() {
+    wx.navigateTo({ url: '/pages/fridge/index' });
+  },
+
+  // 跳转到小菜篮页面
+  onGoToBasket() {
+    wx.navigateTo({ url: '/pages/basket/index' });
   },
 
   // 问题反馈

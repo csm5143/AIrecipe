@@ -19,6 +19,7 @@ import {
   getSecondaryCategoryLabels
 } from '../../utils/labels';
 import { addRecipeIngredients, isRecipeInBasket, removeRecipeById } from '../../utils/shoppingList';
+import { getFridgeIngredientNames, isInFridge } from '../../utils/fridgeStore';
 // 统一收藏接口：所有类型菜品共用同一个收藏列表
 import { getFavorites, isFavorite, toggleFavorite } from '../../utils/favorites';
 // 新的多收藏夹系统
@@ -369,7 +370,9 @@ Page({
     toastButtonText: '去看看',
     toastDuration: 2000,
     toastIcon: '',
-    toastSubtitle: ''
+    toastSubtitle: '',
+    // 冰箱状态
+    hasFridge: false
   },
 
     async onLoad(query: Record<string, string>) {
@@ -443,7 +446,8 @@ Page({
         missingOptional,
         missingForBasket: [...missingCore],
         isFavorited: isFavorite(id),
-        isInBasket: isRecipeInBasket(id)
+        isInBasket: isRecipeInBasket(id),
+        hasFridge: hasUserData
       });
       return;
     }
@@ -507,7 +511,8 @@ Page({
         missingOptional,
         missingForBasket: [...missingCore],
         isFavorited,
-        isInBasket: isRecipeInBasket(id)
+        isInBasket: isRecipeInBasket(id),
+        hasFridge: hasUserData
       });
       return;
     }
@@ -626,7 +631,8 @@ Page({
       missingOptional,
       missingForBasket: [...missingCore],
       isFavorited,
-      isInBasket: isRecipeInBasket(id)
+      isInBasket: isRecipeInBasket(id),
+      hasFridge: hasUserData
     });
   },
 
@@ -672,7 +678,8 @@ Page({
       missingOptional,
       missingForBasket: [...missingCore],
       isFavorited,
-      isInBasket: isRecipeInBasket(id)
+      isInBasket: isRecipeInBasket(id),
+      hasFridge: hasUserData
     });
   },
 
@@ -719,6 +726,85 @@ Page({
     const ingredients = missing.map((name) => ({ name, amount: '适量' }));
     addRecipeIngredients(recipe.id, recipe.name, ingredients);
     wx.showToast({ title: '缺少的已加入小菜篮', icon: 'success' });
+  },
+
+  // 检查食材是否在冰箱中
+  isIngredientOwned(name: string): boolean {
+    const userIngredients = this.data.userIngredients || [];
+    const normalized = name.trim().toLowerCase();
+    return userIngredients.some((ing: string) =>
+      ing.trim().toLowerCase() === normalized
+    );
+  },
+
+  // 添加食材到冰箱
+  onAddToFridge() {
+    const recipe = this.data.recipe as Recipe | null;
+    if (!recipe || !recipe.ingredients || recipe.ingredients.length === 0) {
+      wx.showToast({ title: '暂无食材数据', icon: 'none' });
+      return;
+    }
+
+    // 获取用户已有的食材
+    const userIngredients = this._loadUserIngredients();
+    const fridgeNames = new Set(userIngredients);
+
+    // 简单别名匹配
+    const aliases: Record<string, string> = {
+      '西红柿': '番茄',
+      '马铃薯': '土豆',
+      '姜': '姜',
+      '生姜': '姜',
+      '蒜': '蒜',
+      '大蒜': '蒜',
+    };
+
+    // 找出冰箱里没有的食材
+    const notInFridge = recipe.ingredients.filter((name: string) => {
+      const normalized = name.trim();
+      if (fridgeNames.has(normalized)) return false;
+      // 检查别名
+      for (const [alias, standard] of Object.entries(aliases)) {
+        if (normalized.includes(alias) || alias.includes(normalized)) {
+          if (fridgeNames.has(standard)) return false;
+        }
+      }
+      return true;
+    });
+
+    if (notInFridge.length === 0) {
+      wx.showToast({ title: '食材已在冰箱中', icon: 'none' });
+      return;
+    }
+
+    wx.showModal({
+      title: '添加到冰箱',
+      content: `将 ${notInFridge.length} 种食材添加到冰箱？`,
+      confirmText: '添加',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          const { addMultipleToFridge, getIngredientCategory } = require('../../utils/fridgeStore');
+
+          const ingredients = notInFridge.map((name: string) => ({
+            name: name.trim(),
+            quantity: 1,
+            unit: '个',
+            category: getIngredientCategory(name.trim())
+          }));
+
+          addMultipleToFridge(ingredients);
+          wx.showToast({
+            title: `已添加 ${notInFridge.length} 种食材`,
+            icon: 'success'
+          });
+
+          // 刷新对比数据
+          const updatedIngredients = this._loadUserIngredients();
+          this._updateIngredientCompare(updatedIngredients, recipe.ingredients || []);
+        }
+      }
+    });
   },
 
   onToggleFavorite() {
@@ -987,7 +1073,7 @@ Page({
     });
   },
 
-  // 读取用户已有的食材（手动勾选 或 拍照识别会话中）
+  // 读取用户已有的食材（手动勾选 或 拍照识别会话 或 冰箱数据）
   _loadUserIngredients(): string[] {
     const sessionId = this.data.sessionId;
 
@@ -1017,6 +1103,13 @@ Page({
           }
         } catch (_e) {}
       }
+    }
+
+    // 3. Fallback: 从冰箱读取用户食材
+    const fridgeIngredients = getFridgeIngredientNames();
+    if (fridgeIngredients.length > 0) {
+      console.log('[detail] 从冰箱读取到', fridgeIngredients.length, '个食材');
+      return fridgeIngredients;
     }
 
     return [];

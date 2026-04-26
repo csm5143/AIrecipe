@@ -146,6 +146,35 @@
   border-bottom: 2rpx solid rgba(226, 166, 80, 0.25);
 }
 
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.action-btn-small {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 10rpx 16rpx;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 999rpx;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+}
+
+.action-btn-small .action-btn-icon {
+  width: 28rpx;
+  height: 28rpx;
+  flex-shrink: 0;
+  display: block;
+}
+
+.action-btn-small .action-btn-label {
+  font-size: 22rpx;
+  color: #667eea;
+  font-weight: 600;
+}
+
 .section-title {
   font-size: 32rpx;
   font-weight: 600;
@@ -180,6 +209,7 @@
   opacity: 0.85;
 }
 
+/* 食材列表 */
 .ingredient-list {
   display: flex;
   flex-direction: column;
@@ -198,6 +228,16 @@
   border-bottom: none;
 }
 
+.ingredient-row.owned {
+  background-color: rgba(76, 175, 80, 0.08);
+  padding-left: 16rpx;
+  padding-right: 16rpx;
+  margin-left: -16rpx;
+  margin-right: -16rpx;
+  border-radius: 12rpx;
+  border-bottom: none;
+}
+
 .ingredient-name {
   font-size: 28rpx;
   color: #374151;
@@ -205,11 +245,44 @@
   min-width: 0;
 }
 
+.ingredient-right {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
 .ingredient-amount {
   font-size: 26rpx;
   color: #9ca3af;
   margin-left: 16rpx;
   flex-shrink: 0;
+}
+
+.ingredient-owned-tag {
+  font-size: 24rpx;
+  color: #10b981;
+  font-weight: 600;
+}
+
+/* 冰箱提示 */
+.fridge-tip {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  background: rgba(102, 126, 234, 0.08);
+  padding: 12rpx 16rpx;
+  border-radius: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.fridge-tip-icon {
+  width: 28rpx;
+  height: 28rpx;
+}
+
+.fridge-tip-text {
+  font-size: 24rpx;
+  color: #667eea;
 }
 
 .sub-title {
@@ -362,9 +435,12 @@
 .compare-all-done {
   font-size: 28rpx;
   color: #10b981;
-  font-weight: 500;
+  font-weight: 600;
   text-align: center;
-  padding: 4rpx 0;
+  padding: 20rpx;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 12rpx;
+  margin-top: 16rpx;
 }
 
 .step-row {
