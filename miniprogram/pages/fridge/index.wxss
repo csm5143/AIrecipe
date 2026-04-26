@@ -1,0 +1,518 @@
+/* 小冰箱 - 简洁设计 */
+
+.page {
+  min-height: 100vh;
+  background: #f2f1ed;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ==================== 空状态 ==================== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 200rpx;
+}
+
+.empty-icon {
+  width: 140rpx;
+  height: 140rpx;
+  opacity: 0.5;
+  margin-bottom: 32rpx;
+}
+
+.empty-title {
+  font-size: 32rpx;
+  color: rgba(38, 37, 30, 0.5);
+  margin-bottom: 48rpx;
+}
+
+.empty-btn {
+  display: flex;
+  align-items: center;
+  background: #e6e5e0;
+  border: 1px solid rgba(38, 37, 30, 0.12);
+  border-radius: 44rpx;
+  padding: 24rpx 48rpx;
+}
+
+.empty-btn .btn-icon {
+  font-size: 36rpx;
+  color: #26251e;
+  margin-right: 12rpx;
+  font-weight: 300;
+}
+
+.empty-btn .btn-text {
+  font-size: 30rpx;
+  color: #26251e;
+  font-weight: 500;
+}
+
+/* ==================== 内容区 ==================== */
+.content {
+  padding: 24rpx 28rpx 120rpx;
+}
+
+/* ==================== 分类标签 ==================== */
+.category-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.cat-chip {
+  display: flex;
+  align-items: center;
+  background: #e6e5e0;
+  border-radius: 999rpx;
+  padding: 8rpx 16rpx;
+  font-size: 22rpx;
+}
+
+.cat-chip text:first-child {
+  font-size: 24rpx;
+  margin-right: 4rpx;
+}
+
+.cat-name {
+  color: rgba(38, 37, 30, 0.6);
+}
+
+.cat-count {
+  color: #f54e00;
+  font-weight: 600;
+  margin-left: 4rpx;
+}
+
+/* ==================== 添加按钮 ==================== */
+.add-btn-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e6e5e0;
+  border: 1px solid rgba(38, 37, 30, 0.1);
+  border-radius: 12rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.add-icon {
+  font-size: 36rpx;
+  color: #26251e;
+  margin-right: 12rpx;
+  font-weight: 300;
+}
+
+.add-text {
+  font-size: 28rpx;
+  color: #26251e;
+  font-weight: 500;
+}
+
+/* ==================== 食材列表 ==================== */
+.items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border: 1px solid rgba(38, 37, 30, 0.08);
+  border-radius: 12rpx;
+  padding: 24rpx;
+}
+
+.item-info {
+  flex: 1;
+}
+
+.item-name {
+  font-size: 30rpx;
+  color: #26251e;
+  font-weight: 500;
+  margin-bottom: 4rpx;
+}
+
+.item-meta {
+  font-size: 24rpx;
+  color: rgba(38, 37, 30, 0.45);
+}
+
+.item-ops {
+  display: flex;
+  gap: 12rpx;
+}
+
+.op-btn {
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20rpx;
+  border-radius: 8rpx;
+  background: #f5f5f5;
+}
+
+.op-btn text {
+  font-size: 24rpx;
+  color: rgba(38, 37, 30, 0.6);
+}
+
+.op-btn.op-delete text {
+  color: rgba(207, 45, 86, 0.7);
+}
+
+/* ==================== 面板通用 ==================== */
+.mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(38, 37, 30, 0.35);
+  z-index: 200;
+}
+
+.add-panel,
+.edit-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #f2f1ed;
+  border-radius: 24rpx 24rpx 0 0;
+  z-index: 201;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 28rpx 20rpx;
+}
+
+.panel-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #26251e;
+}
+
+.panel-close {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  color: rgba(38, 37, 30, 0.5);
+}
+
+/* ==================== 模式切换 ==================== */
+.mode-toggle {
+  display: flex;
+  padding: 0 28rpx 20rpx;
+  gap: 12rpx;
+}
+
+.toggle-btn {
+  flex: 1;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e6e5e0;
+  border-radius: 36rpx;
+  font-size: 28rpx;
+  color: rgba(38, 37, 30, 0.5);
+}
+
+.toggle-btn.active {
+  background: #26251e;
+  color: #fff;
+}
+
+/* ==================== 面板内容 ==================== */
+.panel-body {
+  padding: 0 28rpx 32rpx;
+}
+
+.main-input {
+  width: 100%;
+  height: 88rpx;
+  background: #fff;
+  border: 1px solid rgba(38, 37, 30, 0.1);
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+  font-size: 30rpx;
+  color: #26251e;
+  box-sizing: border-box;
+}
+
+.main-input::placeholder {
+  color: rgba(38, 37, 30, 0.35);
+}
+
+.suggest-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 16rpx;
+}
+
+.suggest-item {
+  background: #e6e5e0;
+  border-radius: 999rpx;
+  padding: 12rpx 24rpx;
+  font-size: 26rpx;
+  color: rgba(38, 37, 30, 0.7);
+}
+
+.confirm-btn {
+  margin-top: 20rpx;
+  height: 88rpx;
+  background: #26251e;
+  border-radius: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirm-btn text {
+  font-size: 30rpx;
+  color: #fff;
+  font-weight: 500;
+}
+
+.confirm-btn.disabled {
+  background: #e6e5e0;
+}
+
+.confirm-btn.disabled text {
+  color: rgba(38, 37, 30, 0.4);
+}
+
+/* ==================== 拍照模式 ==================== */
+.photo-upload {
+  display: flex;
+  gap: 16rpx;
+}
+
+.upload-btn {
+  flex: 1;
+  height: 200rpx;
+  background: #fff;
+  border: 1px dashed rgba(38, 37, 30, 0.15);
+  border-radius: 16rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+}
+
+.upload-btn image {
+  width: 56rpx;
+  height: 56rpx;
+  opacity: 0.4;
+}
+
+.upload-btn text {
+  font-size: 26rpx;
+  color: rgba(38, 37, 30, 0.5);
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 0;
+  gap: 20rpx;
+}
+
+.spinner {
+  width: 48rpx;
+  height: 48rpx;
+  border: 3px solid #e6e5e0;
+  border-top-color: #f54e00;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading text {
+  font-size: 26rpx;
+  color: rgba(38, 37, 30, 0.5);
+}
+
+.result-count {
+  font-size: 26rpx;
+  color: rgba(38, 37, 30, 0.5);
+  margin-bottom: 16rpx;
+}
+
+.result-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  max-height: 280rpx;
+  overflow-y: auto;
+}
+
+.result-item {
+  background: #fff;
+  border: 1px solid rgba(38, 37, 30, 0.1);
+  border-radius: 999rpx;
+  padding: 12rpx 24rpx;
+  font-size: 26rpx;
+  color: rgba(38, 37, 30, 0.7);
+}
+
+.result-item.selected {
+  background: rgba(245, 78, 0, 0.08);
+  border-color: #f54e00;
+  color: #f54e00;
+}
+
+.result-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20rpx;
+}
+
+.action-link {
+  font-size: 26rpx;
+  color: rgba(38, 37, 30, 0.5);
+  padding: 16rpx 0;
+}
+
+/* ==================== 编辑面板 ==================== */
+.edit-body {
+  padding: 0 28rpx 32rpx;
+}
+
+.edit-name {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #26251e;
+  text-align: center;
+  margin-bottom: 40rpx;
+}
+
+/* 数量控制 */
+.quantity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32rpx;
+}
+
+.edit-label {
+  font-size: 28rpx;
+  color: rgba(38, 37, 30, 0.6);
+}
+
+.quantity-control {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: #fff;
+  border: 1px solid rgba(38, 37, 30, 0.1);
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+
+.qty-btn {
+  width: 80rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e6e5e0;
+}
+
+.qty-btn text {
+  font-size: 40rpx;
+  color: #26251e;
+  font-weight: 300;
+}
+
+.qty-input {
+  width: 120rpx;
+  height: 80rpx;
+  text-align: center;
+  font-size: 36rpx;
+  color: #26251e;
+  border-left: 1px solid rgba(38, 37, 30, 0.1);
+  border-right: 1px solid rgba(38, 37, 30, 0.1);
+}
+
+/* 单位选择 */
+.unit-row {
+  margin-bottom: 40rpx;
+}
+
+.unit-row .edit-label {
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.unit-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.unit-btn {
+  min-width: 100rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px solid rgba(38, 37, 30, 0.1);
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: rgba(38, 37, 30, 0.6);
+}
+
+.unit-btn.active {
+  background: #26251e;
+  border-color: #26251e;
+  color: #fff;
+}
+
+/* 底部按钮 */
+.edit-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.cancel-btn,
+.save-btn {
+  flex: 1;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 44rpx;
+  font-size: 30rpx;
+  font-weight: 500;
+}
+
+.cancel-btn {
+  background: #e6e5e0;
+  color: rgba(38, 37, 30, 0.7);
+}
+
+.save-btn {
+  background: #26251e;
+  color: #fff;
+}

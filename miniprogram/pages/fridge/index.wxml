@@ -1,0 +1,186 @@
+<view class="page">
+  <!-- 空状态 -->
+  <view wx:if="{{isEmpty}}" class="empty-state">
+    <image class="empty-icon" src="/assets/冰柜.png" mode="aspectFit"/>
+    <view class="empty-title">冰箱空空如也</view>
+    <view class="empty-btn" bindtap="onOpenAddPanel">
+      <text class="btn-icon">+</text>
+      <text class="btn-text">添加食材</text>
+    </view>
+  </view>
+
+  <!-- 有数据状态 -->
+  <view wx:else class="content">
+    <!-- 分类标签 -->
+    <view class="category-bar">
+      <view
+        wx:for="{{categories}}"
+        wx:key="id"
+        class="cat-chip"
+        wx:if="{{item.count > 0}}"
+      >
+        <text>{{item.icon}}</text>
+        <text class="cat-name">{{item.name}}</text>
+        <text class="cat-count">{{item.count}}</text>
+      </view>
+    </view>
+
+    <!-- 添加按钮 -->
+    <view class="add-btn-bar" bindtap="onOpenAddPanel">
+      <text class="add-icon">+</text>
+      <text class="add-text">添加食材</text>
+    </view>
+
+    <!-- 食材列表 -->
+    <view class="items-list">
+      <view
+        wx:for="{{displayedItems}}"
+        wx:key="id"
+        class="item-row"
+      >
+        <view class="item-info">
+          <view class="item-name">{{item.name}}</view>
+          <view class="item-meta">{{item.quantity}}{{item.unit}}</view>
+        </view>
+        <view class="item-ops">
+          <view class="op-btn" bindtap="onEditItem" data-id="{{item.id}}">
+            <text>编辑</text>
+          </view>
+          <view class="op-btn op-delete" bindtap="onDeleteItem" data-id="{{item.id}}">
+            <text>删除</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ==================== 添加面板 ==================== -->
+  <view wx:if="{{showAddPanel}}" class="mask" bindtap="onCloseAddPanel"></view>
+  <view wx:if="{{showAddPanel}}" class="add-panel">
+    <!-- 头部 -->
+    <view class="panel-header">
+      <text class="panel-title">添加食材</text>
+      <view class="panel-close" bindtap="onCloseAddPanel">✕</view>
+    </view>
+
+    <!-- 模式切换 -->
+    <view class="mode-toggle">
+      <view class="toggle-btn {{addMode === 'manual' ? 'active' : ''}}" data-mode="manual" bindtap="onSwitchAddMode">手动</view>
+      <view class="toggle-btn {{addMode === 'photo' ? 'active' : ''}}" data-mode="photo" bindtap="onSwitchAddMode">拍照</view>
+    </view>
+
+    <!-- 手动模式 -->
+    <view wx:if="{{addMode === 'manual'}}" class="panel-body">
+      <input
+        class="main-input"
+        placeholder="输入食材名称"
+        bindinput="onAddInput"
+        value="{{addInputValue}}"
+        confirm-type="done"
+        bindconfirm="onConfirmAdd"
+      />
+      <view class="suggest-list" wx:if="{{addSuggestions.length > 0}}">
+        <view
+          wx:for="{{addSuggestions}}"
+          wx:key="*this"
+          class="suggest-item"
+          data-name="{{item}}"
+          bindtap="onSelectSuggestion"
+        >{{item}}</view>
+      </view>
+      <view class="confirm-btn {{addInputValue ? '' : 'disabled'}}" bindtap="onConfirmAdd">
+        <text>确认添加</text>
+      </view>
+    </view>
+
+    <!-- 拍照模式 -->
+    <view wx:if="{{addMode === 'photo'}}" class="panel-body">
+      <view wx:if="{{imageUrls.length === 0}}" class="photo-upload">
+        <view class="upload-btn" bindtap="onTakePhoto">
+          <image src="/assets/相机.png" mode="aspectFit"/>
+          <text>拍照</text>
+        </view>
+        <view class="upload-btn" bindtap="onChooseImage">
+          <image src="/assets/相册.png" mode="aspectFit"/>
+          <text>相册</text>
+        </view>
+      </view>
+
+      <view wx:elif="{{recognizing}}" class="loading">
+        <view class="spinner"></view>
+        <text>识别中...</text>
+      </view>
+
+      <view wx:else class="recognize-result">
+        <view class="result-count">识别到 {{recognizedIngredients.length}} 种</view>
+        <view class="result-list">
+          <view
+            wx:for="{{recognizedIngredients}}"
+            wx:key="name"
+            class="result-item {{selectedIngredients.indexOf(item.name) !== -1 ? 'selected' : ''}}"
+            data-name="{{item.name}}"
+            bindtap="onToggleRecognized"
+          >
+            <text>{{item.name}}</text>
+          </view>
+        </view>
+        <view class="result-actions">
+          <view class="action-link" bindtap="onRetake">重新拍摄</view>
+          <view class="confirm-btn {{selectedIngredients.length > 0 ? '' : 'disabled'}}" bindtap="onConfirmRecognized">
+            <text>添加 {{selectedIngredients.length > 0 ? '(' + selectedIngredients.length + ')' : ''}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ==================== 编辑面板 ==================== -->
+  <view wx:if="{{showEditPanel}}" class="mask" bindtap="onCloseEditPanel"></view>
+  <view wx:if="{{showEditPanel}}" class="edit-panel">
+    <view class="panel-header">
+      <text class="panel-title">编辑食材</text>
+      <view class="panel-close" bindtap="onCloseEditPanel">✕</view>
+    </view>
+    <view class="edit-body">
+      <view class="edit-name">{{editingItem ? editingItem.name : ''}}</view>
+
+      <!-- 数量加减 -->
+      <view class="quantity-row">
+        <text class="edit-label">数量</text>
+        <view class="quantity-control">
+          <view class="qty-btn" bindtap="onQtyMinus">
+            <text>-</text>
+          </view>
+          <input
+            class="qty-input"
+            type="number"
+            value="{{editQuantity}}"
+            bindinput="onQuantityInput"
+          />
+          <view class="qty-btn" bindtap="onQtyPlus">
+            <text>+</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 单位选择 -->
+      <view class="unit-row">
+        <text class="edit-label">单位</text>
+        <view class="unit-options">
+          <view
+            wx:for="{{unitOptions}}"
+            wx:key="*this"
+            class="unit-btn {{editUnit === item ? 'active' : ''}}"
+            data-unit="{{item}}"
+            bindtap="onSelectUnit"
+          >{{item}}</view>
+        </view>
+      </view>
+
+      <view class="edit-actions">
+        <view class="cancel-btn" bindtap="onCloseEditPanel">取消</view>
+        <view class="save-btn" bindtap="onSaveEdit">保存</view>
+      </view>
+    </view>
+  </view>
+</view>
