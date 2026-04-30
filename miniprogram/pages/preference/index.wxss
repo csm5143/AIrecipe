@@ -1,0 +1,261 @@
+/* ================================================
+   偏好设置页面样式
+   基于 Cursor Design System - Warm Minimalism
+   ================================================ */
+
+/* 页面基础 */
+.page {
+  min-height: 100vh;
+  background-color: #f2f1ed;
+  background-color: var(--app-bg, #f2f1ed);
+}
+
+/* 头部 */
+.header {
+  background: #ffffff;
+  padding: 40rpx 32rpx 32rpx;
+  border-bottom: 1rpx solid rgba(38, 37, 30, 0.08);
+}
+
+.header-title {
+  font-size: 44rpx;
+  font-weight: 600;
+  color: #26251e;
+  letter-spacing: -0.5px;
+  margin-bottom: 12rpx;
+}
+
+.header-desc {
+  font-size: 26rpx;
+  color: rgba(38, 37, 30, 0.55);
+  line-height: 1.5;
+}
+
+/* 内容区域 */
+.content {
+  padding: 24rpx;
+}
+
+/* 分类区块 */
+.section {
+  background: #ffffff;
+  border-radius: 12rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid rgba(38, 37, 30, 0.06);
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 24rpx;
+  transition: background-color 0.15s;
+}
+
+.section-header:active {
+  background-color: rgba(38, 37, 30, 0.03);
+}
+
+.section-left {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.section-icon {
+  font-size: 40rpx;
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 78, 0, 0.08);
+  border-radius: 14rpx;
+}
+
+.section-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #26251e;
+  letter-spacing: -0.2px;
+}
+
+.section-count {
+  font-size: 22rpx;
+  color: rgba(38, 37, 30, 0.45);
+}
+
+.section-arrow {
+  font-size: 40rpx;
+  color: rgba(38, 37, 30, 0.3);
+  font-weight: 300;
+  transition: transform 0.2s ease;
+}
+
+.section.expanded .section-arrow {
+  transform: rotate(90deg);
+}
+
+/* 内容区域 */
+.section-body {
+  padding: 0 24rpx 28rpx;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 标签网格（忌口、口味、食材、菜系） */
+.tag-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.tag-item {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 16rpx 24rpx;
+  background: #ebeae5;
+  border-radius: 999rpx;
+  border: 2rpx solid transparent;
+  transition: all 0.15s ease;
+}
+
+.tag-item:active {
+  opacity: 0.85;
+}
+
+.tag-item.selected {
+  background: rgba(245, 78, 0, 0.1);
+  border-color: #f54e00;
+}
+
+.tag-icon {
+  font-size: 28rpx;
+}
+
+.tag-label {
+  font-size: 26rpx;
+  color: #26251e;
+  font-weight: 500;
+}
+
+.tag-item.selected .tag-label {
+  color: #f54e00;
+}
+
+/* 模式卡片网格（饮食模式） */
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16rpx;
+}
+
+.mode-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28rpx 20rpx;
+  background: #ebeae5;
+  border-radius: 16rpx;
+  border: 2rpx solid transparent;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.mode-card:active {
+  opacity: 0.85;
+  transform: scale(0.98);
+}
+
+.mode-card.selected {
+  background: rgba(245, 78, 0, 0.1);
+  border-color: #f54e00;
+}
+
+.mode-icon {
+  font-size: 48rpx;
+  margin-bottom: 12rpx;
+}
+
+.mode-label {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #26251e;
+  margin-bottom: 6rpx;
+}
+
+.mode-card.selected .mode-label {
+  color: #f54e00;
+}
+
+.mode-desc {
+  font-size: 22rpx;
+  color: rgba(38, 37, 30, 0.5);
+}
+
+/* 重置按钮 */
+.reset-section {
+  padding: 16rpx 0 24rpx;
+}
+
+.reset-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  padding: 24rpx;
+  background: rgba(207, 45, 86, 0.06);
+  border-radius: 12rpx;
+  border: 1rpx solid rgba(207, 45, 86, 0.15);
+  transition: all 0.15s ease;
+}
+
+.reset-btn:active {
+  background: rgba(207, 45, 86, 0.1);
+}
+
+.reset-icon {
+  font-size: 32rpx;
+  color: #cf2d56;
+}
+
+.reset-text {
+  font-size: 28rpx;
+  color: #cf2d56;
+  font-weight: 500;
+}
+
+/* 底部说明 */
+.footer-tip {
+  padding: 32rpx 0;
+  text-align: center;
+}
+
+.footer-tip-text {
+  font-size: 24rpx;
+  color: rgba(38, 37, 30, 0.4);
+}
+
+/* 已选中项高亮样式 */
+.tag-item.selected,
+.mode-card.selected {
+  box-shadow: 0 2rpx 8rpx rgba(245, 78, 0, 0.15);
+}

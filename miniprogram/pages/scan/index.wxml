@@ -61,11 +61,6 @@
         </view>
         <view class="upload-title">拍下你的食材</view>
         <view class="upload-subtitle">拍照或相册上传，AI 自动分析</view>
-        <!-- 剩余次数提示（仅游客/未登录显示） -->
-        <view class="scan-count-tip" wx:if="{{remainingCount >= 0}}">
-          <image class="scan-count-icon" src="/assets/相机.png" mode="aspectFit" />
-          <text class="scan-count-text">今日剩余 {{remainingCount}} 次</text>
-        </view>
       </view>
 
       <!-- 操作按钮组 -->

@@ -1,0 +1,107 @@
+# ===========================================
+# AIRecipe 开发环境 (本地使用 PostgreSQL)
+# 生产环境使用 deploy/docker/docker-compose.prod.yml
+# ===========================================
+version: "3.9"
+
+services:
+  # ==================== 后台管理 API ====================
+  admin-api:
+    build:
+      context: ../../server/admin-api
+      dockerfile: Dockerfile
+    container_name: airecipe-admin-api
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_API_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-password}@${DB_HOST:-db}:${DB_PORT:-5432}/${DB_NAME:-airecipe}?schema=public
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-airecipe}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      OSS_ENDPOINT: ${OSS_ENDPOINT:-}
+      OSS_ACCESS_KEY_ID: ${OSS_ACCESS_KEY_ID:-}
+      OSS_ACCESS_KEY_SECRET: ${OSS_ACCESS_KEY_SECRET:-}
+      OSS_BUCKET: ${OSS_BUCKET:-}
+      TENCENT_COS_SECRET_ID: ${TENCENT_COS_SECRET_ID:-}
+      TENCENT_COS_SECRET_KEY: ${TENCENT_COS_SECRET_KEY:-}
+      TENCENT_COS_BUCKET: ${TENCENT_COS_BUCKET:-}
+      TENCENT_COS_REGION: ${TENCENT_COS_REGION:-}
+      TENCENT_COS_BASE_URL: ${TENCENT_COS_BASE_URL:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - airecipe-network
+    volumes:
+      - ../../server/admin-api/uploads:/app/uploads
+      - admin-api-logs:/app/logs
+
+  # ==================== 后台管理 Web ====================
+  admin-web:
+    build:
+      context: ../../client/admin-web
+      dockerfile: Dockerfile
+    container_name: airecipe-admin-web
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_WEB_PORT:-80}:80"
+    depends_on:
+      - admin-api
+    networks:
+      - airecipe-network
+
+  # ==================== PostgreSQL 数据库 ====================
+  db:
+    image: postgres:16-alpine
+    container_name: airecipe-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-airecipe}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - airecipe-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-airecipe}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ==================== Redis ====================
+  redis:
+    image: redis:7-alpine
+    container_name: airecipe-redis
+    restart: unless-stopped
+    command: ${REDIS_PASSWORD:+--requirepass ${REDIS_PASSWORD}}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - airecipe-network
+
+networks:
+  airecipe-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  admin-api-logs:

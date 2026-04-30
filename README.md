@@ -92,15 +92,17 @@ airecipe/
 
 ## 技术栈
 
-| 层级 | 技术选型 |
-|------|---------|
-| 微信小程序 | 原生 + TypeScript + 云开发 |
+
+| 层级     | 技术选型                                                |
+| ------ | --------------------------------------------------- |
+| 微信小程序  | 原生 + TypeScript + 云开发                               |
 | 后台 API | Node.js + Express/Koa + TypeScript + Prisma + MySQL |
-| 后台管理前端 | Vue 3 + Vite + TypeScript + Element Plus + Pinia |
-| 跨端移动端 | Taro + React + TypeScript |
-| 共享类型 | TypeScript + tsd |
-| 容器化 | Docker + Docker Compose |
-| CI/CD | GitHub Actions |
+| 后台管理前端 | Vue 3 + Vite + TypeScript + Element Plus + Pinia    |
+| 跨端移动端  | Taro + React + TypeScript                           |
+| 共享类型   | TypeScript + tsd                                    |
+| 容器化    | Docker + Docker Compose                             |
+| CI/CD  | GitHub Actions                                      |
+
 
 ## 快速开始
 

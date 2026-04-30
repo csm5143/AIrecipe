@@ -37,7 +37,7 @@ export async function getIngredients(req: Request, res: Response) {
   const category = req.query.category as string;
   const status = req.query.status as string;
 
-  const where: Prisma.IngredientWhereInput = { isDeleted: false };
+  const where: Prisma.IngredientWhereInput = {};
   if (keyword) {
     where.OR = [
       { name: { contains: keyword, mode: 'insensitive' } },
@@ -77,7 +77,7 @@ export async function getIngredientById(req: Request, res: Response) {
     return;
   }
 
-  const ingredient = await prisma.ingredient.findUnique({ where: { id, isDeleted: false } });
+  const ingredient = await prisma.ingredient.findUnique({ where: { id } });
   if (!ingredient) {
     res.status(404).json(notFound('食材不存在'));
     return;
@@ -99,7 +99,7 @@ export async function createIngredient(req: Request, res: Response) {
   }
 
   const existing = await prisma.ingredient.findFirst({
-    where: { name, isDeleted: false },
+    where: { name },
   });
   if (existing) {
     res.status(409).json({ code: 409, message: '食材已存在', timestamp: Date.now() });
@@ -129,7 +129,7 @@ export async function updateIngredient(req: Request, res: Response) {
     return;
   }
 
-  const existing = await prisma.ingredient.findUnique({ where: { id, isDeleted: false } });
+  const existing = await prisma.ingredient.findUnique({ where: { id } });
   if (!existing) {
     res.status(404).json(notFound('食材不存在'));
     return;
@@ -172,15 +172,14 @@ export async function deleteIngredient(req: Request, res: Response) {
     return;
   }
 
-  const existing = await prisma.ingredient.findUnique({ where: { id, isDeleted: false } });
+  const existing = await prisma.ingredient.findUnique({ where: { id } });
   if (!existing) {
     res.status(404).json(notFound('食材不存在'));
     return;
   }
 
-  await prisma.ingredient.update({
+  await prisma.ingredient.delete({
     where: { id },
-    data: { isDeleted: true },
   });
 
   res.json(success(null, '删除成功'));
@@ -207,7 +206,7 @@ export async function batchImportIngredients(req: Request, res: Response) {
   for (const item of items) {
     if (!item.name) { skipped++; continue; }
 
-    const exists = await prisma.ingredient.findFirst({ where: { name: item.name, isDeleted: false } });
+    const exists = await prisma.ingredient.findFirst({ where: { name: item.name } });
     if (exists) { skipped++; continue; }
 
     await prisma.ingredient.create({

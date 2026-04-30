@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Router as ExpressRouter } from 'express';
 import { asyncHandler } from '../../../utils/helper';
 import {
   getCollections,
@@ -11,7 +11,7 @@ import {
 } from '../controllers/collection.controller';
 import { authenticate } from '../../auth/middleware/auth.middleware';
 
-const router = Router();
+const router: ExpressRouter = Router();
 router.use(authenticate);
 
 router.get('/', asyncHandler(getCollections));

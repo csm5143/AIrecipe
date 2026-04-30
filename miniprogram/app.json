@@ -11,7 +11,12 @@
     "pages/mine/index",
     "pages/collections/index",
     "pages/collection-detail/index",
+<<<<<<< HEAD
     "pages/fridge/index"
+=======
+    "pages/fridge/index",
+    "pages/preference/index"
+>>>>>>> 2eb2453eedc981515dc888d5be20239419512b61
   ],
   "subpackages": [
     {
@@ -26,6 +31,16 @@
         "daily/index",
         "login/index",
         "feedback/index"
+      ]
+    },
+    {
+      "root": "subpackages/user-recipe",
+      "name": "user-recipe",
+      "pages": [
+        "upload/index",
+        "my-uploads/index",
+        "community/index",
+        "detail/index"
       ]
     }
   ],

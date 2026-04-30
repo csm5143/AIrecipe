@@ -333,6 +333,7 @@ import {
   STATUS_OPTIONS, normalizeDishType, normalizeMealTime, normalizeDifficulty,
   type RecipeRow,
 } from './data';
+import { recipeApi } from '@/api/recipe';
 
 const router = useRouter();
 const loading = ref(false);
@@ -384,38 +385,6 @@ function updateScrollState() {
   canScrollRight.value = scrollLeft + clientWidth < scrollWidth - 1;
   
   // 拖动滚动条时激活状态
-  isScrolling.value = true;
-  if (scrollTimer) clearTimeout(scrollTimer);
-  scrollTimer = setTimeout(() => {
-    isScrolling.value = false;
-  }, 1500);
-}
-
-function scrollTable(distance: number) {
-  const tableEl = tableRef.value?.$el;
-  if (!tableEl) return;
-  
-  // 获取 el-table 内部的滚动容器
-  const bodyWrapper = tableEl.querySelector('.el-table__body-wrapper') as HTMLElement;
-  if (!bodyWrapper) return;
-  
-  // 激活滚动状态
-  isScrolling.value = true;
-  if (scrollTimer) clearTimeout(scrollTimer);
-  scrollTimer = setTimeout(() => {
-    isScrolling.value = false;
-  }, 1000);
-  
-  bodyWrapper.scrollBy({ left: distance, behavior: 'smooth' });
-  setTimeout(updateScrollState, 300);
-}
-
-// 表格滚动事件处理
-function handleTableScroll({ scrollLeft, scrollWidth, clientWidth }: { scrollLeft: number; scrollWidth: number; clientWidth: number }) {
-  canScrollLeft.value = scrollLeft > 0;
-  canScrollRight.value = scrollLeft + clientWidth < scrollWidth - 1;
-  
-  // 上下滚动时也激活状态条
   isScrolling.value = true;
   if (scrollTimer) clearTimeout(scrollTimer);
   scrollTimer = setTimeout(() => {
@@ -524,12 +493,18 @@ function filterData() {
 async function fetchRecipes() {
   loading.value = true;
   try {
-    if (rawData.value.length === 0) {
-      const res = await fetch('/data/recipes.json');
-      const data = await res.json();
-      rawData.value = data as RecipeRow[];
-    }
-    filterData();
+    const res = await recipeApi.list({
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      keyword: filters.keyword || undefined,
+      dishType: filters.dishType || undefined,
+      difficulty: filters.difficulty || undefined,
+      status: filters.status || undefined,
+    });
+    tableData.value = res.data.data.list;
+    pagination.total = res.data.data.total;
+  } catch (error) {
+    console.error('获取菜谱列表失败:', error);
   } finally {
     loading.value = false;
   }

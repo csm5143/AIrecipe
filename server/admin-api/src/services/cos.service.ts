@@ -259,5 +259,4 @@ export class COSService {
   }
 }
 
-export { getCOSUrl, COS_FOLDERS };
 export default COSService;

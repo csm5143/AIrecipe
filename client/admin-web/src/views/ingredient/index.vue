@@ -29,19 +29,19 @@
             placeholder="搜索食材名称..."
             clearable
             style="width: 240px"
-            @keyup.enter="applyFilters"
-            @clear="applyFilters"
+            @keyup.enter="fetchData"
+            @clear="fetchData"
           >
             <template #prefix>
               <el-icon><Search /></el-icon>
             </template>
           </el-input>
 
-          <el-select v-model="filters.category" placeholder="分类" clearable style="width: 140px" @change="applyFilters">
+          <el-select v-model="filters.category" placeholder="分类" clearable style="width: 140px" @change="fetchData">
             <el-option v-for="opt in CATEGORY_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
 
-          <el-select v-model="filters.status" placeholder="状态" clearable style="width: 110px" @change="applyFilters">
+          <el-select v-model="filters.status" placeholder="状态" clearable style="width: 110px" @change="fetchData">
             <el-option label="启用" value="ACTIVE" />
             <el-option label="禁用" value="INACTIVE" />
           </el-select>
@@ -58,7 +58,7 @@
       <el-table
         v-loading="loading"
         :data="tableData"
-        row-key="name"
+        row-key="id"
         :header-cell-style="{ background: 'var(--surface-300)', color: 'var(--cursor-dark)' }"
       >
         <el-table-column prop="name" label="食材" min-width="180">
@@ -82,7 +82,6 @@
         <el-table-column label="标签" width="120" align="center">
           <template #default="{ row }">
             <span v-if="row.isCommon" class="tag-chip common">常用</span>
-            <span v-if="row.selected" class="tag-chip selected">已选</span>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="90" align="center">
@@ -119,8 +118,8 @@
           :page-sizes="[20, 50, 100]"
           layout="total, sizes, prev, pager, next"
           background
-          @size-change="applyFilters"
-          @current-change="applyFilters"
+          @size-change="fetchData"
+          @current-change="fetchData"
         />
       </div>
     </div>
@@ -176,7 +175,7 @@
       <div class="import-section">
         <p class="import-desc">
           上传 <code>miniprogram/data/ingredients.json</code> 文件导入食材数据。
-          当前共有 <strong>{{ localData.length }}</strong> 种食材，导入将完全覆盖现有数据。
+          当前共有 <strong>{{ pagination.total }}</strong> 种食材，可通过导入或添加新食材。
         </p>
         <el-upload
           ref="uploadRef"
@@ -209,6 +208,7 @@ import { ref, reactive, onMounted } from 'vue';
 import { Search, Plus, Edit, Delete, Upload, Download, RefreshLeft } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { UploadFile, FormInstance, FormRules } from 'element-plus';
+import { ingredientApi, type IngredientRow, type IngredientFormData } from '@/api/ingredient';
 
 interface LocalIngredient {
   name: string;
@@ -217,6 +217,7 @@ interface LocalIngredient {
   selected?: boolean;
   isCommon?: boolean;
   status: 'ACTIVE' | 'INACTIVE';
+  id?: number;
 }
 
 const CATEGORY_OPTIONS = [
@@ -244,8 +245,6 @@ const formRef = ref<FormInstance>();
 const uploadRef = ref();
 const selectedFile = ref<File | null>(null);
 
-const localData = ref<LocalIngredient[]>([]);
-
 const filters = reactive({
   keyword: '',
   category: '',
@@ -260,11 +259,10 @@ const pagination = reactive({
 
 const tableData = ref<LocalIngredient[]>([]);
 
-const form = reactive<LocalIngredient & { name: string; category: string }>({
+const form = reactive<IngredientFormData>({
   name: '',
   category: 'vegetable',
   subCategory: '',
-  selected: false,
   isCommon: false,
   status: 'ACTIVE',
 });
@@ -296,63 +294,30 @@ function getCategoryColor(category: string): string {
   return map[category] || 'rgba(38, 37, 30, 0.1)';
 }
 
-function applyFilters() {
-  let data = [...localData.value];
-
-  if (filters.keyword) {
-    const kw = filters.keyword.toLowerCase();
-    data = data.filter(r =>
-      r.name.toLowerCase().includes(kw) ||
-      (r.subCategory?.toLowerCase().includes(kw) ?? false)
-    );
-  }
-  if (filters.category) {
-    data = data.filter(r => r.category === filters.category);
-  }
-  if (filters.status) {
-    data = data.filter(r => r.status === filters.status);
-  }
-
-  pagination.total = data.length;
-  const start = (pagination.page - 1) * pagination.pageSize;
-  tableData.value = data.slice(start, start + pagination.pageSize);
-}
-
 async function fetchData() {
   loading.value = true;
   try {
-    const cached = localStorage.getItem('ingredients_data');
-    if (cached) {
-      localData.value = JSON.parse(cached);
-    } else {
-      const res = await fetch('/data/ingredients.json');
-      const data = await res.json();
-      localData.value = (data as any[]).map(item => ({
-        name: item.name,
-        category: item.category,
-        subCategory: item.subCategory || '',
-        selected: item.selected || false,
-        isCommon: item.isCommon || false,
-        status: 'ACTIVE' as const,
-      }));
-      saveToStorage();
-    }
-    applyFilters();
-  } catch {
-    ElMessage.error('加载食材数据失败，请检查网络或重新导入');
+    const res = await ingredientApi.list({
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      keyword: filters.keyword || undefined,
+      category: filters.category || undefined,
+      status: filters.status || undefined,
+    });
+    tableData.value = res.data.data.list;
+    pagination.total = res.data.data.total;
+  } catch (error) {
+    console.error('获取食材列表失败:', error);
+    ElMessage.error('加载食材数据失败，请检查网络连接');
   } finally {
     loading.value = false;
   }
 }
 
-function saveToStorage() {
-  localStorage.setItem('ingredients_data', JSON.stringify(localData.value));
-}
-
 function handleReset() {
   Object.assign(filters, { keyword: '', category: '', status: '' });
   pagination.page = 1;
-  applyFilters();
+  fetchData();
 }
 
 function handleCreate() {
@@ -368,11 +333,8 @@ function handleCreate() {
   dialogVisible.value = true;
 }
 
-  let editingName = '';
-
-function handleEdit(row: LocalIngredient) {
+function handleEdit(row: IngredientRow) {
   isEdit.value = true;
-  editingName = row.name;
   Object.assign(form, { ...row });
   dialogVisible.value = true;
 }
@@ -383,39 +345,40 @@ async function handleSave() {
 
   saveLoading.value = true;
   try {
-    if (isEdit.value) {
-      const idx = localData.value.findIndex(r => r.name === editingName);
-      if (idx !== -1) {
-        localData.value[idx] = { ...form };
-      }
+    const data: IngredientFormData = {
+      name: form.name,
+      category: form.category,
+      subCategory: form.subCategory,
+      isCommon: form.isCommon,
+      status: form.status,
+    };
+
+    if (isEdit.value && form.id) {
+      await ingredientApi.update(form.id, data);
       ElMessage.success('更新成功');
     } else {
-      if (localData.value.some(r => r.name === form.name)) {
-        ElMessage.warning('该食材已存在');
-        return;
-      }
-      localData.value.push({ ...form });
+      await ingredientApi.create(data);
       ElMessage.success('添加成功');
     }
-    saveToStorage();
-    applyFilters();
+    fetchData();
     dialogVisible.value = false;
+  } catch (error) {
+    console.error('保存失败:', error);
   } finally {
     saveLoading.value = false;
   }
 }
 
-async function handleDelete(row: LocalIngredient) {
+async function handleDelete(row: IngredientRow) {
   await ElMessageBox.confirm(`确定要删除食材「${row.name}」吗？`, '提示', { type: 'warning' });
-  localData.value = localData.value.filter(r => r.name !== row.name);
-  saveToStorage();
-  applyFilters();
+  await ingredientApi.delete(row.id);
   ElMessage.success('删除成功');
+  fetchData();
 }
 
-function handleStatusChange(row: LocalIngredient) {
+async function handleStatusChange(row: IngredientRow) {
   const action = row.status === 'ACTIVE' ? '启用' : '禁用';
-  saveToStorage();
+  await ingredientApi.update(row.id, { ...row, status: row.status });
   ElMessage.success(`食材「${row.name}」已${action}`);
 }
 
@@ -436,21 +399,19 @@ async function handleImport() {
       return;
     }
 
-    localData.value = data.map(item => ({
+    const ingredients = data.map(item => ({
       name: item.name || '',
       category: item.category || 'other',
       subCategory: item.subCategory || '',
-      selected: item.selected || false,
       isCommon: item.isCommon || false,
-      status: 'ACTIVE' as const,
     })).filter(item => item.name);
 
-    saveToStorage();
-    applyFilters();
+    await ingredientApi.batchImport(ingredients);
     importDialogVisible.value = false;
     selectedFile.value = null;
     uploadRef.value?.clearFiles();
-    ElMessage.success(`成功导入 ${localData.value.length} 种食材`);
+    ElMessage.success(`成功导入 ${ingredients.length} 种食材`);
+    fetchData();
   } catch {
     ElMessage.error('JSON 解析失败，请检查文件格式');
   } finally {
@@ -458,23 +419,29 @@ async function handleImport() {
   }
 }
 
-function handleExport() {
-  const exportData = localData.value.map(item => ({
-    name: item.name,
-    category: item.category,
-    subCategory: item.subCategory || '',
-    selected: item.selected || false,
-    isCommon: item.isCommon || false,
-  }));
+async function handleExport() {
+  try {
+    const res = await ingredientApi.export();
+    const data = res.data.data?.list || [];
 
-  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `ingredients_${new Date().toISOString().slice(0, 10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  ElMessage.success(`已导出 ${exportData.length} 种食材`);
+    const exportData = data.map(item => ({
+      name: item.name,
+      category: item.category,
+      subCategory: item.subCategory || '',
+      isCommon: item.isCommon || false,
+    }));
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ingredients_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success(`已导出 ${exportData.length} 种食材`);
+  } catch {
+    ElMessage.error('导出失败');
+  }
 }
 
 onMounted(() => {

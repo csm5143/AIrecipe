@@ -1,0 +1,292 @@
+/* 菜谱详情页面样式 */
+
+.page {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 120rpx;
+}
+
+/* 封面 */
+.cover-section {
+  position: relative;
+  width: 100%;
+  height: 500rpx;
+}
+
+.cover-image {
+  width: 100%;
+  height: 100%;
+}
+
+.cover-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20rpx;
+  background: linear-gradient(transparent, rgba(0,0,0,0.3));
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cover-hint {
+  font-size: 22rpx;
+  color: #fff;
+}
+
+/* 基本信息 */
+.info-section {
+  background: #fff;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.recipe-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 24rpx;
+  line-height: 1.4;
+}
+
+.author-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.author-avatar {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  margin-right: 12rpx;
+}
+
+.author-name {
+  font-size: 26rpx;
+  color: #666;
+  margin-right: auto;
+}
+
+.publish-time {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 24rpx 0;
+  background: #f9f9f9;
+  border-radius: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-value {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.stat-label {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 4rpx;
+}
+
+.stat-divider {
+  width: 1rpx;
+  height: 40rpx;
+  background: #eee;
+}
+
+.tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.tag {
+  padding: 8rpx 16rpx;
+  background: #fff8ed;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+  color: #e2a650;
+}
+
+.description {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.6;
+}
+
+/* 内容区块 */
+.section {
+  background: #fff;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
+.title-text {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.title-count {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* 食材列表 */
+.ingredient-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.ingredient-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 20rpx;
+  background: #f9f9f9;
+  border-radius: 12rpx;
+}
+
+.ingredient-name {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.ingredient-amount {
+  font-size: 26rpx;
+  color: #999;
+}
+
+/* 步骤列表 */
+.step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.step-item {
+  display: flex;
+  gap: 20rpx;
+}
+
+.step-number {
+  width: 56rpx;
+  height: 56rpx;
+  background: linear-gradient(135deg, #e2a650, #f7c948);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  color: #fff;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-desc {
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.6;
+  display: block;
+}
+
+.step-image {
+  width: 100%;
+  height: 300rpx;
+  border-radius: 12rpx;
+  margin-top: 16rpx;
+}
+
+/* 小技巧 */
+.tips-content {
+  padding: 24rpx;
+  background: #fff8ed;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.6;
+}
+
+/* 底部操作栏 */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 16rpx 30rpx;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+  background: #fff;
+  box-shadow: 0 -4rpx 20rpx rgba(0,0,0,0.05);
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8rpx 24rpx;
+}
+
+.action-icon {
+  font-size: 40rpx;
+  color: #999;
+}
+
+.action-icon.liked {
+  color: #ff4d4f;
+}
+
+.action-text {
+  font-size: 22rpx;
+  color: #666;
+  margin-top: 4rpx;
+}
+
+.share-btn {
+  padding: 16rpx 48rpx;
+  background: linear-gradient(135deg, #e2a650, #f7c948);
+  border-radius: 40rpx;
+}
+
+.share-btn .action-text {
+  color: #fff;
+  font-weight: 500;
+}
+
+/* 加载状态 */
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-size: 28rpx;
+  color: #999;
+}

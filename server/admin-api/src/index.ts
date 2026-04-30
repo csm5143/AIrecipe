@@ -2,7 +2,7 @@
 import 'dotenv/config';
 
 import 'reflect-metadata';
-import express from 'express';
+import express, { Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -16,31 +16,38 @@ import recipeRoutes from './modules/recipe/routes/recipe.routes';
 import ingredientRoutes from './modules/ingredient/routes/ingredient.routes';
 import collectionRoutes from './modules/collection/routes/collection.routes';
 import feedbackRoutes from './modules/feedback/routes/feedback.routes';
+import recipeAuditRoutes from './modules/recipe-audit/routes/recipe-audit.routes';
+import userRecipeRoutes from './modules/user-recipe/routes/user-recipe.routes';
 import contentRoutes from './modules/content/routes/content.routes';
 import analyticsRoutes from './modules/analytics/routes/analytics.routes';
 import uploadRoutes from './modules/upload/routes/upload.routes';
 import systemRoutes from './modules/system/routes/system.routes';
+import appRoutes from './modules/app/routes';
+import wxRoutes from './modules/wx/routes/wx.routes';
 
-const app = express();
+const app: Express = express();
 
 // ==================== 全局中间件 ====================
 
 // 安全头
 app.use(helmet());
 
-// CORS
+// CORS - 支持多域名配置（格式：https://domain1.com,https://domain2.com）
+const customOrigins = (process.env.CORS_ORIGIN || '').split(',').filter(Boolean);
 const corsOptions: cors.CorsOptions = {
   credentials: true,
   origin: (origin, callback) => {
-    // 允许没有 origin 的请求（如 Postman、curl）
     if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
+
+    const devOrigins = [
       'http://localhost:5173',
       'http://localhost:3001',
+      'http://localhost:3000',
+      "https://admin.airecipe.cn",
     ];
-    
-    if (allowedOrigins.includes(origin)) {
+    const allAllowed = [...devOrigins, ...customOrigins];
+
+    if (allAllowed.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error(`Origin ${origin} not allowed by CORS policy`));
@@ -76,13 +83,23 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() });
 });
 
+// API v1 前缀下的健康检查（供反向代理使用）
+// Nginx location /api -> proxy_pass / 时，/api/v1/health 会变成 /v1/health
+app.get('/v1/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: Date.now() });
+});
+
 app.use(`${config.app.apiPrefix}/auth`, authRoutes);
 app.use(`${config.app.apiPrefix}/users`, userRoutes);
 app.use(`${config.app.apiPrefix}/recipes`, recipeRoutes);
 app.use(`${config.app.apiPrefix}/ingredients`, ingredientRoutes);
 app.use(`${config.app.apiPrefix}/collections`, collectionRoutes);
 app.use(`${config.app.apiPrefix}/feedbacks`, feedbackRoutes);
+app.use(`${config.app.apiPrefix}/recipe-audit`, recipeAuditRoutes);
+app.use(`${config.app.apiPrefix}/user-recipes`, userRecipeRoutes);
 app.use(`${config.app.apiPrefix}/content`, contentRoutes);
+app.use(`${config.app.apiPrefix}/app`, appRoutes);
+app.use(`${config.app.apiPrefix}/wx`, wxRoutes);
 app.use(`${config.app.apiPrefix}/analytics`, analyticsRoutes);
 app.use(`${config.app.apiPrefix}/upload`, uploadRoutes);
 app.use(`${config.app.apiPrefix}/system`, systemRoutes);

@@ -1,0 +1,385 @@
+/* 菜谱上传页面样式 */
+
+.page {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 120rpx;
+}
+
+.form-scroll {
+  height: calc(100vh - env(safe-area-inset-bottom));
+}
+
+/* 区块 */
+.section {
+  background: #fff;
+  margin: 20rpx;
+  border-radius: 16rpx;
+  padding: 30rpx;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.section-title .required {
+  color: #ff4d4f;
+}
+
+.add-btn {
+  color: #e2a650;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+/* 封面 */
+.cover-upload {
+  width: 100%;
+  height: 400rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+  background: #f9f9f9;
+}
+
+.cover-preview {
+  width: 100%;
+  height: 100%;
+}
+
+.cover-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx dashed #ddd;
+}
+
+.upload-icon {
+  width: 80rpx;
+  height: 80rpx;
+  margin-bottom: 16rpx;
+  opacity: 0.5;
+}
+
+.upload-text {
+  font-size: 26rpx;
+  color: #999;
+}
+
+/* 输入框 */
+.input-field {
+  width: 100%;
+  height: 88rpx;
+  background: #f9f9f9;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.textarea-field {
+  width: 100%;
+  min-height: 160rpx;
+  background: #f9f9f9;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+/* 选项 */
+.option-row {
+  display: flex;
+  gap: 20rpx;
+}
+
+.option-item {
+  flex: 1;
+  height: 88rpx;
+  background: #f9f9f9;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  border: 2rpx solid transparent;
+}
+
+.option-item.active {
+  background: #fff8ed;
+  border-color: #e2a650;
+}
+
+.option-icon {
+  font-size: 32rpx;
+}
+
+.option-label {
+  font-size: 26rpx;
+  color: #333;
+}
+
+.option-group {
+  flex: 1;
+}
+
+.option-group-label {
+  font-size: 24rpx;
+  color: #999;
+  margin-bottom: 8rpx;
+}
+
+.picker-value {
+  height: 72rpx;
+  background: #f9f9f9;
+  border-radius: 12rpx;
+  padding: 0 20rpx;
+  display: flex;
+  align-items: center;
+  font-size: 26rpx;
+  color: #333;
+}
+
+/* 食材列表 */
+.ingredient-list, .step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.ingredient-item, .step-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx;
+  background: #f9f9f9;
+  border-radius: 12rpx;
+}
+
+.ingredient-info {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.ingredient-name {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.ingredient-amount {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.ingredient-actions, .step-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.action-btn {
+  font-size: 24rpx;
+  color: #666;
+  padding: 8rpx 16rpx;
+}
+
+.action-btn.delete {
+  color: #ff4d4f;
+}
+
+.step-item {
+  gap: 20rpx;
+}
+
+.step-number {
+  width: 48rpx;
+  height: 48rpx;
+  background: linear-gradient(135deg, #e2a650, #f7c948);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  color: #fff;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-desc {
+  font-size: 26rpx;
+  color: #333;
+  line-height: 1.5;
+}
+
+.empty-tip {
+  text-align: center;
+  padding: 40rpx;
+  color: #999;
+  font-size: 26rpx;
+}
+
+/* 标签 */
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.tag-row.wrap {
+  gap: 16rpx;
+}
+
+.tag-item {
+  padding: 12rpx 24rpx;
+  background: #f5f5f5;
+  border-radius: 32rpx;
+  font-size: 24rpx;
+  color: #666;
+  border: 2rpx solid transparent;
+}
+
+.tag-item.active {
+  background: #fff8ed;
+  border-color: #e2a650;
+  color: #e2a650;
+}
+
+/* 提交区域 */
+.submit-section {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  padding: 20rpx 30rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 20rpx rgba(0,0,0,0.05);
+}
+
+.submit-btn {
+  width: 100%;
+  height: 88rpx;
+  background: linear-gradient(135deg, #e2a650, #f7c948);
+  border-radius: 44rpx;
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+}
+
+.submit-btn.disabled {
+  opacity: 0.6;
+}
+
+.submit-tip {
+  text-align: center;
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 12rpx;
+}
+
+/* 弹窗 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-box {
+  width: 600rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 32rpx 36rpx 24rpx;
+  border-bottom: 1rpx solid #eee;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.modal-body {
+  padding: 32rpx 36rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.modal-input {
+  width: 100%;
+  height: 80rpx;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.modal-textarea {
+  width: 100%;
+  min-height: 200rpx;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.modal-footer {
+  display: flex;
+  padding: 0 36rpx 36rpx;
+  gap: 20rpx;
+}
+
+.modal-btn-cancel, .modal-btn-confirm {
+  flex: 1;
+  height: 80rpx;
+  border-radius: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+.modal-btn-cancel {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.modal-btn-confirm {
+  background: linear-gradient(135deg, #e2a650, #f7c948);
+  color: #fff;
+}

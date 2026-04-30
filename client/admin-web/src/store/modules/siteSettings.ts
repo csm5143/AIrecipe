@@ -18,7 +18,9 @@ export const useSiteSettingsStore = defineStore('siteSettings', () => {
     if (loaded.value) return;
     try {
       const res = await systemApi.getSettings();
-      site.value = { ...res.data.data.site };
+      if (res.data?.data?.site) {
+        site.value = { ...res.data.data.site };
+      }
       loaded.value = true;
     } catch {
       loaded.value = true;

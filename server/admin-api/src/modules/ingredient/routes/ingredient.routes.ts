@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Router as ExpressRouter } from 'express';
 import { asyncHandler } from '../../../utils/helper';
 import {
   getIngredients,
@@ -10,7 +10,7 @@ import {
 } from '../controllers/ingredient.controller';
 import { authenticate } from '../../auth/middleware/auth.middleware';
 
-const router = Router();
+const router: ExpressRouter = Router();
 router.use(authenticate);
 
 router.get('/', asyncHandler(getIngredients));

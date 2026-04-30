@@ -322,6 +322,7 @@ import {
   DISH_TYPE_OPTIONS, MEAL_TIME_OPTIONS, DIFFICULTY_OPTIONS,
   AGE_BAND_OPTIONS, FITNESS_CATEGORY_OPTIONS, GOAL_OPTIONS, STATUS_OPTIONS,
 } from './data';
+import { recipeApi } from '@/api/recipe';
 
 const router = useRouter();
 const route = useRoute();
@@ -438,30 +439,25 @@ onMounted(async () => {
   const id = Number(route.params.id);
   if (!id) return;
 
-  const res = await fetch('/data/recipes.json');
-  const data = await res.json();
-  const recipe = data.find((r: any) => String(r.id) === String(id)) as any;
-  if (!recipe) {
-    ElMessage.error('菜谱不存在');
-    router.push('/recipes');
-    return;
-  }
+  try {
+    const res = await recipeApi.detail(id);
+    const recipe = res.data.data;
 
-  form.id = Number(recipe.id);
-  form.title = recipe.name || recipe.title || '';
-  form.description = recipe.description || '';
-  form.coverImage = recipe.coverImage || '';
-  form.cookingTime = recipe.timeCost || 30;
-  form.status = 'PUBLISHED';
-  form.mealTimes = recipe.mealTimes || [];
-  form.fitnessMeal = recipe.fitnessMeal || false;
-  form.fitnessCategory = recipe.fitnessCategory || '';
-  form.goal = recipe.goal || '';
-  form.ageBand = recipe.ageBand || '';
-  form.childrenMeal = recipe.childrenMeal || false;
-  form.viewCount = recipe.viewCount || Math.floor(Math.random() * 5000);
-  form.collectCount = recipe.collectCount || Math.floor(Math.random() * 500);
-  form.createdAt = new Date(Date.now() - Math.random() * 90 * 86400000).toISOString().split('T')[0];
+    form.id = recipe.id;
+    form.title = recipe.title || '';
+    form.description = recipe.description || '';
+    form.coverImage = recipe.coverImage || '';
+    form.cookingTime = recipe.cookingTime || 30;
+    form.status = recipe.status || 'PUBLISHED';
+    form.mealTimes = recipe.mealTimes || [];
+    form.fitnessMeal = recipe.fitnessMeal || false;
+    form.fitnessCategory = recipe.fitnessCategory || '';
+    form.goal = recipe.goal || '';
+    form.ageBand = recipe.ageBand || '';
+    form.childrenMeal = recipe.childrenMeal || false;
+    form.viewCount = recipe.viewCount || 0;
+    form.collectCount = recipe.collectCount || 0;
+    form.createdAt = recipe.createdAt || new Date().toISOString().split('T')[0];
   form.updatedAt = new Date().toISOString().split('T')[0];
   form.tags = (recipe.dishTypes || []).map((t: string) => {
     const opt = DISH_TYPE_OPTIONS.find(o => o.value === t);

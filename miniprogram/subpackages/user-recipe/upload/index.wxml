@@ -1,0 +1,261 @@
+<!-- 菜谱上传页面 -->
+
+<view class="page">
+  <scroll-view scroll-y class="form-scroll">
+    <!-- 封面图片 -->
+    <view class="section">
+      <view class="section-title">封面图片 <text class="required">*</text></view>
+      <view class="cover-upload" bindtap="onChooseCover">
+        <image 
+          wx:if="{{form.coverImage}}" 
+          class="cover-preview" 
+          src="{{form.coverImage}}" 
+          mode="aspectFill" 
+        />
+        <view wx:else class="cover-placeholder">
+          <image class="upload-icon" src="/assets/相机2.png" mode="aspectFit" />
+          <text class="upload-text">点击上传封面</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 标题 -->
+    <view class="section">
+      <view class="section-title">菜谱标题 <text class="required">*</text></view>
+      <input 
+        class="input-field" 
+        type="text" 
+        placeholder="给您的菜谱起个名字" 
+        value="{{form.title}}"
+        bindinput="onTitleInput"
+        maxlength="30"
+      />
+    </view>
+
+    <!-- 简介 -->
+    <view class="section">
+      <view class="section-title">简介</view>
+      <textarea 
+        class="textarea-field" 
+        placeholder="简单介绍一下这道菜的特点" 
+        value="{{form.description}}"
+        bindinput="onDescriptionInput"
+        maxlength="200"
+      />
+    </view>
+
+    <!-- 难度选择 -->
+    <view class="section">
+      <view class="section-title">难度</view>
+      <view class="option-row">
+        <view 
+          wx:for="{{difficultyOptions}}" 
+          wx:key="value"
+          class="option-item {{form.difficulty === item.value ? 'active' : ''}}"
+          bindtap="onSelectDifficulty"
+          data-value="{{item.value}}"
+        >
+          <text class="option-icon">{{item.icon}}</text>
+          <text class="option-label">{{item.label}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 烹饪时间和份量 -->
+    <view class="section">
+      <view class="section-title">烹饪时间和份量</view>
+      <view class="option-row">
+        <view class="option-group">
+          <view class="option-group-label">时间</view>
+          <picker mode="selector" range="{{cookingTimeOptions}}" range-key="label" bindchange="onCookingTimeChange">
+            <view class="picker-value">
+              {{form.cookingTime}}分钟
+            </view>
+          </picker>
+        </view>
+        <view class="option-group">
+          <view class="option-group-label">份量</view>
+          <picker mode="selector" range="{{servingsOptions}}" range-key="label" bindchange="onServingsChange">
+            <view class="picker-value">
+              {{form.servings}}人份
+            </view>
+          </picker>
+        </view>
+      </view>
+    </view>
+
+    <!-- 食材 -->
+    <view class="section">
+      <view class="section-header">
+        <view class="section-title">食材清单 <text class="required">*</text></view>
+        <view class="add-btn" bindtap="onShowIngredientInput">+ 添加</view>
+      </view>
+      <view class="ingredient-list">
+        <view 
+          wx:for="{{form.ingredients}}" 
+          wx:key="index"
+          class="ingredient-item"
+        >
+          <view class="ingredient-info">
+            <text class="ingredient-name">{{item.name}}</text>
+            <text class="ingredient-amount">{{item.amount}}</text>
+          </view>
+          <view class="ingredient-actions">
+            <text class="action-btn" bindtap="onEditIngredient" data-index="{{index}}">编辑</text>
+            <text class="action-btn delete" bindtap="onDeleteIngredient" data-index="{{index}}">删除</text>
+          </view>
+        </view>
+        <view wx:if="{{form.ingredients.length === 0}}" class="empty-tip">
+          暂无食材，请添加
+        </view>
+      </view>
+    </view>
+
+    <!-- 步骤 -->
+    <view class="section">
+      <view class="section-header">
+        <view class="section-title">制作步骤 <text class="required">*</text></view>
+        <view class="add-btn" bindtap="onShowStepInput">+ 添加</view>
+      </view>
+      <view class="step-list">
+        <view 
+          wx:for="{{form.steps}}" 
+          wx:key="index"
+          class="step-item"
+        >
+          <view class="step-number">{{index + 1}}</view>
+          <view class="step-content">
+            <text class="step-desc">{{item.description}}</text>
+          </view>
+          <view class="step-actions">
+            <text class="action-btn" bindtap="onEditStep" data-index="{{index}}">编辑</text>
+            <text class="action-btn delete" bindtap="onDeleteStep" data-index="{{index}}">删除</text>
+          </view>
+        </view>
+        <view wx:if="{{form.steps.length === 0}}" class="empty-tip">
+          暂无步骤，请添加
+        </view>
+      </view>
+    </view>
+
+    <!-- 小技巧 -->
+    <view class="section">
+      <view class="section-title">小技巧</view>
+      <textarea 
+        class="textarea-field" 
+        placeholder="分享一些烹饪小技巧（选填）" 
+        value="{{form.tips}}"
+        bindinput="onTipsInput"
+        maxlength="200"
+      />
+    </view>
+
+    <!-- 用餐时段 -->
+    <view class="section">
+      <view class="section-title">用餐时段</view>
+      <view class="tag-row">
+        <view 
+          wx:for="{{mealTimeOptions}}" 
+          wx:key="value"
+          class="tag-item {{form.mealTimes.includes(item.value) ? 'active' : ''}}"
+          bindtap="onToggleMealTime"
+          data-value="{{item.value}}"
+        >
+          {{item.label}}
+        </view>
+      </view>
+    </view>
+
+    <!-- 菜品类型 -->
+    <view class="section">
+      <view class="section-title">菜品类型</view>
+      <view class="tag-row">
+        <view 
+          wx:for="{{dishTypeOptions}}" 
+          wx:key="value"
+          class="tag-item {{form.dishTypes.includes(item.value) ? 'active' : ''}}"
+          bindtap="onToggleDishType"
+          data-value="{{item.value}}"
+        >
+          {{item.label}}
+        </view>
+      </view>
+    </view>
+
+    <!-- 标签 -->
+    <view class="section">
+      <view class="section-title">标签</view>
+      <view class="tag-row wrap">
+        <view 
+          wx:for="{{tagOptions}}" 
+          wx:key="value"
+          class="tag-item {{form.tags.includes(item.value) ? 'active' : ''}}"
+          bindtap="onToggleTag"
+          data-value="{{item.value}}"
+        >
+          {{item.label}}
+        </view>
+      </view>
+    </view>
+
+    <!-- 提交按钮 -->
+    <view class="submit-section">
+      <button 
+        class="submit-btn {{submitting ? 'disabled' : ''}}" 
+        bindtap="onSubmit"
+        disabled="{{submitting}}"
+      >
+        {{submitting ? '提交中...' : '提交审核'}}
+      </button>
+      <view class="submit-tip">提交后需管理员审核才能在社区展示</view>
+    </view>
+  </scroll-view>
+
+  <!-- 食材输入弹窗 -->
+  <view wx:if="{{showIngredientInput}}" class="modal-overlay" bindtap="onCancelIngredient" catchtouchmove="preventTouchMove">
+    <view class="modal-box" catchtap="preventTouchMove">
+      <view class="modal-header">
+        <text class="modal-title">{{editingIngredientIndex >= 0 ? '编辑食材' : '添加食材'}}</text>
+      </view>
+      <view class="modal-body">
+        <input 
+          class="modal-input" 
+          placeholder="食材名称（如：鸡胸肉）" 
+          value="{{tempIngredientName}}"
+          bindinput="onIngredientNameInput"
+        />
+        <input 
+          class="modal-input" 
+          placeholder="用量（如：100g）" 
+          value="{{tempIngredientAmount}}"
+          bindinput="onIngredientAmountInput"
+        />
+      </view>
+      <view class="modal-footer">
+        <view class="modal-btn-cancel" bindtap="onCancelIngredient">取消</view>
+        <view class="modal-btn-confirm" bindtap="onConfirmIngredient">确定</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 步骤输入弹窗 -->
+  <view wx:if="{{showStepInput}}" class="modal-overlay" bindtap="onCancelStep" catchtouchmove="preventTouchMove">
+    <view class="modal-box" catchtap="preventTouchMove">
+      <view class="modal-header">
+        <text class="modal-title">{{editingStepIndex >= 0 ? '编辑步骤' : '添加步骤'}}</text>
+      </view>
+      <view class="modal-body">
+        <textarea 
+          class="modal-textarea" 
+          placeholder="请输入步骤描述" 
+          value="{{tempStepDesc}}"
+          bindinput="onStepDescInput"
+        />
+      </view>
+      <view class="modal-footer">
+        <view class="modal-btn-cancel" bindtap="onCancelStep">取消</view>
+        <view class="modal-btn-confirm" bindtap="onConfirmStep">确定</view>
+      </view>
+    </view>
+  </view>
+</view>

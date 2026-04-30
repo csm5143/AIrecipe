@@ -1,3 +1,9 @@
+// =====================================================
+// AI菜谱应用 - 数据库架构设计
+// 支持：APP(安卓)、微信小程序、后台管理系统、Web官网
+// 目标：数据统一、实时同步、灵活扩展
+// =====================================================
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,145 +13,198 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ==================== 管理员账号 ====================
+// =====================================================
+// 一、认证与用户体系
+// =====================================================
+
+// 用户主表 - 统一支持多端登录
+model User {
+  id           Int           @id @default(autoincrement())
+  
+  // 多端统一身份标识
+  openid       String?        @unique  // 微信小程序
+  unionid      String?        @unique  // 微信UnionID
+  phone        String?        @unique  // 手机号（APP）
+  password     String?        // 账号密码（Web）
+  
+  // 用户基本信息
+  nickname     String?
+  avatar       String?
+  gender       Gender         @default(UNKNOWN)
+  birthday     DateTime?
+  bio          String?        // 个人简介
+  
+  // 账号状态
+  status       AccountStatus  @default(ACTIVE)
+  lastLoginAt  DateTime?
+  lastLoginIp  String?
+  lastLoginPlatform Platform?  // 最后登录平台
+  
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  deletedAt    DateTime?      // 软删除时间
+
+  // 关联关系
+  favorites     Favorite[]     // 收藏
+  collections  Collection[]   // 收藏夹
+  feedbacks     Feedback[]     // 反馈记录
+  aiScans      AiScan[]       // AI扫描记录
+  fridgeItems  FridgeItem[]   // 冰箱食材
+  shoppingLists ShoppingList[] // 购物清单
+  browseHistory BrowseHistory[] // 浏览记录
+  notifications Notification[]  // 通知记录
+  following     Follow[]       @relation("follower")
+  followers    Follow[]       @relation("following")
+  
+  @@index([openid])
+  @@index([unionid])
+  @@index([phone])
+  @@index([status])
+  @@map("users")
+}
+
+// =====================================================
+// 二、管理员体系
+// =====================================================
+
 model Admin {
-  id           Int       @id @default(autoincrement())
-  username     String    @unique
+  id           Int           @id @default(autoincrement())
+  username     String        @unique
   password     String
   nickname     String?
   avatar       String?
-  role         AdminRole @default(EDITOR)
+  role         AdminRole     @default(EDITOR)
   status       AccountStatus @default(ACTIVE)
   lastLoginAt  DateTime?
   lastLoginIp  String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  
   operationLogs OperationLog[]
-
+  feedbackReplies FeedbackReply[]
+  
   @@map("admins")
 }
 
-enum AdminRole {
-  SUPER_ADMIN   // 超级管理员
-  ADMIN        // 管理员
-  EDITOR       // 编辑
-}
-
-enum AccountStatus {
-  ACTIVE
-  DISABLED
-}
-
-// ==================== 操作日志 ====================
 model OperationLog {
-  id         Int      @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   adminId    Int
-  admin      Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  admin      Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
   action     String
   module     String
   targetId   String?
-  detail     String?
+  detail     Json?
   ip         String?
   userAgent  String?
-  createdAt  DateTime @default(now())
-
+  createdAt  DateTime  @default(now())
+  
   @@index([adminId])
   @@index([createdAt])
   @@map("operation_logs")
 }
 
-// ==================== 用户管理 ====================
-model User {
-  id           Int         @id @default(autoincrement())
-  openid       String      @unique
-  unionid      String?     @unique
-  nickname     String?
-  avatar       String?
-  phone        String?     @unique
-  gender       Gender?     @default(UNKNOWN)
-  birthday     DateTime?
-  status       AccountStatus @default(ACTIVE)
-  lastLoginAt  DateTime?
-  lastLoginIp  String?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+// =====================================================
+// 三、菜谱内容体系
+// =====================================================
 
-  favorites    Favorite[]
-  collections  Collection[]
-  feedbacks    Feedback[]
-  shoppingLists ShoppingList[]
-  aiScans      AiScan[]
-
-  @@index([openid])
-  @@index([unionid])
-  @@index([createdAt])
-  @@map("users")
-}
-
-enum Gender {
-  MALE
-  FEMALE
-  UNKNOWN
-}
-
-// ==================== 食谱 ====================
+// 菜谱主表 - 统一存储官方和用户菜谱
 model Recipe {
-  id           Int       @id @default(autoincrement())
+  id           Int           @id @default(autoincrement())
+  
+  // 内容标识
+  recipeKey    String        @unique  // 全局唯一标识: r_xxx
+  source       RecipeSource  @default(OFFICIAL)  // 来源：官方/用户上传
+  authorId     Int?                    // 作者用户ID（用户菜谱）
+  authorName   String?                // 作者昵称
+  authorAvatar String?                 // 作者头像
+  
+  // 基础信息
   title        String
   coverImage   String?
   description  String?
-  difficulty   Difficulty @default(MEDIUM)
-  cookingTime  Int?
+  difficulty   Difficulty   @default(MEDIUM)
+  cookingTime  Int?                    // 分钟
   servings     Int?
-  calories     Int?
-  tags         Json?
-  ingredients  Json
-  steps        Json
+  calories     Int?                   // 千卡
+  
+  // 内容详情
+  ingredients  Json                  // [{name, amount, unit, isOptional}]
+  steps        Json                   // [{step, description, image?}]
   tips         String?
-  nutrition    Json?
-  cuisine      String?
-  category     String?
-  isAiGenerated Boolean  @default(false)
-  aiPrompt     String?
-  viewCount    Int       @default(0)
-  collectCount Int       @default(0)
-  shareCount   Int       @default(0)
+  nutrition    Json?                  // 营养成分
+  
+  // 分类标签
+  cuisine      String?                // 菜系
+  category     String?                // 分类
+  mealTimes    Json?                  // 适用餐次
+  dishTypes    Json?                  // 菜品种类
+  tags         Json?
+
+  // APP 专用字段
+  goal         String?                // 功效目标
+  ageBand      String?                // 适龄人群
+
+  // 互动数据
+  viewCount    Int           @default(0)
+  favoriteCount Int          @default(0)
+  collectCount  Int          @default(0)    // 收藏数
+  shareCount   Int           @default(0)
+  commentCount Int           @default(0)
+  
+  // 审核状态
   status       ContentStatus @default(DRAFT)
-  isFeatured   Boolean   @default(false)
-  isDeleted    Boolean   @default(false)
+  rejectReason String?
+  reviewedAt   DateTime?
+  reviewedBy   Int?
+  
+  // 推荐权重
+  isFeatured   Boolean      @default(false)  // 精选推荐
+  isHot        Boolean      @default(false)   // 热门
+  weight       Int           @default(0)       // 排序权重
+  
   publishedAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?      // 软删除
+  isDeleted   Boolean       @default(false)  // 软删除标记
 
-  favorites    Favorite[]
+  // 关联
   recipeIngredients RecipeIngredient[]
-
-  @@index([status])
-  @@index([isFeatured])
-  @@index([createdAt])
+  favorites    Favorite[]
+  browseHistory BrowseHistory[]
+  collectionItems CollectionItem[]
+  
+  @@index([source, status])
   @@index([category])
+  @@index([isFeatured])
+  @@index([isHot])
+  @@index([createdAt])
+  @@index([authorId])
   @@map("recipes")
 }
 
-enum Difficulty {
-  EASY
-  MEDIUM
-  HARD
-}
-
-enum ContentStatus {
-  DRAFT
-  PUBLISHED
-  OFFLINE
-  DELETED
-  ACTIVE
-}
-
-// ==================== 食材 ====================
-model Ingredient {
-  id           Int       @id @default(autoincrement())
+// 食谱-食材关联表
+model RecipeIngredient {
+  id           Int         @id @default(autoincrement())
+  recipeId     Int
+  ingredientId Int?
   name         String
+  amount       String
+  unit         String?
+  isOptional   Boolean     @default(false)
+  sortOrder    Int         @default(0)
+  
+  recipe       Recipe      @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredient   Ingredient? @relation(fields: [ingredientId], references: [id])
+  
+  @@index([recipeId])
+  @@map("recipe_ingredients")
+}
+
+// 食材字典表
+model Ingredient {
+  id           Int         @id @default(autoincrement())
+  name         String      @unique
   alias        String?
   coverImage   String?
   category     String?
@@ -154,37 +213,36 @@ model Ingredient {
   nutrition    Json?
   tags         Json?
   status       ContentStatus @default(ACTIVE)
-  isDeleted    Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  
   recipeIngredients RecipeIngredient[]
-
-  @@index([name])
+  
   @@index([category])
   @@map("ingredients")
 }
 
-// ==================== 食谱-食材关联 ====================
-model RecipeIngredient {
+// =====================================================
+// 四、收藏与互动
+// =====================================================
+
+// 收藏（点赞）
+model Favorite {
   id           Int       @id @default(autoincrement())
+  userId       Int
   recipeId     Int
-  ingredientId Int?
-  name         String
-  amount       String
-  unit         String?
-  isOptional   Boolean   @default(false)
-  sortOrder    Int       @default(0)
   createdAt    DateTime  @default(now())
-
+  
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   recipe       Recipe    @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  ingredient   Ingredient? @relation(fields: [ingredientId], references: [id])
-
+  
+  @@unique([userId, recipeId])
+  @@index([userId])
   @@index([recipeId])
-  @@map("recipe_ingredients")
+  @@map("favorites")
 }
 
-// ==================== 收藏夹 ====================
+// 用户收藏夹
 model Collection {
   id           Int       @id @default(autoincrement())
   userId       Int
@@ -195,10 +253,10 @@ model Collection {
   itemCount    Int       @default(0)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
-
+  
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   items        CollectionItem[]
-
+  
   @@index([userId])
   @@map("collections")
 }
@@ -211,71 +269,139 @@ model CollectionItem {
   createdAt    DateTime  @default(now())
 
   collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
 
   @@unique([collectionId, recipeId])
   @@index([collectionId])
+  @@index([recipeId])
   @@map("collection_items")
 }
 
-// ==================== 收藏（点赞） ====================
-model Favorite {
+// 关注（社交功能）
+model Follow {
+  id           Int       @id @default(autoincrement())
+  followerId   Int       // 关注者
+  followingId  Int       // 被关注者
+  createdAt    DateTime  @default(now())
+  
+  follower     User      @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following    User      @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+  
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+// =====================================================
+// 五、浏览记录
+// =====================================================
+
+model BrowseHistory {
   id           Int       @id @default(autoincrement())
   userId       Int
   recipeId     Int
+  duration     Int?      @default(0)  // 浏览时长（秒）
+  source       String?   // 来源：home/search/friend/share
   createdAt    DateTime  @default(now())
-
+  
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   recipe       Recipe    @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, recipeId])
-  @@index([userId])
+  
+  @@index([userId, createdAt])
   @@index([recipeId])
-  @@map("favorites")
+  @@map("browse_history")
 }
 
-// ==================== 购物清单 ====================
-model ShoppingList {
+// =====================================================
+// 六、小冰箱
+// =====================================================
+
+model FridgeItem {
   id           Int       @id @default(autoincrement())
   userId       Int
   name         String
-  status       ListStatus @default(ACTIVE)
+  amount       String?
+  unit         String?
+  category     String?
+  addedAt      DateTime  @default(now())
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
-
+  
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items        ShoppingItem[]
+  
+  @@unique([userId, name])  // 同一用户同名食材只存一条
+  @@index([userId, category])
+  @@map("fridge_items")
+}
 
+// =====================================================
+// 七、小菜篮/购物清单
+// =====================================================
+
+model ShoppingList {
+  id           Int           @id @default(autoincrement())
+  userId       Int
+  name         String
+  source       String?       // 来源：manual/recipe
+  recipeId     Int?          // 来源菜谱ID
+  status       ListStatus    @default(ACTIVE)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items        ShoppingItem[]
+  
   @@index([userId])
   @@map("shopping_lists")
 }
 
 model ShoppingItem {
-  id           Int       @id @default(autoincrement())
+  id           Int         @id @default(autoincrement())
   listId       Int
   name         String
   amount       String?
   unit         String?
   category     String?
-  isChecked    Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-
+  isChecked    Boolean     @default(false)
+  isFromFridge Boolean     @default(false)  // 是否来自冰箱
+  createdAt    DateTime    @default(now())
+  
   shoppingList ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
-
+  
   @@index([listId])
   @@map("shopping_items")
 }
 
-enum ListStatus {
-  ACTIVE
-  COMPLETED
-  ARCHIVED
+// =====================================================
+// 八、AI功能
+// =====================================================
+
+model AiScan {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  imageUrl     String
+  result       Json      // AI识别结果
+  recipes      Json?     // 推荐菜谱
+  status       ScanStatus @default(PROCESSING)
+  errorMsg     String?
+  createdAt    DateTime  @default(now())
+  
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([createdAt])
+  @@map("ai_scans")
 }
 
-// ==================== 用户反馈 ====================
+// =====================================================
+// 九、反馈系统
+// =====================================================
+
 model Feedback {
-  id           Int       @id @default(autoincrement())
+  id           Int           @id @default(autoincrement())
   userId       Int?
-  type         FeedbackType @default(OTHER)
+  type         FeedbackType  @default(OTHER)
   content      String
   images       Json?
   contact      String?
@@ -283,12 +409,12 @@ model Feedback {
   reply        String?
   repliedAt    DateTime?
   repliedBy    Int?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  user         User?     @relation(fields: [userId], references: [id])
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  
+  user         User?         @relation(fields: [userId], references: [id])
   replies      FeedbackReply[]
-
+  
   @@index([status])
   @@index([userId])
   @@index([createdAt])
@@ -301,66 +427,199 @@ model FeedbackReply {
   adminId      Int?
   content      String
   createdAt    DateTime  @default(now())
-
+  
   feedback     Feedback  @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
-
+  admin        Admin?    @relation(fields: [adminId], references: [id])
+  
   @@index([feedbackId])
   @@map("feedback_replies")
+}
+
+// =====================================================
+// 十、内容运营
+// =====================================================
+
+model Banner {
+  id           Int           @id @default(autoincrement())
+  title        String
+  imageUrl     String
+  linkType     LinkType      @default(NONE)
+  linkValue    String?
+  sortOrder    Int           @default(0)
+  status       ContentStatus @default(ACTIVE)
+  startTime    DateTime?
+  endTime      DateTime?
+  platform     Platform      @default(ALL)  // 显示平台
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  
+  @@index([status, startTime, endTime])
+  @@map("banners")
+}
+
+model Notice {
+  id           Int           @id @default(autoincrement())
+  title        String
+  content      String
+  type         NoticeType    @default(SYSTEM)
+  target       NoticeTarget  @default(ALL)
+  status       ContentStatus @default(ACTIVE)
+  publishedAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  
+  @@map("notices")
+}
+
+// =====================================================
+// 十一、通知系统
+// =====================================================
+
+model Notification {
+  id           Int             @id @default(autoincrement())
+  userId       Int
+  type         NotificationType
+  title        String
+  content      String
+  data         Json?           // 扩展数据
+  isRead       Boolean         @default(false)
+  readAt       DateTime?
+  createdAt    DateTime        @default(now())
+  
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// =====================================================
+// 十二、扩展预留表（可扩展功能）
+// =====================================================
+
+// 扩展属性表 - 支持动态字段
+model ExtensionData {
+  id           Int       @id @default(autoincrement())
+  entityType   String    // 实体类型：user/recipe/ingredient
+  entityId     Int
+  key          String
+  value        Json
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  
+  @@unique([entityType, entityId, key])
+  @@index([entityType, entityId])
+  @@map("extension_data")
+}
+
+// 扩展表1 - 菜谱版本管理
+model RecipeVersion {
+  id           Int       @id @default(autoincrement())
+  recipeId     Int
+  version      Int
+  changes      Json
+  createdBy    Int?
+  createdAt    DateTime  @default(now())
+  
+  @@unique([recipeId, version])
+  @@index([recipeId])
+  @@map("recipe_versions")
+}
+
+// 扩展表2 - 定时任务
+model ScheduledTask {
+  id           Int       @id @default(autoincrement())
+  name         String
+  type         String
+  cron         String?
+  handler      String
+  data         Json?
+  status       String    @default("pending")
+  lastRunAt    DateTime?
+  nextRunAt    DateTime?
+  createdAt    DateTime  @default(now())
+  
+  @@map("scheduled_tasks")
+}
+
+// =====================================================
+// 十三、枚举定义
+// =====================================================
+
+enum Gender {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum AccountStatus {
+  ACTIVE
+  DISABLED
+  BANNED
+}
+
+enum Platform {
+  ALL
+  APP       // APP端
+  MINIPROGRAM  // 微信小程序
+  WEB       // Web官网
+  H5        // H5页面
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  EDITOR
+  AUDITOR  // 审核员
+}
+
+enum RecipeSource {
+  OFFICIAL    // 官方菜谱（后台管理系统添加）
+  USER        // 用户上传
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum ContentStatus {
+  ACTIVE
+  DRAFT
+  PUBLISHED
+  OFFLINE
+  DELETED
+  PENDING   // 待审核
+  REJECTED  // 已拒绝
+}
+
+enum ListStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
 }
 
 enum FeedbackType {
   BUG_REPORT
   FEATURE_REQUEST
   CONTENT_ISSUE
+  IMPROVEMENT
   OTHER
 }
 
 enum FeedbackStatus {
   PENDING
+  IN_PROGRESS
   REPLIED
   RESOLVED
   CLOSED
-}
-
-// ==================== AI 扫描记录 ====================
-model AiScan {
-  id           Int       @id @default(autoincrement())
-  userId       Int
-  imageUrl     String
-  result       Json
-  recipes      Json?
-  status       ScanStatus @default(SUCCESS)
-  createdAt    DateTime  @default(now())
-
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([createdAt])
-  @@map("ai_scans")
 }
 
 enum ScanStatus {
   PROCESSING
   SUCCESS
   FAILED
-}
-
-// ==================== 内容运营 ====================
-model Banner {
-  id           Int       @id @default(autoincrement())
-  title        String
-  imageUrl     String
-  linkType     LinkType  @default(NONE)
-  linkValue    String?
-  sortOrder    Int       @default(0)
-  status       ContentStatus @default(ACTIVE)
-  startTime    DateTime?
-  endTime      DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  @@index([status, startTime, endTime])
-  @@map("banners")
 }
 
 enum LinkType {
@@ -370,28 +629,26 @@ enum LinkType {
   LINK
 }
 
-model Notice {
-  id           Int       @id @default(autoincrement())
-  title        String
-  content      String
-  type         NoticeType @default(SYSTEM)
-  target       NoticeTarget @default(ALL)
-  status       ContentStatus @default(ACTIVE)
-  publishedAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  @@map("notices")
-}
-
 enum NoticeType {
   SYSTEM
   ACTIVITY
   UPDATE
+  WELCOME
 }
 
 enum NoticeTarget {
   ALL
   NEW_USER
   ACTIVE_USER
+  INACTIVE_USER
+}
+
+enum NotificationType {
+  SYSTEM
+  RECIPE_APPROVED
+  RECIPE_REJECTED
+  NEW_FOLLOWER
+  RECIPE_LIKED
+  COMMENT
+  ANNOUNCEMENT
 }

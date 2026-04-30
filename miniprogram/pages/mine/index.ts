@@ -1,6 +1,7 @@
 ﻿// 我的页面：用户信息、功能菜单
 
 import { getUserInfo, isLoggedIn } from '../../utils/userAuth';
+import { getPreferenceStats } from '../../utils/preferenceStore';
 // 获取收藏数量
 function getFavoriteCount(): number {
   try {
@@ -30,7 +31,12 @@ Page({
       avatar: ''
     },
     favoriteCount: 0,
+<<<<<<< HEAD
     fridgeItemCount: 0
+=======
+    fridgeItemCount: 0,
+    preferenceCount: 0
+>>>>>>> 2eb2453eedc981515dc888d5be20239419512b61
   },
 
   onLoad() {
@@ -51,6 +57,10 @@ Page({
     const info = getUserInfo();
     const favoriteCount = getFavoriteCount();
     const fridgeItemCount = getFridgeItemCount();
+<<<<<<< HEAD
+=======
+    const stats = getPreferenceStats();
+>>>>>>> 2eb2453eedc981515dc888d5be20239419512b61
     this.setData({
       hasLogin,
       userInfo: {
@@ -58,7 +68,12 @@ Page({
         avatar: info.avatar || ''
       },
       favoriteCount,
+<<<<<<< HEAD
       fridgeItemCount
+=======
+      fridgeItemCount,
+      preferenceCount: stats.total
+>>>>>>> 2eb2453eedc981515dc888d5be20239419512b61
     });
   },
 
@@ -89,6 +104,14 @@ Page({
     wx.navigateTo({ url: '/pages/basket/index' });
   },
 
+<<<<<<< HEAD
+=======
+  // 跳转到偏好设置页面
+  onGoToPreference() {
+    wx.navigateTo({ url: '/pages/preference/index' });
+  },
+
+>>>>>>> 2eb2453eedc981515dc888d5be20239419512b61
   // 问题反馈
   onFeedback() {
     wx.navigateTo({ url: '/subpackages/lowfreq/feedback/index' });

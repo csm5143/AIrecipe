@@ -1,5 +1,6 @@
-<view class="page">
+<!-- 登录页面：微信一键登录 -->
 
+<view class="page">
   <!-- 背景装饰 -->
   <view class="bg-decoration">
     <view class="bg-circle bg-circle--1"></view>
@@ -9,7 +10,7 @@
 
   <view class="login-container">
     
-    <!-- 顶部品牌：仅 Logo + 一句说明，避免与 Logo 内文案重复 -->
+    <!-- 顶部品牌 -->
     <view class="brand-section">
       <view class="brand-logo-wrap">
         <image class="brand-logo" src="https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/%E7%B3%BB%E7%BB%9F%E5%9B%BE%E7%89%87/%E5%90%83%E4%BA%86%E4%B9%884.png" mode="aspectFit" />
@@ -25,13 +26,13 @@
         <view class="user-card">
           <view class="user-card-header">
             <view class="user-avatar-large">
-              <button class="avatar-btn-large" open-type="{{isGuest ? '' : 'chooseAvatar'}}" bindchooseavatar="onChooseAvatar">
+              <button class="avatar-btn-large" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
                 <image 
                   class="avatar-img-large" 
-                  src="{{isGuest ? guestAvatarUrl : (avatarUrl || guestAvatarUrl)}}" 
+                  src="{{avatarUrl || guestAvatarUrl}}" 
                   mode="aspectFill" 
                 />
-                <view wx:if="{{!isGuest}}" class="avatar-edit-badge">
+                <view class="avatar-edit-badge">
                   <image src="/assets/相机2.png" mode="aspectFit" />
                 </view>
               </button>
@@ -39,15 +40,17 @@
           </view>
           <view class="user-card-body">
             <view class="user-nickname">{{nickname}}</view>
-            <view class="user-login-badge {{isGuest ? 'user-login-badge--guest' : ''}}">
-              <view class="badge-dot"></view>
-              <text class="badge-text">{{isGuest ? '游客' : '已登录'}}</text>
+            <view class="user-info-row">
+              <view class="user-login-badge">
+                <view class="badge-dot"></view>
+                <text class="badge-text">已登录</text>
+              </view>
             </view>
           </view>
         </view>
 
         <!-- 功能菜单 -->
-        <view class="menu-card" wx:if="{{!isGuest}}">
+        <view class="menu-card">
           <view class="menu-item" bindtap="onShowNicknameInput">
             <view class="menu-item-left">
               <view class="menu-item-icon menu-item-icon--edit">
@@ -73,36 +76,22 @@
             <text class="menu-arrow">›</text>
           </view>
         </view>
-
-        <!-- 游客：仅退出为游客 -->
-        <view class="menu-card" wx:if="{{isGuest}}">
-          <view class="menu-item" bindtap="onLogout">
-            <view class="menu-item-left">
-              <view class="menu-item-icon menu-item-icon--logout">
-                <image src="/assets/删除.png" mode="aspectFit" />
-              </view>
-              <text class="menu-item-text menu-item-text--danger">退出游客身份</text>
-            </view>
-            <text class="menu-arrow">›</text>
-          </view>
-        </view>
       </view>
     </block>
 
-    <!-- 未登录：参考主流小程序 — Logo + 主按钮 + 游客，协议置于底部 -->
+    <!-- 未登录：微信一键登录 -->
     <block wx:else>
       <view class="login-sheet">
-        <button
+        <!-- 微信一键登录（主要按钮） -->
+        <button 
           class="btn-wechat {{!isAgreed ? 'btn-wechat--locked' : ''}}"
-          bindtap="onQuickLogin"
+          bindtap="onWechatLogin"
         >
           <image class="btn-wechat-icon" src="/assets/微信.png" mode="aspectFit" />
           <text>微信一键登录</text>
         </button>
 
-        <view class="guest-entry" bindtap="onSkip">游客登录</view>
-
-        <!-- 协议置于底部 -->
+        <!-- 协议说明 -->
         <view class="agreement-row" bindtap="onToggleAgreement">
           <view class="agreement-checkbox {{isAgreed ? 'checked' : ''}}">
             <image wx:if="{{isAgreed}}" class="check-icon" src="/assets/选中2.png" mode="aspectFit" />

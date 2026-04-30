@@ -1,9 +1,9 @@
-import { Router } from 'express';
+import { Router, Router as ExpressRouter } from 'express';
 import { asyncHandler } from '../../../utils/helper';
 import { login, logout, getProfile, refreshToken, updateProfile, changePassword, updateAvatar } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
-const router = Router();
+const router: ExpressRouter = Router();
 
 router.post('/login', asyncHandler(login));
 router.post('/logout', authenticate, asyncHandler(logout));

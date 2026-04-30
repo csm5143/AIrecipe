@@ -179,10 +179,19 @@
 }
 
 .owned-tag {
+<<<<<<< HEAD
   font-size: 24rpx;
   color: #10b981;
   font-weight: 600;
   margin-left: 8rpx;
+=======
+  width: 40rpx;
+  height: 40rpx;
+  background: #10b981;
+  border-radius: 50%;
+  margin-left: 8rpx;
+  flex-shrink: 0;
+>>>>>>> 2eb2453eedc981515dc888d5be20239419512b61
 }
 
 .merged-copy-btn {

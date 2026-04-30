@@ -91,7 +91,7 @@ export async function createRecipe(req: Request, res: Response) {
     title, description, coverImage, difficulty, cookingTime, servings,
     calories, cuisine, category, tips, status = 'DRAFT',
     ingredients = [], steps = [], nutrition,
-    isFeatured, isAiGenerated, aiPrompt,
+    isFeatured,
     dishType, dishTypes = [], mealTimes = [], fitnessMeal, childrenMeal,
   } = body;
 
@@ -102,6 +102,7 @@ export async function createRecipe(req: Request, res: Response) {
 
   const result = await prisma.recipe.create({
     data: {
+      recipeKey: 'r_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
       title,
       description,
       coverImage,
@@ -114,8 +115,6 @@ export async function createRecipe(req: Request, res: Response) {
       tips,
       status: (status as ContentStatus) || 'DRAFT',
       isFeatured: isFeatured || false,
-      isAiGenerated: isAiGenerated || false,
-      aiPrompt,
       tags,
       nutrition: nutrition || undefined,
       ingredients: ingredients.map((ing: any) => ({

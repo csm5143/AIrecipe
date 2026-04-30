@@ -405,6 +405,7 @@ import {
   type FeedbackStatus,
   FEEDBACK_TYPE_MAP,
   FEEDBACK_STATUS_MAP,
+  feedbackApi,
 } from '@/api/feedback';
 
 const loading = ref(false);
@@ -503,29 +504,21 @@ function formatDateTime(timestamp: number) {
 async function fetchFeedbacks() {
   loading.value = true;
   try {
-    if (rawData.value.length === 0) {
-      const res = await fetch('/data/feedbacks.json');
-      const data = await res.json();
-      rawData.value = data as FeedbackItem[];
-    }
-    // 本地过滤（实际项目中应由后端处理）
-    let filtered = [...rawData.value];
-    if (filters.keyword) {
-      const kw = filters.keyword.toLowerCase();
-      filtered = filtered.filter(f =>
-        f.content.toLowerCase().includes(kw) ||
-        f.nickname?.toLowerCase().includes(kw)
-      );
-    }
-    if (filters.type) {
-      filtered = filtered.filter(f => f.type === filters.type);
-    }
-    if (filters.status) {
-      filtered = filtered.filter(f => f.status === filters.status);
-    }
-    if (filters.userType) {
-      filtered = filtered.filter(f => f.userType === filters.userType);
-    }
+    const res = await feedbackApi.getFeedbacks({
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      type: filters.type || undefined,
+      status: filters.status || undefined,
+      keyword: filters.keyword || undefined,
+    });
+    rawData.value = res.data.data;
+    pagination.total = res.data.total;
+  } catch (error) {
+    console.error('获取反馈列表失败:', error);
+  } finally {
+    loading.value = false;
+  }
+}
 
     // 分页
     const start = (pagination.page - 1) * pagination.pageSize;

@@ -1,0 +1,60 @@
+<!-- 社区菜谱页面 -->
+
+<view class="page">
+  <!-- 筛选栏 -->
+  <view class="filter-bar">
+    <scroll-view scroll-x class="filter-scroll">
+      <view 
+        wx:for="{{mealTimeOptions}}" 
+        wx:key="value"
+        class="filter-item {{selectedMealTime === item.value ? 'active' : ''}}"
+        bindtap="onSelectMealTime"
+        data-value="{{item.value}}"
+      >
+        {{item.label}}
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 菜谱网格 -->
+  <view class="recipe-grid" wx:if="{{recipes.length > 0}}">
+    <view 
+      wx:for="{{recipes}}" 
+      wx:key="recipeId"
+      class="grid-item"
+      bindtap="onViewDetail"
+      data-id="{{item.recipeId}}"
+    >
+      <image class="item-cover" src="{{item.coverImage}}" mode="aspectFill" />
+      <view class="item-info">
+        <text class="item-title">{{item.title}}</text>
+        <view class="item-meta">
+          <text class="item-author">{{item.nickname}}</text>
+          <view class="item-stats">
+            <text class="stat-item">{{item.likeCount || 0}} 赞</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{recipes.length === 0 && !loading}}">
+    <image class="empty-icon" src="/assets/空状态.png" mode="aspectFit" />
+    <text class="empty-text">暂无菜谱</text>
+    <text class="empty-hint">快来上传第一道菜吧</text>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-state" wx:if="{{loading && recipes.length === 0}}">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 加载更多 -->
+  <view class="load-more" wx:if="{{hasMore && recipes.length > 0 && !loading}}" bindtap="loadMore">
+    <text>加载更多</text>
+  </view>
+  <view class="no-more" wx:if="{{!hasMore && recipes.length > 0}}">
+    <text>— 没有更多了 —</text>
+  </view>
+</view>

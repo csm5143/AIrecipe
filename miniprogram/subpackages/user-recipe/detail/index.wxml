@@ -1,0 +1,118 @@
+<!-- 菜谱详情页面 -->
+
+<view class="page" wx:if="{{!loading && recipe}}">
+  <!-- 封面 -->
+  <view class="cover-section" bindtap="onPreviewCover">
+    <image class="cover-image" src="{{recipe.coverImage}}" mode="aspectFill" />
+    <view class="cover-overlay">
+      <text class="cover-hint">点击预览大图</text>
+    </view>
+  </view>
+
+  <!-- 基本信息 -->
+  <view class="info-section">
+    <view class="recipe-title">{{recipe.title}}</view>
+    
+    <!-- 作者信息 -->
+    <view class="author-row">
+      <image class="author-avatar" src="{{recipe.avatar || '/assets/默认头像.png'}}" mode="aspectFill" />
+      <text class="author-name">{{recipe.nickname}}</text>
+      <text class="publish-time">{{formatDate(recipe.createdAt)}}</text>
+    </view>
+
+    <!-- 统计信息 -->
+    <view class="stats-row">
+      <view class="stat-item">
+        <text class="stat-value">{{recipe.cookingTime}}</text>
+        <text class="stat-label">分钟</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-value">{{recipe.servings}}</text>
+        <text class="stat-label">人份</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-value">{{getDifficultyText(recipe.difficulty)}}</text>
+        <text class="stat-label">难度</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-value">{{recipe.viewCount || 0}}</text>
+        <text class="stat-label">浏览</text>
+      </view>
+    </view>
+
+    <!-- 标签 -->
+    <view class="tags-row" wx:if="{{recipe.mealTimes.length > 0 || recipe.tags.length > 0}}">
+      <text class="tag" wx:if="{{recipe.mealTimes.length > 0}}">{{getMealTimeText(recipe.mealTimes)}}</text>
+      <text class="tag" wx:for="{{recipe.tags}}" wx:key="index">{{item}}</text>
+    </view>
+
+    <!-- 简介 -->
+    <view class="description" wx:if="{{recipe.description}}">
+      {{recipe.description}}
+    </view>
+  </view>
+
+  <!-- 食材 -->
+  <view class="section" wx:if="{{recipe.ingredients.length > 0}}">
+    <view class="section-title">
+      <text class="title-text">食材清单</text>
+      <text class="title-count">{{recipe.ingredients.length}}种</text>
+    </view>
+    <view class="ingredient-list">
+      <view class="ingredient-item" wx:for="{{recipe.ingredients}}" wx:key="index">
+        <text class="ingredient-name">{{item.name}}</text>
+        <text class="ingredient-amount">{{item.amount || '适量'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 步骤 -->
+  <view class="section" wx:if="{{recipe.steps.length > 0}}">
+    <view class="section-title">
+      <text class="title-text">制作步骤</text>
+      <text class="title-count">{{recipe.steps.length}}步</text>
+    </view>
+    <view class="step-list">
+      <view class="step-item" wx:for="{{recipe.steps}}" wx:key="index">
+        <view class="step-number">{{index + 1}}</view>
+        <view class="step-content">
+          <text class="step-desc">{{item.description}}</text>
+          <image wx:if="{{item.image}}" class="step-image" src="{{item.image}}" mode="aspectFill" />
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 小技巧 -->
+  <view class="section" wx:if="{{recipe.tips}}">
+    <view class="section-title">
+      <text class="title-text">小技巧</text>
+    </view>
+    <view class="tips-content">
+      <text>{{recipe.tips}}</text>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar">
+    <view class="action-btn" bindtap="onLike">
+      <text class="action-icon {{liked ? 'liked' : ''}}">{{liked ? '♥' : '♡'}}</text>
+      <text class="action-text">{{recipe.likeCount || 0}} 赞</text>
+    </view>
+    <view class="action-btn" bindtap="onAddToBasket">
+      <text class="action-icon">🛒</text>
+      <text class="action-text">加入小菜篮</text>
+    </view>
+    <view class="share-btn" bindtap="onShare">
+      <text class="action-text">分享</text>
+    </view>
+  </view>
+</view>
+
+<!-- 加载状态 -->
+<view class="loading-state" wx:if="{{loading}}">
+  <text>加载中...</text>
+</view>

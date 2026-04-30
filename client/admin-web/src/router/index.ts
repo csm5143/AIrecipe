@@ -69,6 +69,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '反馈管理', icon: 'ChatDotRound' },
       },
       {
+        path: 'recipe-audit',
+        name: 'RecipeAudit',
+        component: () => import('@/views/recipe-audit/index.vue'),
+        meta: { title: '菜谱审核', icon: 'Stamp' },
+      },
+      {
         path: 'content',
         name: 'Content',
         component: () => import('@/views/content/index.vue'),
@@ -114,7 +120,7 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   if (to.meta.requiresAuth !== false) {
     const userStore = useUserStore();
     if (!userStore.token) {

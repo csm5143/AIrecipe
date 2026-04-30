@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Router as ExpressRouter } from 'express';
 import { asyncHandler } from '../../../utils/helper';
 import {
   getSystemInfo,
@@ -16,7 +16,7 @@ import {
 } from '../controllers/system.controller';
 import { authenticate } from '../../auth/middleware/auth.middleware';
 
-const router = Router();
+const router: ExpressRouter = Router();
 
 router.get('/info', getSystemInfo);
 router.use(authenticate);

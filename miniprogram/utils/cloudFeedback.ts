@@ -38,7 +38,7 @@ export interface FeedbackData {
   _id?: string;                 // 云数据库记录ID
   feedbackId: string;           // 本地生成的唯一ID
   userIdentifier: string | null; // 用户标识
-  userType: 'user' | 'visitor' | 'guest'; // 用户类型
+  userType: 'user';           // 用户类型
   nickname?: string;           // 用户昵称（如果有）
   avatar?: string;             // 用户头像（新增）
   type: FeedbackType;          // 反馈类型

@@ -253,7 +253,7 @@ function handleDetail(row: any) {
   detailVisible.value = true;
 }
 
-function handleRemoveItem(item: any) {
+function handleRemoveItem(_item: any) {
   ElMessage.success('已从收藏夹移除');
 }
 

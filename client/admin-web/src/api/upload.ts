@@ -24,14 +24,14 @@ export async function uploadFile(file: File, folder: keyof typeof cosConfig.fold
   formData.append('file', file);
   formData.append('folder', cosConfig.folders[folder]);
 
-  const response = await request.post<any, { data: UploadResponse }>('/upload', formData, {
+  const response = await request.post<any, any>('/upload', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
-    timeout: 60000, // 上传文件需要更长的超时时间
+    timeout: 60000,
   });
 
-  return response.data.data;
+  return response.data;
 }
 
 /**
@@ -45,14 +45,14 @@ export async function uploadRecipeCover(file: File, recipeId?: string): Promise<
     formData.append('recipeId', recipeId);
   }
 
-  const response = await request.post<any, { data: UploadResponse }>('/upload/recipe-cover', formData, {
+  const response = await request.post<any, any>('/upload/recipe-cover', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
     timeout: 60000,
   });
 
-  return response.data.data;
+  return response.data;
 }
 
 /**
@@ -65,14 +65,14 @@ export async function uploadRecipeStep(file: File, recipeId: string, stepIndex: 
   formData.append('recipeId', recipeId);
   formData.append('stepIndex', String(stepIndex));
 
-  const response = await request.post<any, { data: UploadResponse }>('/upload/recipe-step', formData, {
+  const response = await request.post<any, any>('/upload/recipe-step', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
     timeout: 60000,
   });
 
-  return response.data.data;
+  return response.data;
 }
 
 /**
@@ -93,12 +93,12 @@ export async function uploadCategoryIcon(file: File, categoryId?: string): Promi
     formData.append('categoryId', categoryId);
   }
 
-  const response = await request.post<any, { data: UploadResponse }>('/upload/category-icon', formData, {
+  const response = await request.post<any, any>('/upload/category-icon', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
     timeout: 60000,
   });
 
-  return response.data.data;
+  return response.data;
 }

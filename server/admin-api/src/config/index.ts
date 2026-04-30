@@ -1,10 +1,10 @@
-module.exports = {
+export default {
   app: {
     name: process.env.APP_NAME || 'AIRecipe Admin API',
     env: process.env.NODE_ENV || 'development',
     port: parseInt(process.env.PORT || '3000', 10),
     host: process.env.HOST || '0.0.0.0',
-    apiPrefix: '/api/v1',
+    apiPrefix: '/v1',
   },
 
   database: {
@@ -33,7 +33,7 @@ module.exports = {
   },
 
   upload: {
-    maxSize: parseInt(process.env.UPLOAD_MAX_SIZE || '10485760', 10), // 10MB
+    maxSize: parseInt(process.env.UPLOAD_MAX_SIZE || '10485760', 10),
     allowedTypes: (process.env.UPLOAD_ALLOWED_TYPES || 'image/jpeg,image/png,image/webp').split(','),
     uploadDir: process.env.UPLOAD_DIR || './uploads',
     staticDir: '/uploads',
@@ -54,14 +54,20 @@ module.exports = {
     baseUrl: process.env.TENCENT_COS_BASE_URL || '',
   },
 
+  cloud: {
+    envId: process.env.WX_CLOUD_ENV_ID || '',
+    appId: process.env.WX_APP_ID || '',
+    appSecret: process.env.WX_APP_SECRET || '',
+  },
+
   cors: {
     origin: process.env.CORS_ORIGIN || '*',
     credentials: true,
   },
 
   rateLimit: {
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    windowMs: 15 * 60 * 1000,
+    max: 100,
   },
 
   log: {

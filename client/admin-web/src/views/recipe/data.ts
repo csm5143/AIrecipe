@@ -41,13 +41,6 @@ function mapDishType(t: string): string {
   return map[t] || t;
 }
 
-function mapMealTime(t: string): string {
-  const map: Record<string, string> = {
-    breakfast: '早餐', lunch: '午餐', dinner: '晚餐', late_night: '夜宵',
-  };
-  return map[t] || t;
-}
-
 export function normalizeRecipe(raw: RecipeRow): Recipe {
   const recipeTitle = raw.title || raw.name || '';
   return {

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
-import { ApiResponse } from '../../types/response';
+import { ApiResponse } from '../../../types/response';
 
 export interface AppError extends Error {
   statusCode?: number;

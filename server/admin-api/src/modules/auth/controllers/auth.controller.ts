@@ -25,13 +25,13 @@ export async function login(req: Request, res: Response) {
   const token = jwt.sign(
     { id: admin.id, username: admin.username, role: admin.role },
     config.jwt.secret,
-    { expiresIn: config.jwt.expiresIn }
+    { expiresIn: config.jwt.expiresIn as jwt.SignOptions['expiresIn'] }
   );
 
   const refreshToken = jwt.sign(
     { id: admin.id, type: 'refresh' },
     config.jwt.secret,
-    { expiresIn: config.jwt.refreshExpiresIn }
+    { expiresIn: config.jwt.refreshExpiresIn as jwt.SignOptions['expiresIn'] }
   );
 
   const { passwordHash: _, ...safeAdmin } = admin;
@@ -87,7 +87,7 @@ export async function refreshToken(req: Request, res: Response) {
     const newToken = jwt.sign(
       { id: admin.id, username: admin.username, role: admin.role },
       config.jwt.secret,
-      { expiresIn: config.jwt.expiresIn }
+      { expiresIn: config.jwt.expiresIn as jwt.SignOptions['expiresIn'] }
     );
 
     res.json({

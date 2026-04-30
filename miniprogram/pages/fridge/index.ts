@@ -20,7 +20,10 @@ import {
 import { loadIngredientsJson } from '../../utils/dataLoader';
 import { getFallbackIngredients } from '../../utils/fallbackIngredients';
 import { recognizeImage, type IngredientRecognitionResult } from '../../utils/ingredientRecognize';
+<<<<<<< HEAD
 import { isFormalUser, checkScanAccess, consumeScanCountIfNeeded, getDisplayRemainingCount } from '../../utils/userAuth';
+=======
+>>>>>>> 2eb2453eedc981515dc888d5be20239419512b61
 
 Page({
   data: {
@@ -69,9 +72,12 @@ Page({
 
     // 空状态
     isEmpty: true,
+<<<<<<< HEAD
 
     // 剩余拍照次数
     remainingCount: 3,
+=======
+>>>>>>> 2eb2453eedc981515dc888d5be20239419512b61
   },
 
   onLoad() {
@@ -80,7 +86,10 @@ Page({
 
   onShow() {
     this.refresh();
+<<<<<<< HEAD
     this.updateRemainingCount();
+=======
+>>>>>>> 2eb2453eedc981515dc888d5be20239419512b61
   },
 
   onReady() {
@@ -353,6 +362,7 @@ Page({
 
   // ==================== 拍照添加 ====================
 
+<<<<<<< HEAD
   updateRemainingCount() {
     const count = getDisplayRemainingCount();
     this.setData({ remainingCount: count });
@@ -370,6 +380,9 @@ Page({
       return;
     }
 
+=======
+  onTakePhoto() {
+>>>>>>> 2eb2453eedc981515dc888d5be20239419512b61
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],
@@ -393,6 +406,7 @@ Page({
   },
 
   onChooseImage() {
+<<<<<<< HEAD
     const { canUse } = checkScanAccess();
     if (!canUse) {
       wx.showModal({
@@ -404,6 +418,8 @@ Page({
       return;
     }
 
+=======
+>>>>>>> 2eb2453eedc981515dc888d5be20239419512b61
     wx.chooseMedia({
       count: 9,
       mediaType: ['image'],

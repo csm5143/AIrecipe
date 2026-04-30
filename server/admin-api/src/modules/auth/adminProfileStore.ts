@@ -64,7 +64,7 @@ class AdminProfileStore {
     this.admin = loadData();
   }
 
-  get(): AdminProfile {
+  get(): Omit<AdminProfile, 'passwordHash'> {
     const { passwordHash: _, ...safe } = this.admin;
     return safe;
   }

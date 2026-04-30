@@ -41,7 +41,7 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-export const uploadMiddleware = upload.single('file');
+export const uploadMiddleware: any = upload.single('file');
 
 export async function uploadFile(req: Request, res: Response) {
   if (!req.file) {

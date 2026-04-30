@@ -1,0 +1,163 @@
+<!-- 偏好设置页面 -->
+<view class="page">
+  <view class="header">
+    <view class="header-title">偏好设置</view>
+    <view class="header-desc">设置您的饮食偏好，帮助我们推荐更合适的菜谱</view>
+  </view>
+
+  <view class="content">
+    <!-- 饮食忌口 -->
+    <view class="section {{expandedSections.indexOf('restrictions') !== -1 ? 'expanded' : ''}}">
+      <view class="section-header" bindtap="toggleSection" data-section="restrictions">
+        <view class="section-left">
+          <view class="section-icon">🚫</view>
+          <view class="section-info">
+            <text class="section-title">饮食忌口</text>
+            <text class="section-count" wx:if="{{stats.restrictions > 0}}">{{stats.restrictions}} 项</text>
+          </view>
+        </view>
+        <view class="section-arrow">›</view>
+      </view>
+      <view class="section-body" wx:if="{{expandedSections.indexOf('restrictions') !== -1}}">
+        <view class="tag-grid">
+          <view
+            wx:for="{{dietaryRestrictions}}"
+            wx:key="value"
+            class="tag-item {{preferences.restrictions.indexOf(item.value) !== -1 ? 'selected' : ''}}"
+            bindtap="onToggleRestriction"
+            data-value="{{item.value}}"
+          >
+            <text class="tag-icon">{{item.icon}}</text>
+            <text class="tag-label">{{item.label}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 饮食模式 -->
+    <view class="section {{expandedSections.indexOf('dietModes') !== -1 ? 'expanded' : ''}}">
+      <view class="section-header" bindtap="toggleSection" data-section="dietModes">
+        <view class="section-left">
+          <view class="section-icon">🍽️</view>
+          <view class="section-info">
+            <text class="section-title">饮食模式</text>
+            <text class="section-count" wx:if="{{stats.dietModes > 0}}">{{stats.dietModes}} 项</text>
+          </view>
+        </view>
+        <view class="section-arrow">›</view>
+      </view>
+      <view class="section-body" wx:if="{{expandedSections.indexOf('dietModes') !== -1}}">
+        <view class="mode-grid">
+          <view
+            wx:for="{{dietModes}}"
+            wx:key="value"
+            class="mode-card {{preferences.dietModes.indexOf(item.value) !== -1 ? 'selected' : ''}}"
+            bindtap="onToggleDietMode"
+            data-value="{{item.value}}"
+          >
+            <text class="mode-icon">{{item.icon}}</text>
+            <text class="mode-label">{{item.label}}</text>
+            <text class="mode-desc">{{item.desc}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 口味偏好 -->
+    <view class="section {{expandedSections.indexOf('tastePreferences') !== -1 ? 'expanded' : ''}}">
+      <view class="section-header" bindtap="toggleSection" data-section="tastePreferences">
+        <view class="section-left">
+          <view class="section-icon">👅</view>
+          <view class="section-info">
+            <text class="section-title">口味偏好</text>
+            <text class="section-count" wx:if="{{stats.tastePreferences > 0}}">{{stats.tastePreferences}} 项</text>
+          </view>
+        </view>
+        <view class="section-arrow">›</view>
+      </view>
+      <view class="section-body" wx:if="{{expandedSections.indexOf('tastePreferences') !== -1}}">
+        <view class="tag-grid">
+          <view
+            wx:for="{{tastePreferences}}"
+            wx:key="value"
+            class="tag-item {{preferences.tastePreferences.indexOf(item.value) !== -1 ? 'selected' : ''}}"
+            bindtap="onToggleTaste"
+            data-value="{{item.value}}"
+          >
+            <text class="tag-icon">{{item.icon}}</text>
+            <text class="tag-label">{{item.label}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 食材偏好 -->
+    <view class="section {{expandedSections.indexOf('ingredientPreferences') !== -1 ? 'expanded' : ''}}">
+      <view class="section-header" bindtap="toggleSection" data-section="ingredientPreferences">
+        <view class="section-left">
+          <view class="section-icon">🥬</view>
+          <view class="section-info">
+            <text class="section-title">食材偏好</text>
+            <text class="section-count" wx:if="{{stats.ingredientPreferences > 0}}">{{stats.ingredientPreferences}} 项</text>
+          </view>
+        </view>
+        <view class="section-arrow">›</view>
+      </view>
+      <view class="section-body" wx:if="{{expandedSections.indexOf('ingredientPreferences') !== -1}}">
+        <view class="tag-grid">
+          <view
+            wx:for="{{ingredientPreferences}}"
+            wx:key="value"
+            class="tag-item {{preferences.ingredientPreferences.indexOf(item.value) !== -1 ? 'selected' : ''}}"
+            bindtap="onToggleIngredient"
+            data-value="{{item.value}}"
+          >
+            <text class="tag-icon">{{item.icon}}</text>
+            <text class="tag-label">{{item.label}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 菜系偏好 -->
+    <view class="section {{expandedSections.indexOf('cuisinePreferences') !== -1 ? 'expanded' : ''}}">
+      <view class="section-header" bindtap="toggleSection" data-section="cuisinePreferences">
+        <view class="section-left">
+          <view class="section-icon">🏮</view>
+          <view class="section-info">
+            <text class="section-title">菜系偏好</text>
+            <text class="section-count" wx:if="{{stats.cuisinePreferences > 0}}">{{stats.cuisinePreferences}} 项</text>
+          </view>
+        </view>
+        <view class="section-arrow">›</view>
+      </view>
+      <view class="section-body" wx:if="{{expandedSections.indexOf('cuisinePreferences') !== -1}}">
+        <view class="tag-grid">
+          <view
+            wx:for="{{cuisinePreferences}}"
+            wx:key="value"
+            class="tag-item {{preferences.cuisinePreferences.indexOf(item.value) !== -1 ? 'selected' : ''}}"
+            bindtap="onToggleCuisine"
+            data-value="{{item.value}}"
+          >
+            <text class="tag-icon">{{item.icon}}</text>
+            <text class="tag-label">{{item.label}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 重置按钮 -->
+    <view class="reset-section">
+      <view class="reset-btn" bindtap="onReset">
+        <text class="reset-icon">↺</text>
+        <text class="reset-text">重置所有设置</text>
+      </view>
+    </view>
+
+    <!-- 底部说明 -->
+    <view class="footer-tip">
+      <text class="footer-tip-text">偏好设置将帮助我们为您推荐更合适的菜谱</text>
+    </view>
+  </view>
+</view>

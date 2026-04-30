@@ -9,10 +9,11 @@ export const useUserStore = defineStore('user', () => {
 
   async function login(credentials: LoginDto) {
     const res = await authApi.login(credentials);
-    token.value = res.data.data.token;
-    profile.value = res.data.data.admin;
-    localStorage.setItem('token', res.data.data.token);
-    localStorage.setItem('refreshToken', res.data.data.refreshToken);
+    const data = res.data.data as any;
+    token.value = data.token;
+    profile.value = data.admin;
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('refreshToken', data.refreshToken);
   }
 
   async function logout() {
@@ -29,15 +30,16 @@ export const useUserStore = defineStore('user', () => {
   async function fetchProfile() {
     if (!token.value) return;
     const res = await authApi.getProfile();
-    profile.value = res.data.data;
+    profile.value = res.data.data as AdminUser;
   }
 
   async function updateProfile(data: { nickname?: string; phone?: string }) {
     const res = await authApi.updateProfile(data);
     if (profile.value) {
-      profile.value.nickname = res.data.data.nickname;
-      if ('phone' in res.data.data) {
-        (profile.value as any).phone = res.data.data.phone;
+      const updateData = res.data.data as any;
+      profile.value.nickname = updateData.nickname;
+      if ('phone' in updateData) {
+        (profile.value as any).phone = updateData.phone;
       }
     }
   }
@@ -45,7 +47,7 @@ export const useUserStore = defineStore('user', () => {
   async function updateAvatar(avatar: string) {
     const res = await authApi.updateAvatar({ avatar });
     if (profile.value) {
-      profile.value.avatar = res.data.data.avatar;
+      profile.value.avatar = (res.data.data as any).avatar;
     }
   }
 
