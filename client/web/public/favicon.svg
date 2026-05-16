@@ -1,4 +1,50 @@
-<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="16" cy="16" r="15" fill="#f54e00"/>
-  <path d="M16 6C10.48 6 6 10.48 6 16s4.48 10 10 10 10-4.48 10-10S21.52 6 16 6zm0 3c3.87 0 7 3.13 7 7s-3.13 7-7 7-7-3.13-7-7 3.13-7 7-7zm-2 3.5v5l4 2.5-.5 1-4.5-3v-5.5h1z" fill="white"/>
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bowlMini" x1="44" y1="47" x2="86" y2="84" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFEFD"/>
+      <stop offset="1" stop-color="#FFF3E8"/>
+    </linearGradient>
+    <linearGradient id="leafMini" x1="39" y1="35" x2="57" y2="53" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7BE5C4"/>
+      <stop offset="1" stop-color="#4FD7B1"/>
+    </linearGradient>
+    <linearGradient id="eggMini" x1="55" y1="29" x2="78" y2="52" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFBB79"/>
+      <stop offset="1" stop-color="#FF9460"/>
+    </linearGradient>
+    <linearGradient id="carrotMini" x1="77" y1="31" x2="98" y2="52" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFA067"/>
+      <stop offset="1" stop-color="#FF754D"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M16 41C16 31.0589 24.0589 23 34 23H49" stroke="#69DFC0" stroke-width="6" stroke-linecap="round"/>
+  <path d="M112 41C112 31.0589 103.941 23 94 23H79" stroke="#69DFC0" stroke-width="6" stroke-linecap="round"/>
+  <path d="M16 86C16 95.9411 24.0589 104 34 104H43" stroke="#8BE7CF" stroke-width="6" stroke-linecap="round"/>
+  <path d="M112 86C112 95.9411 103.941 104 94 104H85" stroke="#8BE7CF" stroke-width="6" stroke-linecap="round"/>
+  <path d="M54 13L60.5 24" stroke="#69DFC0" stroke-width="5.5" stroke-linecap="round"/>
+  <path d="M74 13L67.5 24" stroke="#69DFC0" stroke-width="5.5" stroke-linecap="round"/>
+  <path d="M64 9V22" stroke="#69DFC0" stroke-width="5.5" stroke-linecap="round"/>
+
+  <path d="M39 63C39 40.9086 56.9086 23 79 23C101.091 23 119 40.9086 119 63V66H39V63Z" fill="#F7FBFB"/>
+  <path d="M40 65H88C85.8607 83.4129 76.1347 96 64 96C51.8653 96 42.1393 83.4129 40 65Z" fill="url(#bowlMini)" stroke="#142019" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M34 64H94" stroke="#142019" stroke-width="6" stroke-linecap="round"/>
+
+  <path d="M40 45C43.9674 39.5136 50.5829 36 57.5304 36C62.6643 36 67.3772 37.9224 70.9446 41.1123C68.8661 44.4387 67.5912 48.288 67.2349 52.4224H40V45Z" fill="url(#leafMini)" stroke="#142019" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M50 41L56 50" stroke="white" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M55 45L45 54" stroke="white" stroke-width="3.2" stroke-linecap="round"/>
+
+  <path d="M58 52C58 37.6406 69.6406 26 84 26C98.3594 26 110 37.6406 110 52V54H58V52Z" fill="url(#eggMini)" stroke="#142019" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M69 36C72.9733 32.4533 79.1813 31.3387 84 33.36" stroke="white" stroke-width="3.2" stroke-linecap="round" opacity="0.9"/>
+
+  <path d="M86 53C86 41.402 95.402 32 107 32H111L119 40V54H86V53Z" fill="url(#carrotMini)" stroke="#142019" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M111 32L118 25" stroke="#142019" stroke-width="4.4" stroke-linecap="round"/>
+  <path d="M116 25.5L123 29" stroke="#142019" stroke-width="4.4" stroke-linecap="round"/>
+  <path d="M101 41L108 50" stroke="#CC633E" stroke-width="4" stroke-linecap="round"/>
+
+  <circle cx="48" cy="73" r="5.6" fill="#142019"/>
+  <circle cx="80" cy="73" r="5.6" fill="#142019"/>
+  <path d="M56 86C60.1194 90.4112 67.8806 90.4112 72 86" stroke="#142019" stroke-width="5" stroke-linecap="round"/>
+  <ellipse cx="35" cy="80" rx="7.5" ry="4.8" fill="#FFB4B1"/>
+  <ellipse cx="93" cy="80" rx="7.5" ry="4.8" fill="#FFB4B1"/>
 </svg>

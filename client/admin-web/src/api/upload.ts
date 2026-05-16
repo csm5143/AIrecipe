@@ -102,3 +102,95 @@ export async function uploadCategoryIcon(file: File, categoryId?: string): Promi
 
   return response.data;
 }
+
+/**
+ * 上传管理员头像
+ */
+export async function uploadAdminAvatar(file: File, adminId?: string): Promise<UploadResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (adminId) {
+    formData.append('adminId', adminId);
+  }
+
+  const response = await request.post<any, any>('/upload/admin-avatar', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    timeout: 60000,
+  });
+
+  return response.data;
+}
+
+/**
+ * 上传用户头像
+ */
+export async function uploadAvatar(file: File, userId?: string): Promise<UploadResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (userId) {
+    formData.append('userId', userId);
+  }
+
+  const response = await request.post<any, any>('/upload/avatar', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    timeout: 60000,
+  });
+
+  return response.data;
+}
+
+/**
+ * 上传食材图片
+ */
+export async function uploadIngredient(file: File): Promise<UploadResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await request.post<any, any>('/upload/ingredient', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    timeout: 60000,
+  });
+
+  return response.data;
+}
+
+/**
+ * 上传反馈附图
+ */
+export async function uploadFeedback(file: File): Promise<UploadResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await request.post<any, any>('/upload/feedback', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    timeout: 60000,
+  });
+
+  return response.data;
+}
+
+/**
+ * 上传系统设置图片（Logo、Favicon 等）
+ */
+export async function uploadSettings(file: File, type: string): Promise<UploadResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('type', type);
+
+  const response = await request.post<any, any>('/upload/settings', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    timeout: 60000,
+  });
+
+  return response.data;
+}

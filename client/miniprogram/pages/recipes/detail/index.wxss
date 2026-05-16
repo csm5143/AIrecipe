@@ -1,0 +1,287 @@
+.page {
+  min-height: 100vh;
+  background-color: #fbf4e6;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.loading-wrap,
+.error-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 200rpx 0;
+  gap: 24rpx;
+}
+
+.loading-ring {
+  width: 64rpx;
+  height: 64rpx;
+  border: 4rpx solid #e2a650;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text,
+.error-text {
+  font-size: 28rpx;
+  color: #8e8e93;
+}
+
+.retry-btn {
+  background: #e2a650;
+  color: #fff;
+  font-size: 28rpx;
+  padding: 20rpx 60rpx;
+  border-radius: 999rpx;
+}
+
+.detail-scroll {
+  flex: 1;
+  min-height: 0;
+}
+
+.content {
+  padding-bottom: 120rpx;
+}
+
+/* 封面图 */
+.cover-wrap {
+  position: relative;
+  width: 100%;
+  height: 500rpx;
+}
+
+.cover-img {
+  width: 100%;
+  height: 100%;
+}
+
+.cover-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 40rpx 32rpx 32rpx;
+  background: linear-gradient(transparent, rgba(0,0,0,0.5));
+}
+
+.recipe-title-overlay {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 2rpx 8rpx rgba(0,0,0,0.3);
+}
+
+/* 基本信息卡片 */
+.info-card {
+  background: #fffdf8;
+  margin: -40rpx 24rpx 24rpx;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 4rpx 16rpx rgba(125, 90, 50, 0.08);
+  position: relative;
+  z-index: 1;
+}
+
+.info-row {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+  flex-wrap: wrap;
+}
+
+.info-tag {
+  background: #f6e8d6;
+  color: #92400e;
+  font-size: 24rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 999rpx;
+}
+
+.difficulty-easy {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.difficulty-hard {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.recipe-desc {
+  font-size: 28rpx;
+  color: #4b5563;
+  line-height: 1.7;
+}
+
+/* 标签 */
+.tags-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  padding: 0 24rpx 24rpx;
+}
+
+.tag-chip {
+  background: #f6e8d6;
+  color: #92400e;
+  font-size: 24rpx;
+  padding: 8rpx 24rpx;
+  border-radius: 999rpx;
+}
+
+/* 通用 section card */
+.section-card {
+  background: #fffdf8;
+  margin: 0 24rpx 24rpx;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 4rpx 16rpx rgba(125, 90, 50, 0.07);
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 24rpx;
+}
+
+/* 食材列表 */
+.ingredient-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.ingredient-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f0e6d8;
+}
+
+.ingredient-row:last-child {
+  border-bottom: none;
+}
+
+.ingredient-name {
+  font-size: 28rpx;
+  color: #374151;
+  flex: 1;
+}
+
+.ingredient-amount {
+  font-size: 26rpx;
+  color: #8e8e93;
+  margin-left: 24rpx;
+}
+
+/* 步骤列表 */
+.step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.step-item {
+  display: flex;
+  gap: 24rpx;
+  align-items: flex-start;
+}
+
+.step-num {
+  width: 48rpx;
+  height: 48rpx;
+  background: #e2a650;
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 700;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.step-text {
+  font-size: 28rpx;
+  color: #374151;
+  line-height: 1.7;
+  flex: 1;
+  padding-top: 10rpx;
+}
+
+/* 小贴士 */
+.tips-card {
+  background: #fffbeb;
+  border: 1rpx solid #fde68a;
+}
+
+.tips-text {
+  font-size: 28rpx;
+  color: #92400e;
+  line-height: 1.7;
+}
+
+/* 底部操作栏 */
+.action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fffdf8;
+  border-top: 1rpx solid #f0e6d8;
+  padding: 20rpx 32rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  display: flex;
+  gap: 20rpx;
+  z-index: 100;
+}
+
+.action-btn-fav,
+.action-btn-basket {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  padding: 24rpx;
+  border-radius: 999rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+
+.action-btn-fav {
+  background: #f6e8d6;
+  color: #92400e;
+}
+
+.action-btn-fav.favorited {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.action-btn-basket {
+  background: #e2a650;
+  color: #ffffff;
+}
+
+.action-icon {
+  width: 36rpx;
+  height: 36rpx;
+}
+
+.scroll-bottom-spacer {
+  height: 40rpx;
+}

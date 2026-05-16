@@ -55,8 +55,8 @@
 
             <el-row :gutter="20">
               <el-col :span="8">
-                <el-form-item label="菜品类型" prop="dishType">
-                  <el-select v-model="form.dishType" placeholder="选择菜品类型" style="width: 100%">
+                <el-form-item label="菜品类型">
+                  <el-select v-model="form.dishTypes" multiple placeholder="选择菜品类型" style="width: 100%">
                     <el-option v-for="opt in DISH_TYPE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
                   </el-select>
                 </el-form-item>
@@ -245,11 +245,11 @@
             </div>
             <div class="status-item">
               <span class="status-label">创建时间</span>
-              <span class="status-value">{{ form.createdAt }}</span>
+              <span class="status-value">{{ formatBeijingTime(form.createdAt) }}</span>
             </div>
             <div class="status-item">
               <span class="status-label">更新时间</span>
-              <span class="status-value">{{ form.updatedAt }}</span>
+              <span class="status-value">{{ formatBeijingTime(form.updatedAt) }}</span>
             </div>
             <div class="status-item">
               <span class="status-label">浏览量</span>
@@ -258,35 +258,6 @@
             <div class="status-item">
               <span class="status-label">收藏量</span>
               <span class="status-value">{{ form.collectCount }}</span>
-            </div>
-          </div>
-
-          <el-divider />
-
-          <div class="tags-section">
-            <span class="tags-label">标签</span>
-            <div class="tags-list">
-              <el-tag
-                v-for="tag in form.tags"
-                :key="tag"
-                closable
-                @close="removeTag(tag)"
-              >
-                {{ tag }}
-              </el-tag>
-              <el-input
-                v-if="showTagInput"
-                ref="tagInputRef"
-                v-model="newTag"
-                size="small"
-                class="tag-input"
-                @keyup.enter="addTag"
-                @blur="addTag"
-              />
-              <el-button v-else size="small" text @click="showTagInput = true">
-                <el-icon><Plus /></el-icon>
-                添加
-              </el-button>
             </div>
           </div>
         </div>
@@ -328,23 +299,20 @@ const router = useRouter();
 const route = useRoute();
 const formRef = ref();
 const coverPreview = ref('');
-const showTagInput = ref(false);
-const newTag = ref('');
-const tagInputRef = ref();
 
 const form = reactive({
   id: 0,
   title: '',
   description: '',
-  dishType: '',
   difficulty: 'EASY',
   cookingTime: 30,
+  servings: 2,
   coverImage: '',
   ingredients: [{ name: '', amount: '' }] as { name: string; amount: string }[],
   steps: [{ content: '', image: '' }] as { content: string; image: string }[],
-  tags: [] as string[],
   tips: '',
   status: 'DRAFT',
+  dishTypes: [] as string[],
   mealTimes: [] as string[],
   fitnessMeal: false,
   fitnessCategory: '',
@@ -367,7 +335,6 @@ const form = reactive({
 
 const rules = {
   title: [{ required: true, message: '请输入菜谱标题', trigger: 'blur' }],
-  dishType: [{ required: true, message: '请选择菜品类型', trigger: 'change' }],
 };
 
 function getStatusType(status: string) {
@@ -408,25 +375,75 @@ function handleStepImageChange(file: any, index: number) {
   form.steps[index].image = URL.createObjectURL(file.raw);
 }
 
-async function addTag() {
-  const tag = newTag.value.trim();
-  if (tag && !form.tags.includes(tag)) {
-    form.tags.push(tag);
-  }
-  newTag.value = '';
-  showTagInput.value = false;
-}
-
-function removeTag(tag: string) {
-  form.tags.splice(form.tags.indexOf(tag), 1);
+function formatBeijingTime(isoString: string): string {
+  if (!isoString) return '-';
+  const date = new Date(isoString);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
 async function handleSave() {
   const valid = await formRef.value?.validate().catch(() => false);
   if (!valid) return;
 
-  form.updatedAt = new Date().toISOString().split('T')[0];
-  ElMessage.success('保存成功');
+  const payload = {
+    title: form.title,
+    description: form.description,
+    coverImage: form.coverImage,
+    difficulty: form.difficulty,
+    cookingTime: form.cookingTime,
+    status: form.status,
+    tips: form.tips,
+    servings: form.servings || 2,
+    cuisine: '',
+    category: form.dishTypes[0] || '',
+    dishType: form.dishTypes[0] || '',
+    dishTypes: form.dishTypes,
+    mealTimes: form.mealTimes,
+    fitnessMeal: form.fitnessMeal,
+    fitnessCategory: form.fitnessCategory,
+    goal: form.goal,
+    ageBand: form.ageBand,
+    childrenMeal: form.childrenMeal,
+    ingredients: form.ingredients.filter(i => i.name.trim()).map(i => ({
+      name: i.name.trim(),
+      amount: i.amount.trim(),
+      unit: '',
+      isOptional: false,
+    })),
+    steps: form.steps.filter(s => s.content.trim()).map((s, i) => ({
+      order: i + 1,
+      content: s.content.trim(),
+      image: s.image || '',
+      duration: 0,
+    })),
+    nutrition: {
+      calories: form.nutrition.calories || 0,
+      protein: form.nutrition.protein || 0,
+      fat: form.nutrition.fat || 0,
+      carbs: form.nutrition.carbs || 0,
+      fiber: 0,
+      sodium: 0,
+    },
+  };
+
+  try {
+    if (form.id) {
+      await recipeApi.update(form.id, payload);
+    } else {
+      await recipeApi.create(payload);
+    }
+    form.updatedAt = new Date().toISOString();
+    ElMessage.success('保存成功');
+  } catch (error) {
+    console.error('保存失败:', error);
+    ElMessage.error('保存失败，请重试');
+  }
 }
 
 async function handlePublish(command: string) {
@@ -441,45 +458,65 @@ onMounted(async () => {
 
   try {
     const res = await recipeApi.detail(id);
-    const recipe = res.data.data;
+    const recipe = res.data;
+
+    if (!recipe) {
+      ElMessage.error('菜谱不存在');
+      router.push('/recipes');
+      return;
+    }
 
     form.id = recipe.id;
     form.title = recipe.title || '';
     form.description = recipe.description || '';
     form.coverImage = recipe.coverImage || '';
     form.cookingTime = recipe.cookingTime || 30;
-    form.status = recipe.status || 'PUBLISHED';
-    form.mealTimes = recipe.mealTimes || [];
-    form.fitnessMeal = recipe.fitnessMeal || false;
-    form.fitnessCategory = recipe.fitnessCategory || '';
-    form.goal = recipe.goal || '';
-    form.ageBand = recipe.ageBand || '';
-    form.childrenMeal = recipe.childrenMeal || false;
+    form.status = recipe.status || 'DRAFT';
+    form.difficulty = recipe.difficulty || 'EASY';
+    form.tips = recipe.tips || '';
+    form.createdAt = recipe.createdAt || new Date().toISOString().split('T')[0];
+    form.updatedAt = new Date().toISOString().split('T')[0];
     form.viewCount = recipe.viewCount || 0;
     form.collectCount = recipe.collectCount || 0;
-    form.createdAt = recipe.createdAt || new Date().toISOString().split('T')[0];
-  form.updatedAt = new Date().toISOString().split('T')[0];
-  form.tags = (recipe.dishTypes || []).map((t: string) => {
-    const opt = DISH_TYPE_OPTIONS.find(o => o.value === t);
-    return opt?.label || t;
-  });
 
-  form.ingredients = Object.entries(recipe.usage || {}).map(([name, amount]) => ({
-    name,
-    amount: String(amount),
-  }));
-  if (form.ingredients.length === 0) {
-    form.ingredients = (recipe.ingredients || []).map((name: string) => ({ name, amount: '' }));
+    // 处理菜品类型（多选）
+    form.dishTypes = recipe.dishTypes || [];
+
+    // 处理用餐时段（多选）
+    form.mealTimes = recipe.mealTimes || [];
+
+    // 处理营养成分
+    form.nutrition = {
+      calories: recipe.nutrition?.calories || 0,
+      protein: recipe.nutrition?.protein || 0,
+      fat: recipe.nutrition?.fat || 0,
+      carbs: recipe.nutrition?.carbs || 0,
+      fiber: recipe.nutrition?.fiber || 0,
+      sodium: recipe.nutrition?.sodium || 0,
+    };
+
+    // 处理食材
+    form.ingredients = (recipe.ingredients || []).map((ing: any) => ({
+      name: ing.name,
+      amount: ing.amount,
+    }));
+    if (form.ingredients.length === 0) {
+      form.ingredients = [{ name: '', amount: '' }];
+    }
+
+    // 处理步骤
+    form.steps = (recipe.steps || []).map((step: any) => ({
+      content: step.content,
+      image: step.image || '',
+    }));
+    if (form.steps.length === 0) {
+      form.steps = [{ content: '', image: '' }];
+    }
+  } catch (error) {
+    console.error('获取菜谱详情失败:', error);
+    ElMessage.error('获取菜谱详情失败');
+    router.push('/recipes');
   }
-
-  form.steps = (recipe.steps || []).map((content: string) => ({ content, image: '' }));
-
-  const diffMap: Record<string, string> = { easy: 'EASY', normal: 'MEDIUM', medium: 'MEDIUM', hard: 'HARD' };
-  form.difficulty = diffMap[recipe.difficulty] || 'EASY';
-
-  const typeMap: Record<string, string> = {};
-  DISH_TYPE_OPTIONS.forEach(opt => { typeMap[opt.value] = opt.value; });
-  form.dishType = recipe.dishTypes?.[0] || '';
 });
 </script>
 

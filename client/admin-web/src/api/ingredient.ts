@@ -1,5 +1,4 @@
 import request from './request';
-import type { ApiResponse, PaginatedResponse } from '@airecipe/shared-types';
 
 export interface IngredientRow {
   id: number;
@@ -7,12 +6,13 @@ export interface IngredientRow {
   alias?: string;
   category: string;
   subCategory?: string;
-  calories: number;
-  protein: number;
-  fat: number;
-  carbs: number;
-  fiber: number;
-  sodium: number;
+  calories?: number;
+  protein?: number;
+  fat?: number;
+  carbs?: number;
+  fiber?: number;
+  sodium?: number;
+  isCommon?: boolean;
   status: string;
   remark?: string;
 }
@@ -29,6 +29,7 @@ export interface IngredientFormData {
   carbs?: number;
   fiber?: number;
   sodium?: number;
+  isCommon?: boolean;
   status?: string;
   remark?: string;
 }
@@ -41,29 +42,33 @@ export interface IngredientQuery {
   status?: string;
 }
 
-export interface PaginatedIngredientData {
-  page: number;
-  pageSize: number;
-  total: number;
+export interface IngredientListResponse {
   list: IngredientRow[];
+  total: number;
 }
 
 export const ingredientApi = {
   list: (params: IngredientQuery) =>
-    request.get<PaginatedResponse<PaginatedIngredientData>>('/ingredients', { params }),
+    request.get<IngredientListResponse>('/ingredients', { params }),
 
   create: (data: IngredientFormData) =>
-    request.post<ApiResponse<{ id: number }>>('/ingredients', data),
+    request.post<{ id: number }>('/ingredients', data),
 
   update: (id: number, data: IngredientFormData) =>
-    request.put<ApiResponse<{ id: number }>>(`/ingredients/${id}`, data),
+    request.put<{ id: number }>(`/ingredients/${id}`, data),
 
   delete: (id: number) =>
-    request.delete<ApiResponse<null>>(`/ingredients/${id}`),
+    request.delete(`/ingredients/${id}`),
 
-  batchImport: (data: IngredientFormData[]) =>
-    request.post<ApiResponse<{ imported: number; skipped: number }>>('/ingredients/batch-import', data),
+  batchImport: (items: any[], overwrite?: boolean) =>
+    request.post<{ imported: number; updated: number; skipped: number }>('/ingredients/batch-import', { items, overwrite }),
 
-  export: () =>
-    request.get<PaginatedResponse<IngredientRow[]>>('/ingredients', { params: { pageSize: 99999 } }),
+  previewImport: (items: any[]) =>
+    request.post<{ total: number; duplicateCount: number; duplicates: { name: string; existingId: number }[] }>('/ingredients/batch-import/preview', { items }),
+
+  export: (params: IngredientQuery, format: 'csv' | 'xlsx') =>
+    request.get('/ingredients/export', { params: { ...params, format }, responseType: 'blob' }),
+
+  batchDelete: (ids: number[]) =>
+    request.post<{ deleted: number }>('/ingredients/batch-delete', { ids }),
 };

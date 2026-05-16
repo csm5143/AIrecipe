@@ -7,38 +7,53 @@ async function main() {
   console.log('🌱 开始种子数据初始化...');
 
   // ============================================
-  // 1. 创建管理员账号
+  // 1. 创建管理员账号（处理软删除状态）
   // ============================================
   console.log('📝 创建管理员账号...');
 
   const hashedPassword = await bcrypt.hash('admin123', 10);
 
-  const admin = await prisma.admin.upsert({
-    where: { username: 'admin' },
-    update: {},
-    create: {
-      username: 'admin',
-      password: hashedPassword,
-      nickname: '超级管理员',
-      role: AdminRole.SUPER_ADMIN,
-      status: AccountStatus.ACTIVE,
-    },
-  });
-  console.log(`✅ 管理员创建成功: ${admin.username}`);
+  const existingAdmin = await prisma.admin.findFirst({ where: { username: 'admin', isDeleted: true } });
+  if (existingAdmin) {
+    await prisma.admin.update({ where: { id: existingAdmin.id }, data: { isDeleted: false } });
+    console.log(`✅ 管理员已恢复: admin`);
+  } else {
+    await prisma.admin.upsert({
+      where: { username: 'admin' },
+      update: {},
+      create: {
+        username: 'admin',
+        password: hashedPassword,
+        nickname: '超级管理员',
+        role: AdminRole.SUPER_ADMIN,
+        status: AccountStatus.ACTIVE,
+      },
+    });
+    console.log(`✅ 管理员创建成功: admin`);
+  }
 
-  // 创建测试编辑账号
-  const editor = await prisma.admin.upsert({
-    where: { username: 'editor' },
-    update: {},
-    create: {
-      username: 'editor',
-      password: await bcrypt.hash('editor123', 10),
-      nickname: '内容编辑',
-      role: AdminRole.EDITOR,
-      status: AccountStatus.ACTIVE,
-    },
-  });
-  console.log(`✅ 编辑账号创建成功: ${editor.username}`);
+  // 创建测试编辑账号（处理软删除状态）
+  const existingEditor = await prisma.admin.findFirst({ where: { username: 'editor', isDeleted: true } });
+  if (existingEditor) {
+    await prisma.admin.update({
+      where: { id: existingEditor.id },
+      data: { isDeleted: false, password: await bcrypt.hash('editor123', 10) },
+    });
+    console.log(`✅ 编辑账号已恢复: editor`);
+  } else {
+    const editor = await prisma.admin.upsert({
+      where: { username: 'editor' },
+      update: {},
+      create: {
+        username: 'editor',
+        password: await bcrypt.hash('editor123', 10),
+        nickname: '内容编辑',
+        role: AdminRole.EDITOR,
+        status: AccountStatus.ACTIVE,
+      },
+    });
+    console.log(`✅ 编辑账号创建成功: ${editor.username}`);
+  }
 
   // ============================================
   // 2. 创建示例 Banner
@@ -78,11 +93,12 @@ async function main() {
     },
   ];
 
-  for (const banner of banners) {
+  for (let i = 0; i < banners.length; i++) {
+    const banner = banners[i];
     await prisma.banner.upsert({
-      where: { id: banners.indexOf(banner) + 1 },
+      where: { id: i + 1 },
       update: banner,
-      create: banner,
+      create: { ...banner },
     });
   }
   console.log(`✅ 创建了 ${banners.length} 个 Banner`);
@@ -147,6 +163,105 @@ async function main() {
     await prisma.feedback.create({ data: feedback });
   }
   console.log(`✅ 创建了 ${feedbacks.length} 条反馈记录`);
+
+  // ============================================
+  // 5. 导入菜谱数据（从旧 JSON 转换格式）
+  // ============================================
+  console.log('📝 导入菜谱数据...');
+
+  const recipesExist = await prisma.recipe.count();
+  if (recipesExist === 0) {
+    try {
+      const recipesData: any[] = require('../../../../../client/miniprogram/data/recipes.json');
+
+      const diffMap: Record<string, string> = {
+        easy: 'EASY', normal: 'MEDIUM', hard: 'HARD',
+      };
+
+      const recipes = recipesData.map((r: any) => {
+        const tags: string[] = [...(r.dishTypes || [])];
+        if (r.fitnessMeal) tags.push('diet');
+        if (r.childrenMeal) tags.push('children');
+        if (r.goal) tags.push(r.goal);
+
+        const steps: any[] = (r.steps || []).map((s: string, i: number) => ({
+          order: i + 1, content: s, image: '',
+        }));
+
+        const ingredients: any[] = Object.entries(r.usage || {}).map(([name, amount]) => ({
+          name, amount: String(amount), unit: '', isOptional: false,
+        }));
+
+        return {
+          recipeKey: `r_${r.id}`,
+          source: 'OFFICIAL' as const,
+          title: r.name,
+          coverImage: r.coverImage || '',
+          description: r.description || '',
+          difficulty: (diffMap[r.difficulty] || 'MEDIUM') as any,
+          cookingTime: r.timeCost || null,
+          servings: null,
+          ingredients,
+          steps,
+          tips: '',
+          cuisine: null,
+          category: null,
+          mealTimes: r.mealTimes || [],
+          dishTypes: r.dishTypes || [],
+          tags,
+          status: 'PUBLISHED' as any,
+          isFeatured: parseInt(r.id) <= 3,
+          isHot: parseInt(r.id) <= 5,
+          publishedAt: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      });
+
+      await prisma.recipe.createMany({ data: recipes, skipDuplicates: true });
+      console.log(`✅ 导入 ${recipes.length} 条菜谱`);
+    } catch (recErr) {
+      console.warn('⚠️ 菜谱导入失败，继续执行:', recErr);
+    }
+  }
+
+  // ============================================
+  // 6. 导入食材字典数据
+  // ============================================
+  console.log('📝 导入食材数据...');
+
+  const ingredientsExist = await prisma.ingredient.count();
+  if (ingredientsExist === 0) {
+    try {
+      const ingredientsData: any[] = require('../../../../../client/miniprogram/data/ingredients.json');
+
+      const ingredients = ingredientsData
+        .filter(i => i.name && i.name.trim())
+        .map((i: any) => ({
+          name: i.name.trim(),
+          category: i.category || null,
+          unit: null,
+          calories: null,
+          status: 'ACTIVE' as any,
+        }));
+
+      // 分批插入（每批 500 条，避免 payload 过大）
+      const BATCH_SIZE = 500;
+      let imported = 0;
+      for (let i = 0; i < ingredients.length; i += BATCH_SIZE) {
+        const batch = ingredients.slice(i, i + BATCH_SIZE);
+        try {
+          await prisma.ingredient.createMany({ data: batch, skipDuplicates: true });
+          imported += batch.length;
+        } catch (batchErr) {
+          console.warn(`⚠️ 食材批次 ${i / BATCH_SIZE + 1} 插入失败，跳过该批次`);
+        }
+      }
+      console.log(`✅ 导入 ${imported} 条食材`);
+    } catch (ingErr) {
+      console.warn('⚠️ 食材导入失败，继续执行后续步骤:', ingErr);
+    }
+  }
 
   console.log('');
   console.log('🎉 种子数据初始化完成！');

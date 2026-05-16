@@ -22,6 +22,5 @@ import Footer from './Footer.vue'
 
 .main-content {
   flex: 1;
-  padding-top: var(--header-height);
 }
 </style>

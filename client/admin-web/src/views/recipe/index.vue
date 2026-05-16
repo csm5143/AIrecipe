@@ -10,6 +10,10 @@
           <el-icon><Upload /></el-icon>
           导入
         </el-button>
+        <el-button @click="handleExport">
+          <el-icon><Download /></el-icon>
+          导出
+        </el-button>
         <el-button type="primary" @click="router.push('/recipes/create')">
           <el-icon><Plus /></el-icon>
           创建菜谱
@@ -47,6 +51,10 @@
 
           <el-select v-model="filters.status" placeholder="状态" clearable style="width: 100px" @change="fetchRecipes">
             <el-option v-for="opt in STATUS_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+
+          <el-select v-model="filters.source" placeholder="来源" clearable style="width: 110px" @change="fetchRecipes">
+            <el-option v-for="opt in SOURCE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </div>
 
@@ -105,7 +113,7 @@
                 <el-button size="small" type="primary" @click="handleCommand(row.status === 'PUBLISHED' ? 'offline' : 'publish', row)">
                   {{ row.status === 'PUBLISHED' ? '下线' : '发布' }}
                 </el-button>
-                <el-button size="small" type="danger" @click="handleCommand('delete', row)">删除</el-button>
+                <el-button size="small" type="danger" @click="handleMobileDelete(row)">删除</el-button>
               </div>
             </div>
           </div>
@@ -122,9 +130,9 @@
             :header-cell-style="{ background: 'var(--surface-300)', color: 'var(--cursor-dark)' }"
             @selection-change="handleSelectionChange"
         >
-        <el-table-column type="selection" width="50" />
-        <el-table-column prop="id" label="ID" width="70" />
-        <el-table-column label="菜谱信息" min-width="280">
+        <el-table-column type="selection" width="45" />
+        <el-table-column prop="id" label="ID" width="55" />
+        <el-table-column label="菜谱信息" min-width="200">
           <template #default="{ row }">
             <div class="recipe-info">
               <el-image :src="row.coverImage" class="recipe-cover" fit="cover">
@@ -136,35 +144,30 @@
               </el-image>
               <div class="recipe-detail">
                 <span class="recipe-title">{{ row.title }}</span>
-                <span class="recipe-meta">
-                  <span v-if="row.dishTypes?.length" class="cursor-pill info">
-                    {{ normalizeDishType(row.dishTypes[0]) }}
-                  </span>
-                  <span class="cursor-pill">
-                    {{ normalizeDifficulty(row.difficulty) }}
-                  </span>
-                  <span v-if="row.fitnessMeal" class="cursor-pill fitness">健身</span>
-                  <span v-if="row.childrenMeal" class="cursor-pill children">儿童</span>
-                </span>
               </div>
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="用餐" width="100" align="center">
+        <el-table-column label="用餐" width="160" align="center">
           <template #default="{ row }">
             <div class="meal-tags">
-              <span v-for="mt in (row.mealTimes || []).slice(0, 2)" :key="mt" class="meal-tag">
+              <span
+                v-for="mt in (row.mealTimes || []).slice(0, 3)"
+                :key="mt"
+                class="meal-tag-pill"
+              >
                 {{ normalizeMealTime(mt) }}
               </span>
+              <span v-if="!(row.mealTimes?.length)" class="meal-tag-empty">-</span>
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="timeCost" label="时长" width="80" align="center">
+        <el-table-column prop="timeCost" label="时长" width="70" align="center">
           <template #default="{ row }">
             <span class="text-mono">{{ row.timeCost }}分钟</span>
           </template>
         </el-table-column>
-        <el-table-column label="数据" width="120" align="center">
+        <el-table-column label="数据" width="100" align="center">
           <template #default="{ row }">
             <div class="data-stats">
               <span class="stat-item">
@@ -178,28 +181,43 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="标签" min-width="140">
+        <el-table-column label="菜品类型" min-width="130" align="center">
           <template #default="{ row }">
-            <div class="tag-list">
-              <el-tag
-                v-for="tag in (row.dishTypes || []).slice(0, 3)"
-                :key="tag"
-                size="small"
-                class="dish-type-tag"
+            <div class="dish-types-list">
+              <span
+                v-for="dt in (row.dishTypes || []).slice(0, 3)"
+                :key="dt"
+                class="dish-type-pill"
               >
-                {{ normalizeDishType(tag) }}
-              </el-tag>
+                {{ normalizeDishType(dt) }}
+              </span>
+              <span v-if="!row.dishTypes?.length" class="dish-type-empty">-</span>
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="90" align="center">
+        <el-table-column prop="status" label="状态" width="80" align="center">
           <template #default="{ row }">
             <span class="status-pill" :class="(row.status || 'PUBLISHED').toLowerCase()">
               {{ getStatusText(row.status) }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right" align="center">
+        <el-table-column label="精选/热门" width="110" align="center">
+          <template #default="{ row }">
+            <div class="badge-list">
+              <el-tag v-if="row.isFeatured" type="warning" size="small" class="badge-tag" title="精选菜谱">
+                <el-icon><Star /></el-icon>
+                精选
+              </el-tag>
+              <el-tag v-if="row.isHot" type="danger" size="small" class="badge-tag" title="热门菜谱">
+                <el-icon><TrendCharts /></el-icon>
+                热门
+              </el-tag>
+              <span v-if="!row.isFeatured && !row.isHot" class="text-muted">-</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="145" fixed="right" align="center">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button type="primary" link @click="router.push(`/recipes/${row.id}/edit`)">
@@ -233,36 +251,6 @@
         </el-table-column>
         </el-table>
       </div>
-
-      <!-- 横向滚动状态条 - 固定在页面底部 -->
-      <Teleport to="body">
-        <div 
-          class="scroll-indicator-fixed"
-          :class="{ 'is-active': isScrolling }"
-        >
-          <div class="scroll-indicator-inner">
-            <div class="scroll-arrow">
-              <el-icon><DArrowLeft /></el-icon>
-            </div>
-            <div 
-              class="scroll-bar-container" 
-              ref="scrollBarRef"
-              @mousedown="handleScrollBarMouseDown"
-            >
-              <div 
-                class="scroll-thumb" 
-                :style="{ 
-                  width: thumbWidth + 'px',
-                  left: thumbOffset + 'px'
-                }"
-              ></div>
-            </div>
-            <div class="scroll-arrow">
-              <el-icon><DArrowRight /></el-icon>
-            </div>
-          </div>
-        </div>
-      </Teleport>
 
       <!-- 表格分页 -->
       <div class="table-footer">
@@ -315,117 +303,110 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 导出弹窗 -->
+    <el-dialog v-model="exportDialogVisible" title="导出菜谱" width="480px" :close-on-click-modal="false">
+      <div class="export-dialog-body">
+        <p class="export-tip">
+          共 <strong>{{ pagination.total }}</strong> 条菜谱数据，将按照当前筛选条件导出
+        </p>
+        <div class="export-format-list">
+          <label
+            class="export-format-item"
+            :class="{ active: exportFormat === 'xlsx' }"
+            @click="exportFormat = 'xlsx'"
+          >
+            <input type="radio" name="exportFormat" value="xlsx" v-model="exportFormat" hidden />
+            <div class="format-icon xlsx-icon">
+              <span>Excel</span>
+            </div>
+            <div class="format-info">
+              <span class="format-name">Excel 格式</span>
+              <span class="format-ext">.xlsx</span>
+              <span class="format-desc">支持公式、筛选，适合数据分析</span>
+            </div>
+            <div class="format-check" v-if="exportFormat === 'xlsx'">
+              <el-icon><Check /></el-icon>
+            </div>
+          </label>
+
+          <label
+            class="export-format-item"
+            :class="{ active: exportFormat === 'csv' }"
+            @click="exportFormat = 'csv'"
+          >
+            <input type="radio" name="exportFormat" value="csv" v-model="exportFormat" hidden />
+            <div class="format-icon csv-icon">
+              <span>CSV</span>
+            </div>
+            <div class="format-info">
+              <span class="format-name">CSV 格式</span>
+              <span class="format-ext">.csv</span>
+              <span class="format-desc">体积更小，兼容所有编辑器</span>
+            </div>
+            <div class="format-check" v-if="exportFormat === 'csv'">
+              <el-icon><Check /></el-icon>
+            </div>
+          </label>
+
+          <label
+            class="export-format-item"
+            :class="{ active: exportFormat === 'json' }"
+            @click="exportFormat = 'json'"
+          >
+            <input type="radio" name="exportFormat" value="json" v-model="exportFormat" hidden />
+            <div class="format-icon json-icon">
+              <span>JSON</span>
+            </div>
+            <div class="format-info">
+              <span class="format-name">JSON 数据</span>
+              <span class="format-ext">.json</span>
+              <span class="format-desc">保留完整结构，适合程序导入</span>
+            </div>
+            <div class="format-check" v-if="exportFormat === 'json'">
+              <el-icon><Check /></el-icon>
+            </div>
+          </label>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="exportDialogVisible = false" :disabled="exporting">取消</el-button>
+        <el-button type="primary" :loading="exporting" @click="handleConfirm">
+          确认导出
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick, computed } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { UploadFile } from 'element-plus';
 import {
   Plus, Search, RefreshLeft, Picture, View, Star, Edit,
   MoreFilled, Check, Close, Delete, Upload, UploadFilled,
-  DArrowLeft, DArrowRight, Loading, Clock, FolderOpened,
+  Loading, Clock, FolderOpened, TrendCharts, Download,
 } from '@element-plus/icons-vue';
 import {
   DISH_TYPE_OPTIONS, MEAL_TIME_OPTIONS, DIFFICULTY_OPTIONS,
-  STATUS_OPTIONS, normalizeDishType, normalizeMealTime, normalizeDifficulty,
+  STATUS_OPTIONS, SOURCE_OPTIONS, normalizeDishType, normalizeMealTime, normalizeDifficulty,
   type RecipeRow,
 } from './data';
 import { recipeApi } from '@/api/recipe';
+import { useExport, downloadFile } from '@/composables/useExport';
 
 const router = useRouter();
 const loading = ref(false);
 const selectedRows = ref<any[]>([]);
+
+const { exportDialogVisible, exportFormat, exporting, showExportDialog, handleConfirm } = useExport();
 const importDialogVisible = ref(false);
 const importFile = ref<UploadFile | null>(null);
 const importing = ref(false);
 const uploadRef = ref();
 const tableRef = ref();
-const scrollBarRef = ref();
-const isScrolling = ref(false);
-const canScrollLeft = ref(false);
-const canScrollRight = ref(false);
-let scrollTimer: ReturnType<typeof setTimeout> | null = null;
-
-// 横向滚动指示器计算
-const CONTAINER_WIDTH = 200;
-
-const thumbWidth = computed(() => {
-  const tableEl = tableRef.value?.$el;
-  if (!tableEl) return CONTAINER_WIDTH;
-  const bodyWrapper = tableEl.querySelector('.el-table__body-wrapper') as HTMLElement;
-  if (!bodyWrapper || bodyWrapper.scrollWidth === 0) return CONTAINER_WIDTH;
-  const ratio = bodyWrapper.clientWidth / bodyWrapper.scrollWidth;
-  return Math.max(40, Math.min(160, CONTAINER_WIDTH * ratio));
-});
-
-const thumbOffset = computed(() => {
-  const tableEl = tableRef.value?.$el;
-  if (!tableEl) return 0;
-  const bodyWrapper = tableEl.querySelector('.el-table__body-wrapper') as HTMLElement;
-  if (!bodyWrapper || bodyWrapper.scrollWidth <= bodyWrapper.clientWidth) return 0;
-  const ratio = bodyWrapper.scrollLeft / (bodyWrapper.scrollWidth - bodyWrapper.clientWidth);
-  const maxOffset = 200 - thumbWidth.value; // 容器宽度200px
-  return Math.max(0, ratio * maxOffset);
-});
-
-// 表格滚动控制
-function updateScrollState() {
-  const tableEl = tableRef.value?.$el;
-  if (!tableEl) return;
-  
-  // 获取 el-table 内部的滚动容器
-  const bodyWrapper = tableEl.querySelector('.el-table__body-wrapper') as HTMLElement;
-  if (!bodyWrapper) return;
-  
-  const { scrollLeft, scrollWidth, clientWidth } = bodyWrapper;
-  canScrollLeft.value = scrollLeft > 0;
-  canScrollRight.value = scrollLeft + clientWidth < scrollWidth - 1;
-  
-  // 拖动滚动条时激活状态
-  isScrolling.value = true;
-  if (scrollTimer) clearTimeout(scrollTimer);
-  scrollTimer = setTimeout(() => {
-    isScrolling.value = false;
-  }, 1500);
-}
-
-// 滚动条拖动功能
-function handleScrollBarMouseDown(e: MouseEvent) {
-  e.preventDefault();
-  const tableEl = tableRef.value?.$el;
-  if (!tableEl) return;
-  
-  const bodyWrapper = tableEl.querySelector('.el-table__body-wrapper') as HTMLElement;
-  if (!bodyWrapper) return;
-  
-  const startX = e.clientX;
-  const startScrollLeft = bodyWrapper.scrollLeft;
-  
-  isScrolling.value = true;
-  if (scrollTimer) clearTimeout(scrollTimer);
-  
-  function onMouseMove(e: MouseEvent) {
-    const deltaX = e.clientX - startX;
-    const ratio = bodyWrapper.scrollWidth / bodyWrapper.clientWidth;
-    bodyWrapper.scrollLeft = startScrollLeft + deltaX * ratio;
-  }
-  
-  function onMouseUp() {
-    document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onMouseUp);
-    isScrolling.value = false;
-    scrollTimer = setTimeout(() => {
-      isScrolling.value = false;
-    }, 1500);
-    updateScrollState();
-  }
-  
-  document.addEventListener('mousemove', onMouseMove);
-  document.addEventListener('mouseup', onMouseUp);
-}
 
 const filters = reactive({
   keyword: '',
@@ -433,6 +414,7 @@ const filters = reactive({
   difficulty: '',
   mealTime: '',
   status: '',
+  source: '',
 });
 
 const pagination = reactive({
@@ -442,7 +424,6 @@ const pagination = reactive({
 });
 
 const tableData = ref<any[]>([]);
-const rawData = ref<RecipeRow[]>([]);
 
 function formatCount(num: number): string {
   if (num >= 10000) return (num / 10000).toFixed(1) + 'w';
@@ -452,42 +433,6 @@ function formatCount(num: number): string {
 
 function getStatusText(status: string): string {
   return STATUS_OPTIONS.find(o => o.value === status)?.label || '已发布';
-}
-
-function filterData() {
-  let data = [...rawData.value].map(r => ({
-    ...r,
-    title: r.title || r.name || '',
-    viewCount: r.viewCount ?? Math.floor(Math.random() * 5000),
-    collectCount: r.collectCount ?? Math.floor(Math.random() * 500),
-  }));
-
-  if (filters.keyword) {
-    const kw = filters.keyword.toLowerCase();
-    data = data.filter(r => {
-      const id = String(r.id);
-      return r.title.toLowerCase().includes(kw) || id.includes(kw);
-    });
-  }
-  if (filters.dishType) {
-    data = data.filter(r => r.dishTypes?.includes(filters.dishType));
-  }
-  if (filters.difficulty) {
-    const mapped = filters.difficulty === 'EASY' ? 'easy'
-      : filters.difficulty === 'MEDIUM' ? ['normal', 'medium']
-      : 'hard';
-    data = data.filter(r => {
-      if (Array.isArray(mapped)) return mapped.includes(r.difficulty);
-      return r.difficulty === mapped;
-    });
-  }
-  if (filters.mealTime) {
-    data = data.filter(r => r.mealTimes?.includes(filters.mealTime));
-  }
-
-  const start = (pagination.page - 1) * pagination.pageSize;
-  tableData.value = data.slice(start, start + pagination.pageSize);
-  pagination.total = data.length;
 }
 
 async function fetchRecipes() {
@@ -501,8 +446,8 @@ async function fetchRecipes() {
       difficulty: filters.difficulty || undefined,
       status: filters.status || undefined,
     });
-    tableData.value = res.data.data.list;
-    pagination.total = res.data.data.total;
+    tableData.value = res.data?.list || [];
+    pagination.total = res.data?.total || 0;
   } catch (error) {
     console.error('获取菜谱列表失败:', error);
   } finally {
@@ -529,40 +474,65 @@ async function handleCommand(command: string, row: any) {
       ElMessage.info('预览功能开发中');
       break;
     case 'publish':
+      await recipeApi.publish(row.id);
       row.status = 'PUBLISHED';
       ElMessage.success('发布成功');
       break;
     case 'offline':
       await ElMessageBox.confirm('确定要下线该菜谱吗？', '提示', { type: 'warning' });
+      await recipeApi.offline(row.id);
       row.status = 'OFFLINE';
       ElMessage.success('下线成功');
       break;
     case 'delete':
-      await ElMessageBox.confirm('确定删除该菜谱？删除后无法恢复。', '警告', {
+      await ElMessageBox.confirm('确定删除该菜谱？删除后可在回收站恢复。', '警告', {
         type: 'warning',
         confirmButtonText: '删除',
         cancelButtonText: '取消',
       });
-      rawData.value = rawData.value.filter(r => r.id !== row.id);
-      filterData();
+      await recipeApi.delete(row.id);
       ElMessage.success('删除成功');
+      fetchRecipes();
       break;
   }
 }
 
 async function handleBatchDelete() {
-  await ElMessageBox.confirm(`确定删除选中的 ${selectedRows.value.length} 个菜谱吗？`, '警告', {
+  await ElMessageBox.confirm(`确定删除选中的 ${selectedRows.value.length} 个菜谱吗？删除后可在回收站恢复。`, '警告', {
     type: 'warning',
   });
-  const ids = new Set(selectedRows.value.map(r => r.id));
-  rawData.value = rawData.value.filter(r => !ids.has(r.id));
-  filterData();
+  const ids = selectedRows.value.map(r => r.id);
+  await recipeApi.batchDelete(ids);
   selectedRows.value = [];
   ElMessage.success('批量删除成功');
+  fetchRecipes();
+}
+
+async function handleMobileDelete(row: any) {
+  await ElMessageBox.confirm('确定删除该菜谱？删除后可在回收站恢复。', '警告', { type: 'warning' });
+  await recipeApi.delete(row.id);
+  ElMessage.success('删除成功');
+  fetchRecipes();
 }
 
 function handleImport() {
   importDialogVisible.value = true;
+}
+
+function handleExport() {
+  const params = {
+    keyword: filters.keyword || undefined,
+    dishType: filters.dishType || undefined,
+    difficulty: filters.difficulty || undefined,
+    mealTime: filters.mealTime || undefined,
+    status: filters.status || undefined,
+    source: filters.source || undefined,
+  };
+  showExportDialog({
+    name: '菜谱',
+    total: pagination.total,
+    exportFn: (format) => downloadFile('/recipes/export', params, format),
+  });
 }
 
 function handleFileChange(file: UploadFile) {
@@ -575,10 +545,10 @@ async function confirmImport() {
   try {
     const text = await (importFile.value.raw as any).text();
     const data = JSON.parse(text) as RecipeRow[];
-    rawData.value = data;
-    filterData();
+    await recipeApi.import(data);
     importDialogVisible.value = false;
     ElMessage.success(`成功导入 ${data.length} 道菜谱`);
+    fetchRecipes();
   } catch {
     ElMessage.error('文件格式错误，请上传正确的 recipes.json');
   } finally {
@@ -588,37 +558,6 @@ async function confirmImport() {
 
 onMounted(() => {
   fetchRecipes();
-  // 监听表格滚动状态
-  nextTick(() => {
-    const tableEl = tableRef.value?.$el;
-    if (!tableEl) return;
-    
-    const bodyWrapper = tableEl.querySelector('.el-table__body-wrapper');
-    if (bodyWrapper) {
-      bodyWrapper.addEventListener('scroll', updateScrollState);
-      // 初始检查
-      setTimeout(updateScrollState, 100);
-    }
-    window.addEventListener('resize', updateScrollState);
-  });
-  
-  // 监听页面滚动 - 上下滚动时显示指示器
-  let lastScrollTop = 0;
-  function handlePageScroll() {
-    const scrollTop = window.scrollY || document.documentElement.scrollTop;
-    const hasMoved = Math.abs(scrollTop - lastScrollTop) > 5;
-    lastScrollTop = scrollTop;
-    
-    if (hasMoved) {
-      isScrolling.value = true;
-      if (scrollTimer) clearTimeout(scrollTimer);
-      scrollTimer = setTimeout(() => {
-        isScrolling.value = false;
-      }, 1500);
-    }
-  }
-  
-  window.addEventListener('scroll', handlePageScroll, { passive: true });
 });
 </script>
 
@@ -670,7 +609,7 @@ onMounted(() => {
 .recipe-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 
   .recipe-cover {
     width: 56px;
@@ -694,34 +633,63 @@ onMounted(() => {
   }
 
   .recipe-detail {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    min-width: 0;
 
     .recipe-title {
       font-family: var(--font-display);
-      font-size: 14px;
+      font-size: 13px;
       color: var(--cursor-dark);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: block;
+      max-width: 140px;
     }
+  }
+}
 
-    .recipe-meta {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
+.dish-types-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  justify-content: center;
+  align-items: center;
+
+  .dish-type-pill {
+    font-family: var(--font-display);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: var(--radius-pill);
+    background: rgba(31, 138, 101, 0.1);
+    color: var(--color-success);
+    border: 1px solid rgba(31, 138, 101, 0.2);
+  }
+
+  .dish-type-empty {
+    color: rgba(38, 37, 30, 0.3);
+    font-size: 12px;
   }
 }
 
 .meal-tags {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 4px;
-  align-items: center;
+  justify-content: center;
 
-  .meal-tag {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: rgba(38, 37, 30, 0.6);
+  .meal-tag-pill {
+    font-family: var(--font-display);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    background: rgba(212, 136, 14, 0.1);
+    color: var(--color-warning);
+    border: 1px solid rgba(212, 136, 14, 0.2);
+  }
+
+  .meal-tag-empty {
+    color: rgba(38, 37, 30, 0.3);
+    font-size: 12px;
   }
 }
 
@@ -739,20 +707,6 @@ onMounted(() => {
     color: rgba(38, 37, 30, 0.6);
 
     .el-icon { font-size: 14px; }
-  }
-}
-
-.tag-list {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-
-  .dish-type-tag {
-    border-radius: var(--radius-pill);
-    background: var(--surface-400);
-    border: none;
-    font-size: 11px;
-    color: rgba(38, 37, 30, 0.7);
   }
 }
 
@@ -798,93 +752,6 @@ onMounted(() => {
 /* 表格容器 */
 .table-container {
   position: relative;
-}
-
-/* 表格包装器 - 支持水平滚动 */
-.table-wrapper {
-  overflow-x: auto;
-  overflow-y: visible;
-  -webkit-overflow-scrolling: touch;
-
-  &::-webkit-scrollbar {
-    height: 0; // 隐藏原生滚动条，使用自定义指示器
-    display: none;
-  }
-}
-
-/* 固定在底部的横向滚动指示器 */
-.scroll-indicator-fixed {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 12px 0 16px;
-  background: linear-gradient(transparent, rgba(38, 37, 30, 0.08));
-  opacity: 0;
-  transform: translateY(10px);
-  transition: opacity 0.4s ease, transform 0.4s ease;
-  pointer-events: none;
-
-  &.is-active {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-
-    .scroll-thumb {
-      background: var(--cursor-orange);
-    }
-  }
-}
-
-.scroll-indicator-inner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  background: var(--cursor-white);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-elevated);
-}
-
-.scroll-arrow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(38, 37, 30, 0.4);
-  font-size: 16px;
-  transition: color 0.2s ease;
-
-  .is-active & {
-    color: var(--cursor-orange);
-  }
-}
-
-/* 滚动条容器 */
-.scroll-bar-container {
-  width: 200px;
-  height: 8px;
-  background: var(--surface-400);
-  border-radius: 4px;
-  cursor: pointer;
-  position: relative;
-  overflow: visible;
-}
-
-/* 滚动滑块 */
-.scroll-thumb {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  min-width: 40px;
-  max-width: 160px;
-  background: var(--surface-600);
-  border-radius: 4px;
-  transition: background 0.2s ease;
 }
 
 .table-footer {
@@ -1125,5 +992,120 @@ onMounted(() => {
       justify-content: center;
     }
   }
+}
+
+.badge-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  padding: 2px 6px;
+  line-height: 1;
+}
+
+// 导出弹窗
+.export-dialog-body {
+  padding: 8px 4px;
+}
+
+.export-tip {
+  color: rgba(38, 37, 30, 0.6);
+  font-size: 13px;
+  margin-bottom: 20px;
+
+  strong {
+    color: var(--cursor-orange);
+    font-weight: 600;
+  }
+}
+
+.export-format-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.export-format-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--border-primary);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  user-select: none;
+
+  &:hover {
+    border-color: var(--cursor-orange);
+    background: rgba(245, 111, 32, 0.04);
+  }
+
+  &.active {
+    border-color: var(--cursor-orange);
+    background: rgba(245, 111, 32, 0.06);
+
+    .format-icon {
+      opacity: 1;
+    }
+  }
+}
+
+.format-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  color: #fff;
+
+  &.xlsx-icon { background: #1d7a3d; }
+  &.csv-icon { background: #3a6e38; }
+  &.json-icon { background: #c47f17; }
+}
+
+.format-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.format-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--cursor-dark);
+  font-family: var(--font-display);
+}
+
+.format-ext {
+  font-size: 11px;
+  color: rgba(38, 37, 30, 0.4);
+  font-family: monospace;
+}
+
+.format-desc {
+  font-size: 12px;
+  color: rgba(38, 37, 30, 0.5);
+  margin-top: 2px;
+}
+
+.format-check {
+  color: var(--cursor-orange);
+  font-size: 18px;
+  flex-shrink: 0;
 }
 </style>

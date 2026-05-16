@@ -64,17 +64,19 @@
           />
           <el-select v-model="filters.type" placeholder="反馈类型" clearable style="width: 130px">
             <el-option label="全部类型" value="" />
-            <el-option label="Bug反馈" value="bug" />
-            <el-option label="功能建议" value="suggest" />
-            <el-option label="内容纠错" value="error" />
+            <el-option label="Bug反馈" value="bug_report" />
+            <el-option label="功能建议" value="feature_request" />
+            <el-option label="内容纠错" value="content_issue" />
+            <el-option label="改进建议" value="improvement" />
             <el-option label="其他问题" value="other" />
           </el-select>
           <el-select v-model="filters.status" placeholder="处理状态" clearable style="width: 130px">
             <el-option label="全部状态" value="" />
             <el-option label="待处理" value="pending" />
-            <el-option label="处理中" value="processing" />
+            <el-option label="处理中" value="in_progress" />
+            <el-option label="已回复" value="replied" />
             <el-option label="已解决" value="resolved" />
-            <el-option label="已驳回" value="rejected" />
+            <el-option label="已关闭" value="closed" />
           </el-select>
           <el-select v-model="filters.userType" placeholder="用户类型" clearable style="width: 120px">
             <el-option label="全部用户" value="" />
@@ -397,6 +399,7 @@ import {
   QuestionFilled,
   Plus,
   Edit,
+  EditPen,
 } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
@@ -415,7 +418,6 @@ const replyVisible = ref(false);
 const currentFeedback = ref<FeedbackItem | null>(null);
 const replyFormRef = ref();
 const quickAction = ref<FeedbackStatus>('resolved');
-const rawData = ref<FeedbackItem[]>([]);
 
 const filters = reactive({
   keyword: '',
@@ -446,7 +448,7 @@ const tableData = ref<FeedbackItem[]>([]);
 
 const stats = computed(() => {
   const pending = tableData.value.filter(f => f.status === 'pending').length;
-  const processing = tableData.value.filter(f => f.status === 'processing').length;
+  const processing = tableData.value.filter(f => f.status === 'in_progress').length;
   const resolved = tableData.value.filter(f => f.status === 'resolved').length;
   return {
     pending,
@@ -458,9 +460,10 @@ const stats = computed(() => {
 
 function getTypeIcon(type: string) {
   const map: Record<string, any> = {
-    bug: CircleCloseFilled,
-    suggest: Plus,
-    error: QuestionFilled,
+    bug_report: CircleCloseFilled,
+    feature_request: Plus,
+    content_issue: QuestionFilled,
+    improvement: EditPen,
     other: Edit,
   };
   return map[type] || Edit;
@@ -511,19 +514,9 @@ async function fetchFeedbacks() {
       status: filters.status || undefined,
       keyword: filters.keyword || undefined,
     });
-    rawData.value = res.data.data;
-    pagination.total = res.data.total;
-  } catch (error) {
-    console.error('获取反馈列表失败:', error);
-  } finally {
-    loading.value = false;
-  }
-}
-
-    // 分页
-    const start = (pagination.page - 1) * pagination.pageSize;
-    tableData.value = filtered.slice(start, start + pagination.pageSize);
-    pagination.total = filtered.length;
+    const rawList = res.data?.list;
+    tableData.value = rawList || [];
+    pagination.total = res.data?.total || 0;
   } catch (error) {
     console.error('获取反馈列表失败:', error);
     ElMessage.error('获取反馈列表失败');
@@ -577,8 +570,13 @@ async function handleAction(command: string, row: FeedbackItem) {
 }
 
 async function updateStatus(row: FeedbackItem, status: FeedbackStatus) {
-  row.status = status;
-  ElMessage.success('状态更新成功');
+  try {
+    await feedbackApi.updateFeedbackStatus(row.id, status);
+    row.status = status;
+    ElMessage.success('状态更新成功');
+  } catch {
+    fetchFeedbacks();
+  }
 }
 
 async function handleQuickAction() {
@@ -600,18 +598,10 @@ async function handleSubmitReply() {
 
   submitting.value = true;
   try {
-    // 本地模拟回复
-    const newReply = {
-      id: Date.now(),
-      adminId: 1,
-      adminName: '管理员',
+    await feedbackApi.replyFeedback(currentFeedback.value.id, {
       content: replyForm.content,
-      createTime: Date.now(),
-    };
-    if (!currentFeedback.value.reply) {
-      currentFeedback.value.reply = [];
-    }
-    currentFeedback.value.reply.push(newReply);
+      action: replyForm.action === 'resolve' ? 'resolve' : 'reply',
+    });
     if (replyForm.action === 'resolve') {
       currentFeedback.value.status = 'resolved';
     }
@@ -627,12 +617,12 @@ async function handleSubmitReply() {
 
 async function handleDelete(row: FeedbackItem) {
   try {
-    await ElMessageBox.confirm('确定要删除这条反馈吗？删除后无法恢复。', '删除确认', {
+    await ElMessageBox.confirm('确定要删除这条反馈吗？', '删除确认', {
       confirmButtonText: '删除',
       cancelButtonText: '取消',
       type: 'warning',
     });
-    rawData.value = rawData.value.filter(f => f.id !== row.id);
+    await feedbackApi.deleteFeedback(row.id);
     ElMessage.success('删除成功');
     fetchFeedbacks();
   } catch {

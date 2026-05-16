@@ -2,6 +2,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../../lib/prisma';
 import { paginated, success, notFound, badRequest } from '../../../types/response';
+import { createOperationLog, addToRecycleBin } from '../../../utils/adminHelper';
 
 const collectionInclude = {
   items: {
@@ -149,6 +150,12 @@ export async function deleteCollection(req: Request, res: Response) {
     return;
   }
 
+  const adminId = (req as any).admin?.id || 1;
+  const adminName = (req as any).admin?.username || '未知';
+
+  await addToRecycleBin(adminId, 'collection', id, existing, '管理员删除收藏夹');
+  await createOperationLog(adminId, adminName, 'delete', 'collection', String(id), `删除收藏夹「${existing.name}」`);
+
   await prisma.collection.delete({ where: { id } });
   res.json(success(null, '删除成功'));
 }
@@ -216,6 +223,10 @@ export async function removeCollectionItem(req: Request, res: Response) {
     return;
   }
 
+  const adminId = (req as any).admin?.id || 1;
+  const adminName = (req as any).admin?.username || '未知';
+  const collection = await prisma.collection.findUnique({ where: { id: collectionId } });
+
   await prisma.$transaction([
     prisma.collectionItem.delete({
       where: { collectionId_recipeId: { collectionId, recipeId } },
@@ -229,6 +240,12 @@ export async function removeCollectionItem(req: Request, res: Response) {
       data: { collectCount: { decrement: 1 } },
     }),
   ]);
+
+  await createOperationLog(
+    adminId, adminName, 'delete', 'collection',
+    String(collectionId),
+    `从收藏夹「${collection?.name || collectionId}」移除菜谱 #${recipeId}`
+  );
 
   res.json(success(null, '已移除'));
 }

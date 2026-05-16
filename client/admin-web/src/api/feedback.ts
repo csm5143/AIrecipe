@@ -1,5 +1,4 @@
 import request from './request';
-import type { AxiosPromise } from 'axios';
 
 export interface FeedbackItem {
   id: number;
@@ -16,6 +15,7 @@ export interface FeedbackItem {
   cloudImageUrls: string[];
   createTime: number;
   status: FeedbackStatus;
+  statusText: string;
   reply?: ReplyItem[];
   appVersion?: string;
   phoneModel?: string;
@@ -30,8 +30,8 @@ export interface ReplyItem {
   createTime: number;
 }
 
-export type FeedbackType = 'bug' | 'suggest' | 'error' | 'other';
-export type FeedbackStatus = 'pending' | 'processing' | 'resolved' | 'rejected';
+export type FeedbackType = 'bug_report' | 'feature_request' | 'content_issue' | 'improvement' | 'other';
+export type FeedbackStatus = 'pending' | 'in_progress' | 'replied' | 'resolved' | 'closed';
 
 export interface GetFeedbacksParams {
   page?: number;
@@ -46,54 +46,55 @@ export interface ReplyFeedbackDto {
   action?: 'reply' | 'resolve';
 }
 
-export const feedbackApi = {
-  // 获取反馈列表
-  getFeedbacks(params: GetFeedbacksParams): AxiosPromise<{
-    data: FeedbackItem[];
-    total: number;
+export interface FeedbackListResponse {
+  list: FeedbackItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  pagination?: {
     page: number;
     pageSize: number;
-  }> {
-    return request.get('/feedbacks', { params });
+    total: number;
+    totalPages: number;
+  };
+}
+
+export const feedbackApi = {
+  getFeedbacks(params: GetFeedbacksParams) {
+    return request.get<FeedbackListResponse>('/feedbacks', { params });
   },
 
-  // 获取单个反馈详情
-  getFeedbackById(id: number): AxiosPromise<{
-    data: FeedbackItem;
-  }> {
-    return request.get(`/feedbacks/${id}`);
+  getFeedbackById(id: number) {
+    return request.get<FeedbackItem>(`/feedbacks/${id}`);
   },
 
-  // 回复反馈
-  replyFeedback(id: number, data: ReplyFeedbackDto): AxiosPromise<{
-    data: ReplyItem;
-  }> {
-    return request.post(`/feedbacks/${id}/reply`, data);
+  replyFeedback(id: number, data: ReplyFeedbackDto) {
+    return request.post<ReplyItem>(`/feedbacks/${id}/reply`, data);
   },
 
-  // 更新反馈状态
-  updateFeedbackStatus(id: number, status: FeedbackStatus): AxiosPromise {
+  updateFeedbackStatus(id: number, status: FeedbackStatus) {
     return request.patch(`/feedbacks/${id}/status`, { status });
   },
 
-  // 删除反馈
-  deleteFeedback(id: number): AxiosPromise {
+  deleteFeedback(id: number) {
     return request.delete(`/feedbacks/${id}`);
   },
 };
 
-// 反馈类型映射
+// 反馈类型映射（key 与后端返回的 type 值一致）
 export const FEEDBACK_TYPE_MAP: Record<FeedbackType, string> = {
-  bug: 'Bug反馈',
-  suggest: '功能建议',
-  error: '内容纠错',
+  bug_report: 'Bug反馈',
+  feature_request: '功能建议',
+  content_issue: '内容纠错',
+  improvement: '改进建议',
   other: '其他问题',
 };
 
-// 反馈状态映射
+// 反馈状态映射（key 与后端返回的 status 值一致）
 export const FEEDBACK_STATUS_MAP: Record<FeedbackStatus, string> = {
   pending: '待处理',
-  processing: '处理中',
+  in_progress: '处理中',
+  replied: '已回复',
   resolved: '已解决',
-  rejected: '已驳回',
+  closed: '已关闭',
 };

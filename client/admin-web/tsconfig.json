@@ -24,7 +24,9 @@
       "@utils/*": ["src/utils/*"],
       "@store/*": ["src/store/*"],
       "@router/*": ["src/router/*"],
-      "@shared/*": ["../../packages/shared-types/src/*"]
+      "@shared/*": ["../../packages/shared-types/src/*"],
+      "@airecipe/shared-types": ["../../packages/shared-types/src"],
+      "@airecipe/shared-types/*": ["../../packages/shared-types/src/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],

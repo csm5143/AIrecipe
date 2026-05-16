@@ -1,0 +1,154 @@
+.page {
+  min-height: 100vh;
+  background-color: #fbf4e6;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* Loading */
+.loading-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 200rpx 0;
+  gap: 24rpx;
+}
+
+.loading-ring {
+  width: 64rpx;
+  height: 64rpx;
+  border: 4rpx solid #e2a650;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #8e8e93;
+}
+
+/* Empty state */
+.empty-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 160rpx 60rpx 0;
+  gap: 16rpx;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 140rpx;
+  height: 140rpx;
+  opacity: 0.45;
+  margin-bottom: 16rpx;
+}
+
+.empty-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.empty-tip {
+  font-size: 28rpx;
+  color: #8e8e93;
+  line-height: 1.6;
+  max-width: 480rpx;
+}
+
+.empty-action {
+  background: #e2a650;
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 600;
+  padding: 24rpx 80rpx;
+  border-radius: 999rpx;
+  margin-top: 32rpx;
+}
+
+/* Grid layout */
+.grid-scroll {
+  flex: 1;
+}
+
+.grid-container {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 20rpx 24rpx 40rpx;
+  gap: 20rpx;
+}
+
+.offline-tip-full {
+  width: 100%;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 24rpx;
+  padding: 16rpx 24rpx;
+  border-radius: 12rpx;
+  text-align: center;
+  margin-bottom: 8rpx;
+}
+
+/* Grid card */
+.grid-card {
+  width: calc(50% - 10rpx);
+  background: #fffdf8;
+  border-radius: 20rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(125, 90, 50, 0.08);
+}
+
+.card-image-wrap {
+  position: relative;
+  width: 100%;
+  height: 280rpx;
+}
+
+.card-image {
+  width: 100%;
+  height: 100%;
+}
+
+.offline-badge {
+  position: absolute;
+  top: 12rpx;
+  right: 12rpx;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 999rpx;
+}
+
+.card-body {
+  padding: 20rpx 16rpx;
+}
+
+.card-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 8rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-count {
+  display: block;
+  font-size: 24rpx;
+  color: #8e8e93;
+}
+
+.offline-item .card-image {
+  border: 2rpx solid #fde68a;
+}

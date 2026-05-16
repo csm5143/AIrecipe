@@ -53,14 +53,4 @@ export const systemApi = {
 
   updateSettings: (category: keyof SystemSettings, data: any) =>
     request.put<ApiResponse<null>>(`/system/settings/${category}`, data),
-
-  uploadImage: (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return request.post<ApiResponse<{ url: string; filename: string; size: number }>>(
-      '/upload',
-      formData,
-      { headers: { 'Content-Type': 'multipart/form-data' } }
-    );
-  },
 };

@@ -1,10 +1,26 @@
-node_modules
-dist
-uploads
+# 依赖包目录
+node_modules/
+
+# 构建产物
+dist/
+build/
+
+# 上传文件/静态资源目录
+uploads/
+
+# 环境变量配置文件（核心！不能上传）
 .env
 .env.local
 .env.development
 .env.production
+
+# 系统/日志文件
 .DS_Store
 *.log
-tmp
+tmp/
+temp/
+
+# 其他常见忽略
+.idea/
+.vscode/
+*.swp

@@ -29,15 +29,11 @@ export function paginated<T>(
   data: T[],
   pagination: { page: number; pageSize: number; total: number },
   message = '查询成功'
-): PaginatedResponse<T> {
+): ApiResponse<{ list: T[]; total: number; page: number; pageSize: number }> {
   return {
     code: 200,
     message,
-    data,
-    pagination: {
-      ...pagination,
-      totalPages: Math.ceil(pagination.total / pagination.pageSize),
-    },
+    data: { list: data, total: pagination.total, page: pagination.page, pageSize: pagination.pageSize },
     timestamp: Date.now(),
   };
 }

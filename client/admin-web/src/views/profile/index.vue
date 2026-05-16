@@ -284,7 +284,8 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useUserStore } from '@/store/modules/user';
-import { systemApi } from '@/api/system';
+import { authApi } from '@/api';
+import { uploadAdminAvatar } from '@/api/upload';
 import {
   User,
   Lock,
@@ -437,28 +438,19 @@ async function handleAvatarChange(e: Event) {
   avatarPreview.value = URL.createObjectURL(file);
   profileSaving.value = true;
   try {
-    const res = await systemApi.uploadImage(file);
-    const resp = res.data as any;
-    const url = resp.data?.url || resp.url;
+    const uploadData = await uploadAdminAvatar(file);
+    const url: string = (uploadData as any)?.url || '';
+    if (!url) {
+      throw new Error('上传响应中未找到头像 URL');
+    }
     await userStore.updateAvatar(url);
     ElMessage.success('头像更新成功');
-  } catch {
-    avatarPreview.value = userStore.profile?.avatar ? getFullAvatarUrl(userStore.profile.avatar) : '';
-    ElMessage.error('头像更新失败');
+  } catch (err: any) {
+    avatarPreview.value = userStore.profile?.avatar || '';
+    ElMessage.error(err.message || '头像更新失败');
   } finally {
     profileSaving.value = false;
   }
-}
-
-function getFullAvatarUrl(path: string): string {
-  if (!path) return '';
-  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('//')) {
-    return path.startsWith('//') ? window.location.protocol + path : path;
-  }
-  if (path.startsWith('/')) {
-    return path;
-  }
-  return path;
 }
 
 async function handleSaveProfile() {
@@ -512,8 +504,9 @@ onMounted(async () => {
   await userStore.fetchProfile();
   profileForm.username = userStore.profile?.username || '';
   profileForm.nickname = userStore.profile?.nickname || '';
+  profileForm.phone = (userStore.profile as any)?.phone || '';
   profileForm.avatar = userStore.profile?.avatar || '';
-  avatarPreview.value = userStore.profile?.avatar ? getFullAvatarUrl(userStore.profile.avatar) : '';
+  avatarPreview.value = userStore.profile?.avatar || '';
 
   const savedPrefs = localStorage.getItem('userPreferences');
   if (savedPrefs) {

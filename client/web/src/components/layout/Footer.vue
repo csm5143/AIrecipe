@@ -1,119 +1,219 @@
 <template>
   <footer class="site-footer">
-    <div class="footer-content">
-      <div class="footer-main">
+    <div class="container">
+      <div class="footer-panel reveal">
+        <!-- Brand column -->
         <div class="footer-brand">
-          <div class="brand-logo">
-            <img src="@/assets/logo.svg" alt="AIrecipe" />
-            <span>AIrecipe</span>
+          <router-link to="/" class="footer-brand-lockup">
+            <img src="@/assets/logo.svg" alt="AIrecipe logo" class="footer-logo" />
+            <span class="footer-brand-name">AIrecipe</span>
+          </router-link>
+
+          <p class="footer-slogan display-font">
+            让冰箱里的食材，<br />先变成灵感，再变成一顿好饭。
+          </p>
+
+          <p class="footer-copy">
+            智能菜谱生成系统。拍照识别食材，AI 实时生成菜谱，营养数据同步追踪。
+          </p>
+
+          <!-- Social links -->
+          <div class="social-links">
+            <a href="#" class="social-btn" aria-label="微信">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </a>
+            <a href="#" class="social-btn" aria-label="微博">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M8 12h8M12 8v8" />
+              </svg>
+            </a>
+            <a href="#" class="social-btn" aria-label="邮箱">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+            </a>
           </div>
-          <p class="brand-slogan">用 AI 做菜，每天都是大厨</p>
         </div>
 
+        <!-- Link columns -->
         <div class="footer-links">
-          <div class="link-group">
-            <h4>产品</h4>
-            <router-link to="/download">下载APP</router-link>
-            <router-link to="/download#miniprogram">微信小程序</router-link>
+          <div class="link-col">
+            <h3 class="link-heading">产品</h3>
+            <a href="#features" class="link-item" @click.prevent="scrollTo('features')">核心功能</a>
+            <a href="#workflow" class="link-item" @click.prevent="scrollTo('workflow')">使用流程</a>
+            <a href="#download" class="link-item" @click.prevent="scrollTo('download')">下载入口</a>
           </div>
-          <div class="link-group">
-            <h4>支持</h4>
-            <a href="mailto:contact@airecipe.com">联系我们</a>
+
+          <div class="link-col">
+            <h3 class="link-heading">支持</h3>
+            <a href="mailto:contact@airecipe.com" class="link-item">联系我们</a>
+            <a href="#faq" class="link-item" @click.prevent="scrollTo('faq')">常见问题</a>
           </div>
-          <div class="link-group">
-            <h4>法律</h4>
-            <router-link to="/privacy">隐私政策</router-link>
+
+          <div class="link-col">
+            <h3 class="link-heading">法律</h3>
+            <a href="#" class="link-item">隐私政策</a>
+            <a href="#" class="link-item">服务条款</a>
           </div>
         </div>
       </div>
 
-      <div class="footer-bottom">
-        <p class="copyright">© 2024 AIrecipe. All rights reserved.</p>
-        <div class="social-links">
-          <a href="#" class="social-link" title="微信公众号">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8.5 11.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM12 6c-1.93 0-3.5 1.57-3.5 3.5s1.57 3.5 3.5 3.5 3.5-1.57 3.5-3.5-1.57-3.5-3.5-3.5zm5.5 5.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM12 2C6.48 2 2 6.48 2 12c0 2.17.69 4.18 1.86 5.81L2 22l4.19-1.86C7.82 21.31 9.83 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2z"/>
-            </svg>
-          </a>
-        </div>
+      <!-- Bottom bar -->
+      <div class="footer-bottom reveal">
+        <span class="copyright">
+          <span class="brand-mark-small">AIrecipe</span>
+          &copy; {{ currentYear }} — 让做饭更有灵感。
+        </span>
+        <span class="built-with">Built with care</span>
       </div>
     </div>
   </footer>
 </template>
 
 <script setup lang="ts">
+const currentYear = new Date().getFullYear()
+
+function scrollTo(id: string) {
+  const el = document.getElementById(id)
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 </script>
 
 <style scoped lang="scss">
 .site-footer {
-  background: var(--surface-400);
-  border-top: 1px solid var(--border-primary);
-  padding: var(--space-16) 0 var(--space-8);
+  padding: 72px 0 32px;
 }
 
-.footer-content {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 0 var(--space-6);
-}
-
-.footer-main {
+.footer-panel {
   display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: var(--space-16);
-  padding-bottom: var(--space-12);
-  border-bottom: 1px solid var(--border-primary);
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: clamp(32px, 7vw, 88px);
+  padding: clamp(32px, 5vw, 52px);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 55%);
+  }
 }
 
 .footer-brand {
-  .brand-logo {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    margin-bottom: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 
-    img {
-      width: 28px;
-      height: 28px;
-    }
+.footer-brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  transition: opacity var(--duration-fast) var(--ease-spring);
 
-    span {
-      font-size: var(--text-lg);
-      font-weight: 600;
-      color: var(--cursor-dark);
-    }
+  &:hover { opacity: 0.8; }
+}
+
+.footer-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+}
+
+.footer-brand-name {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+
+.footer-slogan {
+  font-size: clamp(1.5rem, 3vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+
+.footer-copy {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  max-width: 360px;
+}
+
+.social-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.social-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: rgba(27, 38, 31, 0.05);
+  border: 1px solid var(--border-soft);
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+  transition:
+    background var(--duration-fast) var(--ease-spring),
+    color var(--duration-fast) var(--ease-spring),
+    transform var(--duration-fast) var(--ease-spring);
+
+  &:hover {
+    background: rgba(27, 38, 31, 0.1);
+    color: var(--text-primary);
+    transform: translateY(-2px);
   }
 
-  .brand-slogan {
-    font-size: var(--text-sm);
-    color: rgba(38, 37, 30, 0.55);
-  }
+  &:active { transform: scale(0.95); }
 }
 
 .footer-links {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-8);
+  gap: 24px;
+  align-content: start;
 }
 
-.link-group {
-  h4 {
-    font-size: var(--text-sm);
-    font-weight: 600;
-    color: var(--cursor-dark);
-    margin-bottom: var(--space-4);
-  }
+.link-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
-  a {
-    display: block;
-    font-size: var(--text-sm);
-    color: rgba(38, 37, 30, 0.55);
-    margin-bottom: var(--space-2);
-    transition: color var(--transition-fast);
+.link-heading {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
 
-    &:hover {
-      color: var(--cursor-orange);
-    }
+.link-item {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: color var(--duration-fast) var(--ease-spring);
+
+  &:hover {
+    color: var(--accent);
   }
 }
 
@@ -121,48 +221,49 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: var(--space-8);
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-soft);
 }
 
 .copyright {
-  font-size: var(--text-xs);
-  color: rgba(38, 37, 30, 0.4);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
-.social-links {
-  display: flex;
-  gap: var(--space-4);
+.brand-mark-small {
+  font-weight: 700;
 }
 
-.social-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  color: rgba(38, 37, 30, 0.5);
-  transition: all var(--transition-fast);
-
-  &:hover {
-    background: var(--surface-300);
-    color: var(--cursor-dark);
-  }
+.built-with {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
-@media (max-width: 768px) {
-  .footer-main {
+// Responsive
+@media (max-width: 860px) {
+  .footer-panel {
     grid-template-columns: 1fr;
-    gap: var(--space-10);
+    gap: 40px;
   }
 
   .footer-links {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .footer-links {
     grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
   }
 
   .footer-bottom {
     flex-direction: column;
-    gap: var(--space-4);
+    gap: 8px;
     text-align: center;
   }
 }

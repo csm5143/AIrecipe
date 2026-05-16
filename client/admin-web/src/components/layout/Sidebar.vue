@@ -18,99 +18,110 @@
     </div>
 
     <div class="sidebar-content">
-    <div class="menu-section">
-      <div class="menu-title">导航</div>
-      <el-menu
-        :default-active="activeMenu"
-        :collapse="isCollapse"
-        :unique-opened="true"
-        class="sidebar-menu"
-        router
-      >
-        <el-menu-item index="/dashboard">
-          <el-icon><Odometer /></el-icon>
-          <template #title>数据看板</template>
-        </el-menu-item>
-      </el-menu>
-    </div>
+      <!-- 导航（所有人都能看到） -->
+      <div class="menu-section">
+        <div class="menu-title">导航</div>
+        <el-menu
+          :default-active="activeMenu"
+          :collapse="isCollapse"
+          :unique-opened="true"
+          class="sidebar-menu"
+          router
+        >
+          <el-menu-item index="/dashboard">
+            <el-icon><Odometer /></el-icon>
+            <template #title>数据看板</template>
+          </el-menu-item>
+        </el-menu>
+      </div>
 
-    <div class="menu-section">
-      <div class="menu-title">内容管理</div>
-      <el-menu
-        :default-active="activeMenu"
-        :collapse="isCollapse"
-        :unique-opened="true"
-        class="sidebar-menu"
-        router
-      >
-        <el-sub-menu index="/recipes">
-          <template #title>
-            <el-icon><Food /></el-icon>
-            <span>菜谱</span>
-          </template>
-          <el-menu-item index="/recipes">菜谱列表</el-menu-item>
-          <el-menu-item index="/recipes/create">创建菜谱</el-menu-item>
-        </el-sub-menu>
+      <!-- 内容管理：SUPER_ADMIN / ADMIN / EDITOR -->
+      <div v-if="canAccess('/recipes')" class="menu-section">
+        <div class="menu-title">内容管理</div>
+        <el-menu
+          :default-active="activeMenu"
+          :collapse="isCollapse"
+          :unique-opened="true"
+          class="sidebar-menu"
+          router
+        >
+          <el-sub-menu index="/recipes">
+            <template #title>
+              <el-icon><Food /></el-icon>
+              <span>菜谱</span>
+            </template>
+            <el-menu-item index="/recipes">菜谱列表</el-menu-item>
+            <el-menu-item index="/recipes/featured">精选菜谱</el-menu-item>
+            <el-menu-item index="/recipes/hot">热门菜谱</el-menu-item>
+            <el-menu-item index="/recipes/create">创建菜谱</el-menu-item>
+          </el-sub-menu>
 
-        <el-menu-item index="/ingredients">
-          <el-icon><Goods /></el-icon>
-          <template #title>食材库</template>
-        </el-menu-item>
+          <el-menu-item v-if="canAccess('/ingredients')" index="/ingredients">
+            <el-icon><Goods /></el-icon>
+            <template #title>食材库</template>
+          </el-menu-item>
 
-        <el-menu-item index="/collections">
-          <el-icon><Collection /></el-icon>
-          <template #title>收藏管理</template>
-        </el-menu-item>
-      </el-menu>
-    </div>
+          <el-menu-item v-if="canAccess('/content')" index="/content">
+            <el-icon><TrendCharts /></el-icon>
+            <template #title>内容运营</template>
+          </el-menu-item>
+        </el-menu>
+      </div>
 
-    <div class="menu-section">
-      <div class="menu-title">用户与反馈</div>
-      <el-menu
-        :default-active="activeMenu"
-        :collapse="isCollapse"
-        :unique-opened="true"
-        class="sidebar-menu"
-        router
-      >
-        <el-menu-item index="/users">
-          <el-icon><User /></el-icon>
-          <template #title>用户管理</template>
-        </el-menu-item>
+      <!-- 用户与反馈：SUPER_ADMIN / ADMIN / AUDITOR -->
+      <div v-if="canAccess('/users') || canAccess('/feedbacks')" class="menu-section">
+        <div class="menu-title">用户与反馈</div>
+        <el-menu
+          :default-active="activeMenu"
+          :collapse="isCollapse"
+          :unique-opened="true"
+          class="sidebar-menu"
+          router
+        >
+          <el-menu-item v-if="canAccess('/users')" index="/users">
+            <el-icon><User /></el-icon>
+            <template #title>用户管理</template>
+          </el-menu-item>
 
-        <el-menu-item index="/feedbacks">
-          <el-icon><ChatDotRound /></el-icon>
-          <template #title>反馈管理</template>
-        </el-menu-item>
-      </el-menu>
-    </div>
+          <el-menu-item v-if="canAccess('/feedbacks')" index="/feedbacks">
+            <el-icon><ChatDotRound /></el-icon>
+            <template #title>反馈管理</template>
+          </el-menu-item>
 
-    <div class="menu-section">
-      <div class="menu-title">系统</div>
-      <el-menu
-        :default-active="activeMenu"
-        :collapse="isCollapse"
-        :unique-opened="true"
-        class="sidebar-menu"
-        router
-      >
-        <el-menu-item index="/content">
-          <el-icon><TrendCharts /></el-icon>
-          <template #title>内容运营</template>
-        </el-menu-item>
+          <el-menu-item v-if="canAccess('/recipe-audit')" index="/recipe-audit">
+            <el-icon><Stamp /></el-icon>
+            <template #title>菜谱审核</template>
+          </el-menu-item>
+        </el-menu>
+      </div>
 
-        <el-sub-menu index="/system">
-          <template #title>
-            <el-icon><Setting /></el-icon>
-            <span>系统设置</span>
-          </template>
-          <el-menu-item index="/profile">个人设置</el-menu-item>
-          <el-menu-item index="/system/settings">基础设置</el-menu-item>
-          <el-menu-item index="/system/admin">管理员</el-menu-item>
-          <el-menu-item index="/system/operation-logs">操作日志</el-menu-item>
-        </el-sub-menu>
-      </el-menu>
-    </div>
+      <!-- 系统：仅 SUPER_ADMIN -->
+      <div v-if="canAccess('/system')" class="menu-section">
+        <div class="menu-title">系统</div>
+        <el-menu
+          :default-active="activeMenu"
+          :collapse="isCollapse"
+          :unique-opened="true"
+          class="sidebar-menu"
+          router
+        >
+          <el-menu-item v-if="canAccess('/recycle')" index="/recycle">
+            <el-icon><Delete /></el-icon>
+            <template #title>回收站</template>
+          </el-menu-item>
+
+          <el-sub-menu v-if="canAccess('/system/admin') || canAccess('/system/operation-logs') || canAccess('/system/settings')" index="/system">
+            <template #title>
+              <el-icon><Setting /></el-icon>
+              <span>系统设置</span>
+            </template>
+            <el-menu-item v-if="canAccess('/profile')" index="/profile">个人设置</el-menu-item>
+            <el-menu-item v-if="canAccess('/system/settings')" index="/system/settings">基础设置</el-menu-item>
+            <el-menu-item v-if="canAccess('/system/admin')" index="/system/admin">管理员</el-menu-item>
+            <el-menu-item v-if="canAccess('/system/operation-logs')" index="/system/operation-logs">操作日志</el-menu-item>
+          </el-sub-menu>
+        </el-menu>
+      </div>
     </div>
 
     <div class="sidebar-footer">
@@ -127,11 +138,13 @@
 import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useSiteSettingsStore } from '@/store/modules/siteSettings';
+import { usePermission } from '@/composables/usePermission';
 
 const route = useRoute();
 const isCollapse = ref(false);
 const activeMenu = computed(() => route.path);
 const siteSettingsStore = useSiteSettingsStore();
+const { canAccess } = usePermission();
 
 function toggleCollapse() {
   isCollapse.value = !isCollapse.value;

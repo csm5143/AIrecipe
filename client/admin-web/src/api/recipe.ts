@@ -1,7 +1,9 @@
 import request from '../utils/request';
-import type { ApiResponse, Recipe, PaginatedQuery } from '@airecipe/shared-types';
+import type { Recipe } from '@airecipe/shared-types';
 
-export interface RecipeListQuery extends PaginatedQuery {
+export interface RecipeListQuery {
+  page?: number;
+  pageSize?: number;
   keyword?: string;
   category?: string;
   status?: string;
@@ -9,6 +11,8 @@ export interface RecipeListQuery extends PaginatedQuery {
   difficulty?: string;
   fitnessMeal?: boolean;
   childrenMeal?: boolean;
+  sort?: string;
+  order?: 'asc' | 'desc';
 }
 
 export interface CreateRecipeDto {
@@ -33,33 +37,43 @@ export interface CreateRecipeDto {
   goal?: string;
   ageBand?: string;
   childrenMeal?: boolean;
+  isFeatured?: boolean;
+  isHot?: boolean;
+}
+
+export interface RecipeListResponse {
+  list: Recipe[];
+  total: number;
 }
 
 export const recipeApi = {
   list: (params: RecipeListQuery) =>
-    request.get<ApiResponse<{ list: Recipe[]; total: number }>>('/recipes', { params }),
+    request.get<RecipeListResponse>('/recipes', { params }),
 
   detail: (id: number) =>
-    request.get<ApiResponse<Recipe>>(`/recipes/${id}`),
+    request.get<Recipe>(`/recipes/${id}`),
 
   create: (data: CreateRecipeDto) =>
-    request.post<ApiResponse<Recipe>>('/recipes', data),
+    request.post<Recipe>('/recipes', data),
 
   update: (id: number, data: CreateRecipeDto) =>
-    request.put<ApiResponse<Recipe>>(`/recipes/${id}`, data),
+    request.put<Recipe>(`/recipes/${id}`, data),
 
   delete: (id: number) =>
-    request.delete<ApiResponse>(`/recipes/${id}`),
+    request.delete(`/recipes/${id}`),
 
   publish: (id: number) =>
-    request.post<ApiResponse>(`/recipes/${id}/publish`),
+    request.post(`/recipes/${id}/publish`),
 
   offline: (id: number) =>
-    request.post<ApiResponse>(`/recipes/${id}/offline`),
+    request.post(`/recipes/${id}/offline`),
 
   batchDelete: (ids: number[]) =>
-    request.post<ApiResponse>('/recipes/batch-delete', { ids }),
+    request.post('/recipes/batch-delete', { ids }),
 
   import: (data: any[]) =>
-    request.post<ApiResponse>('/recipes/import', { recipes: data }),
+    request.post('/recipes/import', { recipes: data }),
+
+  export: (params: RecipeListQuery, format: 'csv' | 'xlsx') =>
+    request.get('/recipes/export', { params: { ...params, format }, responseType: 'blob' }),
 };

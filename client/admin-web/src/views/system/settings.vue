@@ -53,7 +53,11 @@
                     accept="image/*"
                     @change="handleLogoChange"
                   >
-                    <img v-if="logoPreview" :src="logoPreview" class="image-preview" />
+                    <div v-if="logoUploading" class="upload-mask">
+                      <el-icon class="is-loading"><Refresh /></el-icon>
+                      <span>上传中...</span>
+                    </div>
+                    <img v-else-if="logoPreview" :src="logoPreview" class="image-preview" />
                     <div v-else class="upload-placeholder">
                       <el-icon class="upload-icon"><Plus /></el-icon>
                       <span>上传 Logo</span>
@@ -82,8 +86,11 @@
                     accept="image/*"
                     @change="handleFaviconChange"
                   >
-                    <img v-if="faviconPreview" :src="faviconPreview" class="image-preview favicon-preview" />
-                    <div v-else class="upload-placeholder">
+                    <div v-if="faviconUploading" class="upload-mask favicon-upload-mask">
+                      <el-icon class="is-loading"><Refresh /></el-icon>
+                    </div>
+                    <img v-else-if="faviconPreview" :src="faviconPreview" class="image-preview favicon-preview" />
+                    <div v-else class="upload-placeholder favicon-placeholder">
                       <el-icon class="upload-icon"><Plus /></el-icon>
                       <span>上传图标</span>
                     </div>
@@ -258,9 +265,10 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue';
-import { Setting, Link, Document, Lock, Message, Plus } from '@element-plus/icons-vue';
+import { Setting, Link, Document, Lock, Message, Plus, Refresh } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { systemApi, type SiteSettings, type SeoSettings, type LegalSettings, type SecuritySettings, type EmailSettings } from '@/api/system';
+import { uploadSettings } from '@/api/upload';
 import { useSiteSettingsStore } from '@/store/modules/siteSettings';
 
 const siteSettingsStore = useSiteSettingsStore();
@@ -269,6 +277,8 @@ const activeSetting = ref('site');
 const logoUploadRef = ref();
 const faviconUploadRef = ref();
 const loading = ref(false);
+const logoUploading = ref(false);
+const faviconUploading = ref(false);
 
 const logoPreview = ref('');
 const faviconPreview = ref('');
@@ -339,13 +349,12 @@ async function loadSettings() {
   loading.value = true;
   try {
     const res = await systemApi.getSettings();
-    const resp = res.data as any;
-    const data = resp.data;
+    const data = res.data as any;
 
     Object.assign(siteForm, data.site);
     originalSiteForm.value = { ...data.site };
-    logoPreview.value = data.site.logo ? getFullImageUrl(data.site.logo) : '';
-    faviconPreview.value = data.site.favicon ? getFullImageUrl(data.site.favicon) : '';
+    logoPreview.value = data.site.logo || '';
+    faviconPreview.value = data.site.favicon || '';
 
     Object.assign(seoForm, data.seo);
     originalSeoForm.value = { ...data.seo };
@@ -366,30 +375,34 @@ async function loadSettings() {
 }
 
 async function uploadAndSetLogo(file: File) {
+  logoUploading.value = true;
   try {
-    const res = await systemApi.uploadImage(file);
-    const resp = res.data as any;
-    const url = resp.data?.url || resp.url;
+    const result = await uploadSettings(file, 'logo');
+    const url = (result as any).data?.url || (result as any).url;
     if (url) {
       siteForm.logo = url;
-      logoPreview.value = getFullImageUrl(url);
+      logoPreview.value = url;
     }
   } catch {
     ElMessage.error('Logo 上传失败');
+  } finally {
+    logoUploading.value = false;
   }
 }
 
 async function uploadAndSetFavicon(file: File) {
+  faviconUploading.value = true;
   try {
-    const res = await systemApi.uploadImage(file);
-    const resp = res.data as any;
-    const url = resp.data?.url || resp.url;
+    const result = await uploadSettings(file, 'favicon');
+    const url = (result as any).data?.url || (result as any).url;
     if (url) {
       siteForm.favicon = url;
-      faviconPreview.value = getFullImageUrl(url);
+      faviconPreview.value = url;
     }
   } catch {
     ElMessage.error('图标上传失败');
+  } finally {
+    faviconUploading.value = false;
   }
 }
 
@@ -415,17 +428,6 @@ function removeLogo() {
 function removeFavicon() {
   siteForm.favicon = '';
   faviconPreview.value = '';
-}
-
-function getFullImageUrl(path: string): string {
-  if (!path) return '';
-  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('//')) {
-    return path.startsWith('//') ? window.location.protocol + path : path;
-  }
-  if (path.startsWith('/')) {
-    return path;
-  }
-  return path;
 }
 
 async function handleSaveSite() {
@@ -500,8 +502,8 @@ function handleTestEmail() {
 
 function handleResetSite() {
   Object.assign(siteForm, originalSiteForm.value);
-  logoPreview.value = originalSiteForm.value.logo ? getFullImageUrl(originalSiteForm.value.logo) : '';
-  faviconPreview.value = originalSiteForm.value.favicon ? getFullImageUrl(originalSiteForm.value.favicon) : '';
+  logoPreview.value = originalSiteForm.value.logo || '';
+  faviconPreview.value = originalSiteForm.value.favicon || '';
 }
 
 function handleResetSeo() {
@@ -688,6 +690,42 @@ onMounted(() => {
     font-size: 11px;
     color: rgba(38, 37, 30, 0.4);
   }
+}
+
+.upload-mask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: var(--radius-md);
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--cursor-orange);
+  z-index: 1;
+}
+
+.favicon-upload-mask {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+}
+
+.favicon-placeholder {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: var(--surface-300);
+  border: 2px dashed var(--border-medium);
+  border-radius: var(--radius-sm);
+  color: rgba(38, 37, 30, 0.5);
 }
 
 .input-hint {

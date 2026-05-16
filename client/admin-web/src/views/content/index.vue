@@ -58,9 +58,13 @@
                 />
               </template>
             </el-table-column>
-            <el-table-column prop="startTime" label="展示时间" width="200">
+            <el-table-column label="展示时间" width="200">
               <template #default="{ row }">
-                <span class="text-muted text-small">{{ row.startTime }} ~ {{ row.endTime }}</span>
+                <span class="text-muted text-small">
+                  {{ row.startTime ? formatTime(row.startTime) : '-' }}
+                  ~
+                  {{ row.endTime ? formatTime(row.endTime) : '-' }}
+                </span>
               </template>
             </el-table-column>
             <el-table-column label="操作" width="140" fixed="right" align="center">
@@ -77,6 +81,20 @@
               </template>
             </el-table-column>
           </el-table>
+
+          <div class="table-footer">
+            <span class="total-info">共 {{ bannerPagination.total }} 条</span>
+            <el-pagination
+              v-model:current-page="bannerPagination.page"
+              v-model:page-size="bannerPagination.pageSize"
+              :total="bannerPagination.total"
+              :page-sizes="[10, 20, 50]"
+              layout="sizes, prev, pager, next"
+              background
+              @size-change="handleBannerSizeChange"
+              @current-change="handleBannerPageChange"
+            />
+          </div>
         </div>
       </el-tab-pane>
 
@@ -90,12 +108,12 @@
             </el-button>
           </div>
 
-          <el-table :data="notices" v-loading="loading" row-key="id">
+          <el-table :data="notices" v-loading="noticeLoading" row-key="id">
             <el-table-column prop="id" label="ID" width="80" />
             <el-table-column prop="title" label="标题" min-width="200" />
-            <el-table-column prop="type" label="类型" width="100" align="center">
+            <el-table-column label="类型" width="100" align="center">
               <template #default="{ row }">
-                <span class="notice-type" :class="row.type">
+                <span class="notice-type" :class="row.type?.toLowerCase()">
                   {{ getNoticeTypeText(row.type) }}
                 </span>
               </template>
@@ -105,16 +123,16 @@
                 <span class="notice-content">{{ row.content }}</span>
               </template>
             </el-table-column>
-            <el-table-column prop="status" label="状态" width="100" align="center">
+            <el-table-column label="状态" width="100" align="center">
               <template #default="{ row }">
-                <span class="status-pill" :class="row.status.toLowerCase()">
+                <span class="status-pill" :class="getNoticeStatusClass(row.status)">
                   {{ getNoticeStatusText(row.status) }}
                 </span>
               </template>
             </el-table-column>
-            <el-table-column prop="publishTime" label="发布时间" width="140" align="center">
+            <el-table-column label="发布时间" width="140" align="center">
               <template #default="{ row }">
-                <span class="text-muted text-small">{{ row.publishTime || '-' }}</span>
+                <span class="text-muted text-small">{{ row.publishedAt ? formatTime(row.publishedAt) : '-' }}</span>
               </template>
             </el-table-column>
             <el-table-column label="操作" width="140" fixed="right" align="center">
@@ -131,6 +149,20 @@
               </template>
             </el-table-column>
           </el-table>
+
+          <div class="table-footer">
+            <span class="total-info">共 {{ noticePagination.total }} 条</span>
+            <el-pagination
+              v-model:current-page="noticePagination.page"
+              v-model:page-size="noticePagination.pageSize"
+              :total="noticePagination.total"
+              :page-sizes="[10, 20, 50]"
+              layout="sizes, prev, pager, next"
+              background
+              @size-change="handleNoticeSizeChange"
+              @current-change="handleNoticePageChange"
+            />
+          </div>
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -149,30 +181,36 @@
           <el-input v-model="bannerForm.subtitle" placeholder="请输入副标题（可选）" />
         </el-form-item>
         <el-form-item label="Banner 图片" prop="imageUrl">
-          <el-upload
-            action="#"
-            :auto-upload="false"
-            :show-file-list="false"
-            accept="image/*"
-            class="banner-upload"
-            @change="handleBannerImageChange"
-          >
-            <img v-if="bannerPreview || bannerForm.imageUrl" :src="bannerPreview || bannerForm.imageUrl" class="banner-image-preview" />
-            <div v-else class="upload-placeholder">
-              <el-icon><Plus /></el-icon>
-              <span>点击上传图片</span>
-              <span class="hint">建议尺寸 750x400</span>
+          <div class="banner-upload-area">
+            <el-upload
+              action="#"
+              :auto-upload="false"
+              :show-file-list="false"
+              accept="image/*"
+              class="banner-upload"
+              @change="handleBannerImageChange"
+            >
+              <img v-if="bannerPreview || bannerForm.imageUrl" :src="bannerPreview || bannerForm.imageUrl" class="banner-image-preview" />
+              <div v-else class="upload-placeholder">
+                <el-icon><Plus /></el-icon>
+                <span>点击上传图片</span>
+                <span class="hint">建议尺寸 750x400</span>
+              </div>
+            </el-upload>
+            <div v-if="bannerUploading" class="upload-mask">
+              <el-icon class="is-loading"><Loading /></el-icon>
+              <span>上传中...</span>
             </div>
-          </el-upload>
+          </div>
         </el-form-item>
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="跳转类型" prop="linkType">
               <el-select v-model="bannerForm.linkType" placeholder="选择跳转类型" style="width: 100%">
-                <el-option label="无跳转" value="none" />
-                <el-option label="食谱详情" value="recipe" />
-                <el-option label="网页链接" value="webview" />
-                <el-option label="分类页面" value="category" />
+                <el-option label="无跳转" value="NONE" />
+                <el-option label="食谱详情" value="RECIPE" />
+                <el-option label="网页链接" value="WEBVIEW" />
+                <el-option label="分类页面" value="CATEGORY" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -205,6 +243,7 @@
                 type="datetime"
                 placeholder="选择开始时间"
                 style="width: 100%"
+                value-format="YYYY-MM-DDTHH:mm:ss"
               />
             </el-form-item>
           </el-col>
@@ -215,6 +254,7 @@
                 type="datetime"
                 placeholder="选择结束时间"
                 style="width: 100%"
+                value-format="YYYY-MM-DDTHH:mm:ss"
               />
             </el-form-item>
           </el-col>
@@ -222,7 +262,7 @@
       </el-form>
       <template #footer>
         <el-button @click="bannerDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSaveBanner">保存</el-button>
+        <el-button type="primary" :loading="bannerSaving" @click="handleSaveBanner">保存</el-button>
       </template>
     </el-dialog>
 
@@ -238,9 +278,9 @@
         </el-form-item>
         <el-form-item label="公告类型" prop="type">
           <el-radio-group v-model="noticeForm.type">
-            <el-radio value="normal">普通</el-radio>
-            <el-radio value="important">重要</el-radio>
-            <el-radio value="activity">活动</el-radio>
+            <el-radio value="NORMAL">普通</el-radio>
+            <el-radio value="IMPORTANT">重要</el-radio>
+            <el-radio value="ACTIVITY">活动</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="公告内容" prop="content">
@@ -260,24 +300,28 @@
       </el-form>
       <template #footer>
         <el-button @click="noticeDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSaveNotice">保存</el-button>
+        <el-button type="primary" :loading="noticeSaving" @click="handleSaveNotice">保存</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, watch } from 'vue';
 import {
   Plus,
   Picture,
   Edit,
-  Delete
+  Delete,
+  Loading
 } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { contentApi } from '@/api/content';
+import { uploadBanner } from '@/api/upload';
 
 const activeTab = ref('banners');
 const loading = ref(false);
+const noticeLoading = ref(false);
 const banners = ref<any[]>([]);
 const notices = ref<any[]>([]);
 
@@ -288,13 +332,19 @@ const isEditNotice = ref(false);
 const bannerPreview = ref('');
 const bannerFormRef = ref();
 const noticeFormRef = ref();
+const bannerSaving = ref(false);
+const noticeSaving = ref(false);
+const bannerUploading = ref(false);
+
+const bannerPagination = reactive({ page: 1, pageSize: 20, total: 0 });
+const noticePagination = reactive({ page: 1, pageSize: 20, total: 0 });
 
 const bannerForm = reactive({
-  id: 0,
+  id: 0 as number,
   title: '',
   subtitle: '',
   imageUrl: '',
-  linkType: 'none',
+  linkType: 'NONE',
   linkValue: '',
   sortOrder: 0,
   status: 'ACTIVE',
@@ -305,13 +355,12 @@ const bannerForm = reactive({
 const bannerRules = {
   title: [{ required: true, message: '请输入 Banner 标题', trigger: 'blur' }],
   imageUrl: [{ required: true, message: '请上传 Banner 图片', trigger: 'change' }],
-  linkType: [{ required: true, message: '请选择跳转类型', trigger: 'change' }],
 };
 
 const noticeForm = reactive({
-  id: 0,
+  id: 0 as number,
   title: '',
-  type: 'normal',
+  type: 'NORMAL',
   content: '',
   status: 'DRAFT',
 });
@@ -322,21 +371,27 @@ const noticeRules = {
   content: [{ required: true, message: '请输入公告内容', trigger: 'blur' }],
 };
 
+function formatTime(iso: string) {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  return d.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
 function getLinkTypeText(type: string) {
   const map: Record<string, string> = {
-    none: '无跳转',
-    recipe: '食谱详情',
-    webview: '网页链接',
-    category: '分类页面',
+    NONE: '无跳转',
+    RECIPE: '食谱详情',
+    WEBVIEW: '网页链接',
+    CATEGORY: '分类页面',
   };
   return map[type] || type;
 }
 
 function getNoticeTypeText(type: string) {
   const map: Record<string, string> = {
-    normal: '普通',
-    important: '重要',
-    activity: '活动',
+    NORMAL: '普通',
+    IMPORTANT: '重要',
+    ACTIVITY: '活动',
   };
   return map[type] || type;
 }
@@ -350,6 +405,35 @@ function getNoticeStatusText(status: string) {
   return map[status] || status;
 }
 
+function getNoticeStatusClass(status: string) {
+  const map: Record<string, string> = {
+    DRAFT: 'draft',
+    PUBLISHED: 'published',
+    OFFLINE: 'offline',
+  };
+  return map[status] || '';
+}
+
+// ==================== Banner ====================
+
+async function fetchBanners() {
+  loading.value = true;
+  try {
+    const res = await contentApi.getBanners({
+      page: bannerPagination.page,
+      pageSize: bannerPagination.pageSize,
+      status: 'ACTIVE',
+    });
+    const data = res.data ?? {};
+    banners.value = data.list ?? [];
+    bannerPagination.total = data.total ?? 0;
+  } catch {
+    ElMessage.error('加载 Banner 列表失败');
+  } finally {
+    loading.value = false;
+  }
+}
+
 function handleAddBanner() {
   isEditBanner.value = false;
   Object.assign(bannerForm, {
@@ -357,7 +441,7 @@ function handleAddBanner() {
     title: '',
     subtitle: '',
     imageUrl: '',
-    linkType: 'none',
+    linkType: 'NONE',
     linkValue: '',
     sortOrder: banners.value.length,
     status: 'ACTIVE',
@@ -370,47 +454,116 @@ function handleAddBanner() {
 
 function handleEditBanner(row: any) {
   isEditBanner.value = true;
-  Object.assign(bannerForm, row);
+  Object.assign(bannerForm, {
+    ...row,
+    startTime: row.startTime ? new Date(row.startTime).toISOString().slice(0, 19) : '',
+    endTime: row.endTime ? new Date(row.endTime).toISOString().slice(0, 19) : '',
+  });
   bannerPreview.value = '';
   bannerDialogVisible.value = true;
 }
 
-function handleBannerImageChange(file: any) {
-  bannerPreview.value = URL.createObjectURL(file.raw);
-  bannerForm.imageUrl = file.raw;
+async function handleBannerImageChange(file: any) {
+  const raw = file.raw as File;
+  if (!raw) return;
+  bannerUploading.value = true;
+  bannerPreview.value = URL.createObjectURL(raw);
+  try {
+    const result = await uploadBanner(raw);
+    bannerForm.imageUrl = result.url || (result.data as any)?.url || '';
+    ElMessage.success('图片上传成功');
+  } catch {
+    ElMessage.error('图片上传失败');
+    bannerPreview.value = '';
+  } finally {
+    bannerUploading.value = false;
+  }
 }
 
 async function handleSaveBanner() {
   const valid = await bannerFormRef.value?.validate().catch(() => false);
   if (!valid) return;
 
-  if (isEditBanner.value) {
-    const index = banners.value.findIndex(b => b.id === bannerForm.id);
-    if (index > -1) {
-      banners.value[index] = { ...bannerForm };
-    }
-  } else {
-    banners.value.unshift({
-      ...bannerForm,
-      id: Date.now(),
-    });
-  }
+  bannerSaving.value = true;
+  try {
+    const payload = {
+      title: bannerForm.title,
+      subtitle: bannerForm.subtitle,
+      imageUrl: bannerForm.imageUrl,
+      linkType: bannerForm.linkType,
+      linkValue: bannerForm.linkValue || undefined,
+      sortOrder: bannerForm.sortOrder,
+      status: bannerForm.status,
+      startTime: bannerForm.startTime || undefined,
+      endTime: bannerForm.endTime || undefined,
+    };
 
-  ElMessage.success('保存成功');
-  bannerDialogVisible.value = false;
+    if (isEditBanner.value) {
+      await contentApi.updateBanner(bannerForm.id, payload);
+    } else {
+      await contentApi.createBanner(payload);
+    }
+
+    ElMessage.success('保存成功');
+    bannerDialogVisible.value = false;
+    fetchBanners();
+  } catch {
+    ElMessage.error('保存失败');
+  } finally {
+    bannerSaving.value = false;
+  }
 }
 
 async function handleDeleteBanner(row: any) {
-  await ElMessageBox.confirm(`确定要删除 Banner「${row.title}」吗？`, '提示', {
-    type: 'warning',
-  });
-  banners.value = banners.value.filter(b => b.id !== row.id);
-  ElMessage.success('删除成功');
+  await ElMessageBox.confirm(`确定要删除 Banner「${row.title}」吗？`, '提示', { type: 'warning' });
+  try {
+    await contentApi.deleteBanner(row.id);
+    ElMessage.success('删除成功');
+    fetchBanners();
+  } catch {
+    ElMessage.error('删除失败');
+  }
 }
 
-function handleBannerStatusChange(row: any) {
-  const action = row.status === 'ACTIVE' ? '启用' : '禁用';
-  ElMessage.success(`Banner 已${action}`);
+async function handleBannerStatusChange(row: any) {
+  try {
+    await contentApi.updateBanner(row.id, { status: row.status });
+    const action = row.status === 'ACTIVE' ? '启用' : '禁用';
+    ElMessage.success(`Banner 已${action}`);
+  } catch {
+    ElMessage.error('状态更新失败');
+    row.status = row.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+  }
+}
+
+function handleBannerPageChange(page: number) {
+  bannerPagination.page = page;
+  fetchBanners();
+}
+
+function handleBannerSizeChange(size: number) {
+  bannerPagination.pageSize = size;
+  bannerPagination.page = 1;
+  fetchBanners();
+}
+
+// ==================== Notice ====================
+
+async function fetchNotices() {
+  noticeLoading.value = true;
+  try {
+    const res = await contentApi.getNotices({
+      page: noticePagination.page,
+      pageSize: noticePagination.pageSize,
+    });
+    const data = res.data ?? {};
+    notices.value = data.list ?? [];
+    noticePagination.total = data.total ?? 0;
+  } catch {
+    ElMessage.error('加载公告列表失败');
+  } finally {
+    noticeLoading.value = false;
+  }
 }
 
 function handleAddNotice() {
@@ -418,7 +571,7 @@ function handleAddNotice() {
   Object.assign(noticeForm, {
     id: 0,
     title: '',
-    type: 'normal',
+    type: 'NORMAL',
     content: '',
     status: 'DRAFT',
   });
@@ -427,7 +580,7 @@ function handleAddNotice() {
 
 function handleEditNotice(row: any) {
   isEditNotice.value = true;
-  Object.assign(noticeForm, row);
+  Object.assign(noticeForm, { ...row });
   noticeDialogVisible.value = true;
 }
 
@@ -435,77 +588,61 @@ async function handleSaveNotice() {
   const valid = await noticeFormRef.value?.validate().catch(() => false);
   if (!valid) return;
 
-  if (isEditNotice.value) {
-    const index = notices.value.findIndex(n => n.id === noticeForm.id);
-    if (index > -1) {
-      notices.value[index] = { ...noticeForm };
-    }
-  } else {
-    notices.value.unshift({
-      ...noticeForm,
-      id: Date.now(),
-      publishTime: noticeForm.status === 'PUBLISHED' ? new Date().toLocaleString() : '',
-    });
-  }
+  noticeSaving.value = true;
+  try {
+    const payload = {
+      title: noticeForm.title,
+      content: noticeForm.content,
+      type: noticeForm.type,
+      status: noticeForm.status,
+    };
 
-  ElMessage.success('保存成功');
-  noticeDialogVisible.value = false;
+    if (isEditNotice.value) {
+      await contentApi.updateNotice(noticeForm.id, payload);
+    } else {
+      await contentApi.createNotice(payload);
+    }
+
+    ElMessage.success('保存成功');
+    noticeDialogVisible.value = false;
+    fetchNotices();
+  } catch {
+    ElMessage.error('保存失败');
+  } finally {
+    noticeSaving.value = false;
+  }
 }
 
 async function handleDeleteNotice(row: any) {
-  await ElMessageBox.confirm(`确定要删除公告「${row.title}」吗？`, '提示', {
-    type: 'warning',
-  });
-  notices.value = notices.value.filter(n => n.id !== row.id);
-  ElMessage.success('删除成功');
+  await ElMessageBox.confirm(`确定要删除公告「${row.title}」吗？`, '提示', { type: 'warning' });
+  try {
+    await contentApi.deleteNotice(row.id);
+    ElMessage.success('删除成功');
+    fetchNotices();
+  } catch {
+    ElMessage.error('删除失败');
+  }
 }
 
-onMounted(() => {
-  banners.value = [
-    {
-      id: 1,
-      title: '春季养生食谱',
-      subtitle: '迎接健康春天',
-      imageUrl: 'https://picsum.photos/seed/banner1/750/400',
-      linkType: 'category',
-      linkValue: 'spring',
-      sortOrder: 1,
-      status: 'ACTIVE',
-      startTime: '2024-03-01 00:00',
-      endTime: '2024-05-31 23:59',
-    },
-    {
-      id: 2,
-      title: '健身餐专区',
-      subtitle: '科学饮食，高效健身',
-      imageUrl: 'https://picsum.photos/seed/banner2/750/400',
-      linkType: 'category',
-      linkValue: 'fitness',
-      sortOrder: 2,
-      status: 'ACTIVE',
-      startTime: '2024-01-01 00:00',
-      endTime: '2024-12-31 23:59',
-    },
-  ];
+function handleNoticePageChange(page: number) {
+  noticePagination.page = page;
+  fetchNotices();
+}
 
-  notices.value = [
-    {
-      id: 1,
-      title: '系统升级通知',
-      type: 'important',
-      content: 'AIRecipe 将于本周日凌晨 2:00-6:00 进行系统升级，届时部分功能可能暂时无法使用，给您带来不便敬请谅解。',
-      status: 'PUBLISHED',
-      publishTime: '2024-01-15 10:00',
-    },
-    {
-      id: 2,
-      title: '新功能上线公告',
-      type: 'activity',
-      content: 'AI 食材识别功能已全新升级，识别准确率提升至 95%，欢迎体验！',
-      status: 'PUBLISHED',
-      publishTime: '2024-01-10 09:00',
-    },
-  ];
+function handleNoticeSizeChange(size: number) {
+  noticePagination.pageSize = size;
+  noticePagination.page = 1;
+  fetchNotices();
+}
+
+// ==================== Tab 懒加载 ====================
+
+watch(activeTab, (tab) => {
+  if (tab === 'banners' && banners.value.length === 0) {
+    fetchBanners();
+  } else if (tab === 'notices' && notices.value.length === 0) {
+    fetchNotices();
+  }
 });
 </script>
 
@@ -597,6 +734,11 @@ onMounted(() => {
   background: var(--surface-400);
   color: rgba(38, 37, 30, 0.6);
 
+  &.normal {
+    background: var(--surface-400);
+    color: rgba(38, 37, 30, 0.6);
+  }
+
   &.important {
     background: rgba(207, 45, 86, 0.12);
     color: var(--color-error);
@@ -642,6 +784,26 @@ onMounted(() => {
   align-items: center;
   gap: 4px;
   justify-content: center;
+}
+
+.banner-upload-area {
+  position: relative;
+
+  .upload-mask {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: var(--radius-md);
+    font-family: var(--font-display);
+    font-size: 13px;
+    color: var(--cursor-orange);
+    z-index: 1;
+  }
 }
 
 .banner-upload {
@@ -690,6 +852,21 @@ onMounted(() => {
       font-size: 11px;
       color: rgba(38, 37, 30, 0.4);
     }
+  }
+}
+
+.table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-primary);
+
+  .total-info {
+    font-family: var(--font-serif);
+    font-size: 13px;
+    color: rgba(38, 37, 30, 0.6);
   }
 }
 </style>

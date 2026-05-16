@@ -70,7 +70,7 @@ export async function getHomeData(req: Request, res: Response) {
   try {
     const now = new Date();
 
-    const [banners, featuredRecipes, categories] = await Promise.all([
+    const [banners, featuredRecipes, latestRecipes, categories] = await Promise.all([
       prisma.banner.findMany({
         where: {
           status: 'ACTIVE',
@@ -87,6 +87,15 @@ export async function getHomeData(req: Request, res: Response) {
           isDeleted: false,
           status: 'PUBLISHED',
           isFeatured: true,
+        },
+        take: 10,
+        orderBy: { publishedAt: 'desc' },
+      }),
+      // 精选菜谱不足时兜底：取最新发布的菜谱
+      prisma.recipe.findMany({
+        where: {
+          isDeleted: false,
+          status: 'PUBLISHED',
         },
         take: 10,
         orderBy: { publishedAt: 'desc' },
@@ -114,7 +123,7 @@ export async function getHomeData(req: Request, res: Response) {
       linkValue: banner.linkValue,
     }));
 
-    const recipeList = featuredRecipes.map(recipe => ({
+    const recipeList = (featuredRecipes.length >= 3 ? featuredRecipes : latestRecipes).map(recipe => ({
       id: recipe.id,
       name: recipe.title,
       coverImage: recipe.coverImage,

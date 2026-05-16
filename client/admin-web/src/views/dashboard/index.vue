@@ -15,9 +15,10 @@
           size="default"
           style="width: 260px"
         />
-        <el-button :icon="Refresh" @click="fetchStats">
-          刷新数据
+        <el-button :icon="Refresh" :loading="isRefreshing" @click="fetchStats">
+          {{ isRefreshing ? '刷新中...' : '刷新数据' }}
         </el-button>
+        <span v-if="lastUpdated" class="last-updated">更新于 {{ lastUpdated }}</span>
       </div>
     </div>
 
@@ -46,13 +47,9 @@
         <div class="chart-header">
           <h3 class="chart-title">数据趋势</h3>
           <div class="chart-legend">
-            <span class="legend-item">
-              <span class="legend-dot" style="background: var(--cursor-orange)"></span>
-              用户增长
-            </span>
-            <span class="legend-item">
-              <span class="legend-dot" style="background: var(--color-success)"></span>
-              食谱创建
+            <span v-for="(name, i) in ['用户增长', '食谱创建']" :key="name" class="legend-item">
+              <span class="legend-dot" :style="{ background: ['#f54e00', '#1f8a65'][i] }"></span>
+              {{ name }}
             </span>
           </div>
         </div>
@@ -149,6 +146,7 @@ import {
 } from '@element-plus/icons-vue';
 import * as echarts from 'echarts';
 import type { ECharts } from 'echarts';
+import { analyticsApi } from '@/api/analytics';
 
 const router = useRouter();
 
@@ -158,32 +156,59 @@ const pieChartRef = ref<HTMLElement>();
 let trendChart: ECharts | null = null;
 let pieChart: ECharts | null = null;
 
-const statCards = ref([
-  { key: 'users', label: '用户总数', value: 12489, icon: User, color: '#f54e00', change: 12.5, period: '月' },
-  { key: 'recipes', label: '食谱总数', value: 1832, icon: Food, color: '#1f8a65', change: 8.3, period: '月' },
-  { key: 'collections', label: '收藏总量', value: 92112, icon: Collection, color: '#4a7dbf', change: 15.7, period: '月' },
-  { key: 'feedbacks', label: '反馈总数', value: 892, icon: ChatDotRound, color: '#d4880e', change: -3.2, period: '月' },
+interface StatCard {
+  key: string;
+  label: string;
+  value: number;
+  icon: any;
+  color: string;
+  change: number;
+  period: string;
+}
+
+const statCards = ref<StatCard[]>([
+  { key: 'users', label: '用户总数', value: 0, icon: User, color: '#f54e00', change: 0, period: '月' },
+  { key: 'recipes', label: '菜谱总数', value: 0, icon: Food, color: '#1f8a65', change: 0, period: '月' },
+  { key: 'collections', label: '收藏总量', value: 0, icon: Collection, color: '#4a7dbf', change: 0, period: '月' },
+  { key: 'feedbacks', label: '反馈总数', value: 0, icon: ChatDotRound, color: '#d4880e', change: 0, period: '月' },
 ]);
 
-const recentFeedbacks = ref([
-  { id: 1, content: '希望增加更多的健身餐选项，期待新的低脂食谱', type: 'suggestion', typeText: '建议', status: 'pending', statusText: '待处理', createdAt: '2小时前' },
-  { id: 2, content: '番茄炒蛋的做法步骤不太清晰，能否添加图片', type: 'issue', typeText: '问题', status: 'pending', statusText: '待处理', createdAt: '5小时前' },
-  { id: 3, content: 'App使用很流畅，食谱分类很清晰，好评！', type: 'praise', typeText: '表扬', status: 'replied', statusText: '已回复', createdAt: '1天前' },
-  { id: 4, content: '食材识别的准确度需要提升，有时识别错误', type: 'issue', typeText: '问题', status: 'resolved', statusText: '已解决', createdAt: '2天前' },
-]);
+const isRefreshing = ref(false);
+const lastUpdated = ref('');
+let refreshTimer: ReturnType<typeof setInterval> | null = null;
+
+interface RecentFeedback {
+  id: number;
+  content: string;
+  type: string;
+  typeText: string;
+  status: string;
+  statusText: string;
+  createdAt: string;
+}
+
+const recentFeedbacks = ref<RecentFeedback[]>([]);
 
 function formatNumber(num: number): string {
-  if (num >= 10000) {
-    return (num / 10000).toFixed(1) + 'w';
-  }
+  if (num >= 10000) return (num / 10000).toFixed(1) + 'w';
   return num.toLocaleString();
+}
+
+function updateLastUpdated() {
+  lastUpdated.value = new Date().toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 }
 
 function getTypeClass(type: string): string {
   const map: Record<string, string> = {
-    suggestion: 'info',
-    issue: 'warning',
-    praise: 'success',
+    bug_report: 'warning',
+    feature_request: 'info',
+    content_issue: 'warning',
+    improvement: 'info',
+    other: 'info',
   };
   return map[type] || 'info';
 }
@@ -191,149 +216,81 @@ function getTypeClass(type: string): string {
 function getStatusClass(status: string): string {
   const map: Record<string, string> = {
     pending: 'warning',
+    in_progress: 'info',
     replied: 'info',
     resolved: 'success',
+    closed: 'danger',
   };
   return map[status] || 'info';
 }
 
-function fetchStats() {
-  // TODO: 调用 API 获取真实数据
-  console.log('Fetching stats...');
-}
+// ==================== 图表配置 ====================
 
-function initTrendChart() {
-  if (!trendChartRef.value) return;
+function buildTrendOption(
+  xData: string[],
+  userData: number[],
+  recipeData: number[],
+  seriesNames: string[] = ['用户增长', '食谱创建'],
+  seriesColors: string[] = ['#f54e00', '#1f8a65']
+) {
+  const series = seriesNames.map((name, i) => {
+    const color = seriesColors[i] || '#999';
+    const data = i === 0 ? userData : recipeData;
+    return {
+      name,
+      type: 'line',
+      smooth: true,
+      symbol: 'circle',
+      symbolSize: 8,
+      lineStyle: { color, width: 3 },
+      itemStyle: { color, borderColor: '#fff', borderWidth: 2 },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: color + '26' },
+          { offset: 1, color: color + '00' },
+        ]),
+      },
+      data,
+    };
+  });
 
-  trendChart = echarts.init(trendChartRef.value);
-
-  const option = {
+  return {
     tooltip: {
       trigger: 'axis',
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
       borderColor: 'rgba(38, 37, 30, 0.1)',
       borderWidth: 1,
-      textStyle: {
-        color: '#26251e',
-        fontFamily: 'system-ui',
-      },
-      axisPointer: {
-        type: 'shadow',
-        shadowStyle: {
-          color: 'rgba(245, 78, 0, 0.05)',
-        },
-      },
+      textStyle: { color: '#26251e', fontFamily: 'system-ui' },
+      axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(245, 78, 0, 0.05)' } },
     },
-    legend: {
-      show: false,
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      top: '10px',
-      containLabel: true,
-    },
+    grid: { left: '3%', right: '4%', bottom: '3%', top: '10px', containLabel: true },
     xAxis: {
       type: 'category',
       boundaryGap: false,
-      data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月'],
-      axisLine: {
-        lineStyle: {
-          color: 'rgba(38, 37, 30, 0.1)',
-        },
-      },
+      data: xData,
+      axisLine: { lineStyle: { color: 'rgba(38, 37, 30, 0.1)' } },
       axisTick: { show: false },
-      axisLabel: {
-        color: 'rgba(38, 37, 30, 0.5)',
-        fontFamily: 'system-ui',
-        fontSize: 11,
-      },
+      axisLabel: { color: 'rgba(38, 37, 30, 0.5)', fontFamily: 'system-ui', fontSize: 11 },
     },
     yAxis: {
       type: 'value',
-      splitLine: {
-        lineStyle: {
-          color: 'rgba(38, 37, 30, 0.06)',
-          type: 'dashed',
-        },
-      },
+      splitLine: { lineStyle: { color: 'rgba(38, 37, 30, 0.06)', type: 'dashed' } },
       axisLine: { show: false },
       axisTick: { show: false },
-      axisLabel: {
-        color: 'rgba(38, 37, 30, 0.5)',
-        fontFamily: 'system-ui',
-        fontSize: 11,
-      },
+      axisLabel: { color: 'rgba(38, 37, 30, 0.5)', fontFamily: 'system-ui', fontSize: 11 },
     },
-    series: [
-      {
-        name: '用户增长',
-        type: 'line',
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 8,
-        lineStyle: {
-          color: '#f54e00',
-          width: 3,
-        },
-        itemStyle: {
-          color: '#f54e00',
-          borderColor: '#fff',
-          borderWidth: 2,
-        },
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(245, 78, 0, 0.15)' },
-            { offset: 1, color: 'rgba(245, 78, 0, 0)' },
-          ]),
-        },
-        data: [820, 932, 1101, 1340, 1490, 1680, 1842],
-      },
-      {
-        name: '食谱创建',
-        type: 'line',
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 8,
-        lineStyle: {
-          color: '#1f8a65',
-          width: 3,
-        },
-        itemStyle: {
-          color: '#1f8a65',
-          borderColor: '#fff',
-          borderWidth: 2,
-        },
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(31, 138, 101, 0.15)' },
-            { offset: 1, color: 'rgba(31, 138, 101, 0)' },
-          ]),
-        },
-        data: [120, 185, 230, 298, 340, 420, 512],
-      },
-    ],
+    series,
   };
-
-  trendChart.setOption(option);
 }
 
-function initPieChart() {
-  if (!pieChartRef.value) return;
-
-  pieChart = echarts.init(pieChartRef.value);
-
-  const option = {
+function buildPieOption(categories: { name: string; value: number; itemStyle?: { color: string } }[]) {
+  return {
     tooltip: {
       trigger: 'item',
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
       borderColor: 'rgba(38, 37, 30, 0.1)',
       borderWidth: 1,
-      textStyle: {
-        color: '#26251e',
-        fontFamily: 'system-ui',
-      },
+      textStyle: { color: '#26251e', fontFamily: 'system-ui' },
       formatter: '{b}: {c} ({d}%)',
     },
     legend: {
@@ -343,11 +300,7 @@ function initPieChart() {
       itemWidth: 10,
       itemHeight: 10,
       itemGap: 12,
-      textStyle: {
-        color: 'rgba(38, 37, 30, 0.7)',
-        fontFamily: 'system-ui',
-        fontSize: 12,
-      },
+      textStyle: { color: 'rgba(38, 37, 30, 0.7)', fontFamily: 'system-ui', fontSize: 12 },
     },
     series: [
       {
@@ -355,24 +308,68 @@ function initPieChart() {
         radius: ['50%', '75%'],
         center: ['35%', '50%'],
         avoidLabelOverlap: false,
-        label: {
-          show: false,
-        },
-        labelLine: {
-          show: false,
-        },
-        data: [
-          { value: 420, name: '家常菜', itemStyle: { color: '#f54e00' } },
-          { value: 280, name: '健身餐', itemStyle: { color: '#1f8a65' } },
-          { value: 180, name: '儿童餐', itemStyle: { color: '#4a7dbf' } },
-          { value: 150, name: '甜点', itemStyle: { color: '#d4880e' } },
-          { value: 802, name: '其他', itemStyle: { color: '#c8c7c2' } },
-        ],
+        label: { show: false },
+        labelLine: { show: false },
+        data: categories,
       },
     ],
   };
+}
 
-  pieChart.setOption(option);
+function initTrendChart() {
+  if (!trendChartRef.value) return;
+  trendChart = echarts.init(trendChartRef.value);
+  trendChart.setOption(buildTrendOption([], [], []));
+}
+
+function initPieChart() {
+  if (!pieChartRef.value) return;
+  pieChart = echarts.init(pieChartRef.value);
+  pieChart.setOption(buildPieOption([]));
+}
+
+// ==================== 数据获取 ====================
+
+async function fetchStats() {
+  isRefreshing.value = true;
+  try {
+    const [dashRes, catRes] = await Promise.all([
+      analyticsApi.dashboard(),
+      analyticsApi.getCategoryStats(),
+    ]);
+    const data = dashRes.data as any;
+    const catData = catRes.data?.data ?? [];
+
+    statCards.value = [
+      { key: 'users', label: '用户总数', value: data?.totalUsers ?? 0, icon: User, color: '#f54e00', change: 0, period: '月' },
+      { key: 'recipes', label: '菜谱总数', value: data?.totalRecipes ?? 0, icon: Food, color: '#1f8a65', change: 0, period: '月' },
+      { key: 'collections', label: '收藏总量', value: data?.totalCollections ?? 0, icon: Collection, color: '#4a7dbf', change: 0, period: '月' },
+      { key: 'feedbacks', label: '反馈总数', value: data?.totalFeedbacks ?? 0, icon: ChatDotRound, color: '#d4880e', change: 0, period: '月' },
+    ];
+
+    recentFeedbacks.value = data?.recentFeedbacks ?? [];
+
+    if (data?.weeklyStats && trendChart) {
+      const ws = data.weeklyStats;
+      trendChart.setOption(buildTrendOption(
+        ws.labels ?? [],
+        ws.userTrend ?? [],
+        ws.recipeTrend ?? [],
+        ['用户增长', '食谱创建'],
+        ['#f54e00', '#1f8a65']
+      ), true);
+    }
+
+    if (catData.length && pieChart) {
+      pieChart.setOption(buildPieOption(catData), true);
+    }
+
+    updateLastUpdated();
+  } catch (error) {
+    console.error('获取统计数据失败:', error);
+  } finally {
+    isRefreshing.value = false;
+  }
 }
 
 function handleResize() {
@@ -383,10 +380,14 @@ function handleResize() {
 onMounted(() => {
   initTrendChart();
   initPieChart();
+  fetchStats();
+  // 每 60 秒自动刷新一次
+  refreshTimer = setInterval(fetchStats, 60_000);
   window.addEventListener('resize', handleResize);
 });
 
 onUnmounted(() => {
+  if (refreshTimer) clearInterval(refreshTimer);
   window.removeEventListener('resize', handleResize);
   trendChart?.dispose();
   pieChart?.dispose();
@@ -415,6 +416,11 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     gap: 12px;
+
+    .last-updated {
+      font-size: 12px;
+      color: rgba(38, 37, 30, 0.45);
+    }
   }
 }
 

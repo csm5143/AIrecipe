@@ -99,6 +99,8 @@
           :page-sizes="[20, 50, 100]"
           layout="sizes, prev, pager, next"
           background
+          @current-change="fetchLogs"
+          @size-change="pagination.page = 1; fetchLogs()"
         />
       </div>
     </div>
@@ -106,9 +108,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
 import { Search, Refresh, Download } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
+import { logsApi } from '@/api/logs';
 
 const loading = ref(false);
 
@@ -124,96 +127,7 @@ const pagination = reactive({
   total: 0,
 });
 
-const tableData = ref([
-  {
-    id: 1001,
-    adminId: 1,
-    adminName: '超级管理员',
-    action: 'create',
-    module: 'recipe',
-    target: '食谱：香煎牛排',
-    detail: '创建了新食谱，分类：西餐，难度：中等',
-    ip: '192.168.1.100',
-    createdAt: '2024-01-20 14:30:25',
-  },
-  {
-    id: 1002,
-    adminId: 2,
-    adminName: '内容编辑',
-    action: 'update',
-    module: 'content',
-    target: 'Banner：春季养生食谱',
-    detail: '修改了 Banner 图片和标题',
-    ip: '192.168.1.101',
-    createdAt: '2024-01-20 11:20:10',
-  },
-  {
-    id: 1003,
-    adminId: 1,
-    adminName: '超级管理员',
-    action: 'delete',
-    module: 'user',
-    target: '用户 ID: 1024',
-    detail: '删除了违规用户',
-    ip: '192.168.1.100',
-    createdAt: '2024-01-20 10:15:33',
-  },
-  {
-    id: 1004,
-    adminId: 3,
-    adminName: '运营经理',
-    action: 'publish',
-    module: 'content',
-    target: '公告：新功能上线',
-    detail: '发布了重要公告',
-    ip: '192.168.1.102',
-    createdAt: '2024-01-19 16:45:00',
-  },
-  {
-    id: 1005,
-    adminId: 2,
-    adminName: '内容编辑',
-    action: 'update',
-    module: 'ingredient',
-    target: '食材：番茄',
-    detail: '更新了食材营养信息，热量：18kcal/100g',
-    ip: '192.168.1.101',
-    createdAt: '2024-01-19 14:30:22',
-  },
-  {
-    id: 1006,
-    adminId: 1,
-    adminName: '超级管理员',
-    action: 'login',
-    module: 'system',
-    target: '系统登录',
-    detail: '管理员登录成功',
-    ip: '192.168.1.100',
-    createdAt: '2024-01-19 09:00:05',
-  },
-  {
-    id: 1007,
-    adminId: 3,
-    adminName: '运营经理',
-    action: 'update',
-    module: 'recipe',
-    target: '食谱：番茄炒蛋',
-    detail: '审核通过，食谱已发布',
-    ip: '192.168.1.102',
-    createdAt: '2024-01-18 17:20:45',
-  },
-  {
-    id: 1008,
-    adminId: 2,
-    adminName: '内容编辑',
-    action: 'create',
-    module: 'collection',
-    target: '专题：减脂餐合集',
-    detail: '创建了新的收藏专题',
-    ip: '192.168.1.101',
-    createdAt: '2024-01-18 15:10:30',
-  },
-]);
+const tableData = ref<any[]>([]);
 
 function getActionText(action: string) {
   const map: Record<string, string> = {
@@ -244,7 +158,7 @@ function getActionClass(action: string) {
 function getModuleText(module: string) {
   const map: Record<string, string> = {
     user: '用户',
-    recipe: '食谱',
+    recipe: '菜谱',
     ingredient: '食材',
     collection: '收藏',
     feedback: '反馈',
@@ -254,13 +168,31 @@ function getModuleText(module: string) {
   return map[module] || module;
 }
 
-function fetchLogs() {
+async function fetchLogs() {
   loading.value = true;
-  setTimeout(() => {
-    pagination.total = tableData.value.length;
+  try {
+    const [startDate, endDate] = filters.dateRange || [undefined, undefined];
+    const res = await logsApi.list({
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      module: filters.module || undefined,
+      adminId: filters.adminId || undefined,
+      startDate: startDate ? startDate.toISOString().slice(0, 10) : undefined,
+      endDate: endDate ? endDate.toISOString().slice(0, 10) : undefined,
+    });
+    tableData.value = res.data?.list || [];
+    pagination.total = res.data?.total || 0;
+  } catch (error) {
+    console.error('获取日志失败:', error);
+  } finally {
     loading.value = false;
-  }, 500);
+  }
 }
+
+watch(
+  () => [pagination.page, pagination.pageSize],
+  () => fetchLogs()
+);
 
 function handleExport() {
   ElMessage.success('导出功能开发中');

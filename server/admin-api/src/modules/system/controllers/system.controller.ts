@@ -18,56 +18,56 @@ export async function getSystemInfo(req: Request, res: Response) {
 }
 
 export async function getAllSettings(req: Request, res: Response) {
-  const settings = settingsStore.getAll();
+  const settings = await settingsStore.getAll();
   res.json({ code: 200, message: 'success', data: settings, timestamp: Date.now() });
 }
 
 export async function getSiteSettings(req: Request, res: Response) {
-  const data = settingsStore.get('site');
+  const data = await settingsStore.get('site');
   res.json({ code: 200, message: 'success', data, timestamp: Date.now() });
 }
 
 export async function getSeoSettings(req: Request, res: Response) {
-  const data = settingsStore.get('seo');
+  const data = await settingsStore.get('seo');
   res.json({ code: 200, message: 'success', data, timestamp: Date.now() });
 }
 
 export async function getLegalSettings(req: Request, res: Response) {
-  const data = settingsStore.get('legal');
+  const data = await settingsStore.get('legal');
   res.json({ code: 200, message: 'success', data, timestamp: Date.now() });
 }
 
 export async function getSecuritySettings(req: Request, res: Response) {
-  const data = settingsStore.get('security');
+  const data = await settingsStore.get('security');
   res.json({ code: 200, message: 'success', data, timestamp: Date.now() });
 }
 
 export async function getEmailSettings(req: Request, res: Response) {
-  const data = settingsStore.get('email');
+  const data = await settingsStore.get('email');
   res.json({ code: 200, message: 'success', data, timestamp: Date.now() });
 }
 
 export async function updateSiteSettings(req: Request, res: Response) {
-  settingsStore.set('site', req.body);
-  res.json({ code: 200, message: '网站信息已保存', data: settingsStore.get('site'), timestamp: Date.now() });
+  await settingsStore.set('site', req.body);
+  res.json({ code: 200, message: '网站信息已保存', data: await settingsStore.get('site'), timestamp: Date.now() });
 }
 
 export async function updateSeoSettings(req: Request, res: Response) {
-  settingsStore.set('seo', req.body);
-  res.json({ code: 200, message: 'SEO 设置已保存', data: settingsStore.get('seo'), timestamp: Date.now() });
+  await settingsStore.set('seo', req.body);
+  res.json({ code: 200, message: 'SEO 设置已保存', data: await settingsStore.get('seo'), timestamp: Date.now() });
 }
 
 export async function updateLegalSettings(req: Request, res: Response) {
-  settingsStore.set('legal', req.body);
-  res.json({ code: 200, message: '备案信息已保存', data: settingsStore.get('legal'), timestamp: Date.now() });
+  await settingsStore.set('legal', req.body);
+  res.json({ code: 200, message: '备案信息已保存', data: await settingsStore.get('legal'), timestamp: Date.now() });
 }
 
 export async function updateSecuritySettings(req: Request, res: Response) {
-  settingsStore.set('security', req.body);
-  res.json({ code: 200, message: '安全设置已保存', data: settingsStore.get('security'), timestamp: Date.now() });
+  await settingsStore.set('security', req.body);
+  res.json({ code: 200, message: '安全设置已保存', data: await settingsStore.get('security'), timestamp: Date.now() });
 }
 
 export async function updateEmailSettings(req: Request, res: Response) {
-  settingsStore.set('email', req.body);
-  res.json({ code: 200, message: '邮件设置已保存', data: settingsStore.get('email'), timestamp: Date.now() });
+  await settingsStore.set('email', req.body);
+  res.json({ code: 200, message: '邮件设置已保存', data: await settingsStore.get('email'), timestamp: Date.now() });
 }

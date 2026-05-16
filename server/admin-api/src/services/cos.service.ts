@@ -17,6 +17,7 @@ const cosConfig = {
 
 // 文件夹类型
 export const COS_FOLDERS = {
+  ADMINS: 'admins',
   AVATARS: 'avatars',
   RECIPES: 'recipes',
   RECIPE_COVER: 'recipes',
@@ -26,6 +27,7 @@ export const COS_FOLDERS = {
   BANNERS: 'banners',
   CATEGORIES: 'categories',
   INGREDIENTS: 'ingredients',
+  SETTINGS: 'settings',
   TMP: 'tmp',
 } as const;
 
@@ -208,11 +210,40 @@ export class COSService {
   }
 
   /**
+   * 上传管理员头像
+   */
+  static async uploadAdminAvatar(buffer: Buffer, username: string): Promise<{ url: string; key: string }> {
+    const key = `${COS_FOLDERS.ADMINS}/${username}/avatar_${Date.now()}.jpg`;
+
+    return new Promise((resolve, reject) => {
+      cos.putObject(
+        {
+          Bucket: cosConfig.Bucket,
+          Region: cosConfig.Region,
+          Key: key,
+          Body: buffer,
+          ContentLength: buffer.length,
+        },
+        (err, data) => {
+          if (err) {
+            reject(new Error('上传管理员头像失败'));
+          } else {
+            resolve({
+              url: getCOSUrl(key),
+              key,
+            });
+          }
+        }
+      );
+    });
+  }
+
+  /**
    * 上传分类图标
    */
-  static async uploadCategoryIcon(buffer: Buffer, categoryId: string): Promise<{ url: string; key: string }> {
-    const key = `${COS_FOLDERS.CATEGORIES}/${categoryId}/icon_${Date.now()}.png`;
-    
+  static async uploadCategoryIcon(buffer: Buffer, username: string): Promise<{ url: string; key: string }> {
+    const key = `${COS_FOLDERS.CATEGORIES}/${username}/icon_${Date.now()}.png`;
+
     return new Promise((resolve, reject) => {
       cos.putObject(
         {
@@ -225,6 +256,37 @@ export class COSService {
         (err, data) => {
           if (err) {
             reject(new Error('上传分类图标失败'));
+          } else {
+            resolve({
+              url: getCOSUrl(key),
+              key,
+            });
+          }
+        }
+      );
+    });
+  }
+
+  /**
+   * 上传系统设置图片（Logo、Favicon 等）
+   */
+  static async uploadSettings(buffer: Buffer, type: string, username: string): Promise<{ url: string; key: string }> {
+    const ext = type.includes('.') ? type.substring(type.lastIndexOf('.')) : '.png';
+    const name = type.replace(/\.[^.]+$/, '');
+    const key = `${COS_FOLDERS.SETTINGS}/${username}/${name}_${Date.now()}${ext}`;
+
+    return new Promise((resolve, reject) => {
+      cos.putObject(
+        {
+          Bucket: cosConfig.Bucket,
+          Region: cosConfig.Region,
+          Key: key,
+          Body: buffer,
+          ContentLength: buffer.length,
+        },
+        (err, data) => {
+          if (err) {
+            reject(new Error('上传系统设置图片失败'));
           } else {
             resolve({
               url: getCOSUrl(key),

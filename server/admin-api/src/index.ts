@@ -8,8 +8,10 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import config from './config';
+import { prisma } from './lib/prisma';
 import { errorHandler } from './modules/system/middleware/errorHandler';
 import { requestLogger } from './modules/system/middleware/requestLogger';
+import { settingsStore } from './modules/system/settingsStore';
 import authRoutes from './modules/auth/routes/auth.routes';
 import userRoutes from './modules/user/routes/user.routes';
 import recipeRoutes from './modules/recipe/routes/recipe.routes';
@@ -18,12 +20,16 @@ import collectionRoutes from './modules/collection/routes/collection.routes';
 import feedbackRoutes from './modules/feedback/routes/feedback.routes';
 import recipeAuditRoutes from './modules/recipe-audit/routes/recipe-audit.routes';
 import userRecipeRoutes from './modules/user-recipe/routes/user-recipe.routes';
+import adminRoutes from './modules/admin/routes/admin.routes';
 import contentRoutes from './modules/content/routes/content.routes';
 import analyticsRoutes from './modules/analytics/routes/analytics.routes';
 import uploadRoutes from './modules/upload/routes/upload.routes';
 import systemRoutes from './modules/system/routes/system.routes';
 import appRoutes from './modules/app/routes';
 import wxRoutes from './modules/wx/routes/wx.routes';
+import operationLogsRoutes from './modules/operation-logs/routes/operation-logs.routes';
+import recycleBinRoutes from './modules/recycle-bin/routes/recycle-bin.routes';
+import featuredRoutes from './modules/featured/routes/featured.routes';
 
 const app: Express = express();
 
@@ -92,17 +98,21 @@ app.get('/v1/health', (req, res) => {
 app.use(`${config.app.apiPrefix}/auth`, authRoutes);
 app.use(`${config.app.apiPrefix}/users`, userRoutes);
 app.use(`${config.app.apiPrefix}/recipes`, recipeRoutes);
+app.use(`${config.app.apiPrefix}/featured-recipes`, featuredRoutes);
 app.use(`${config.app.apiPrefix}/ingredients`, ingredientRoutes);
 app.use(`${config.app.apiPrefix}/collections`, collectionRoutes);
 app.use(`${config.app.apiPrefix}/feedbacks`, feedbackRoutes);
 app.use(`${config.app.apiPrefix}/recipe-audit`, recipeAuditRoutes);
 app.use(`${config.app.apiPrefix}/user-recipes`, userRecipeRoutes);
+app.use(`${config.app.apiPrefix}/admins`, adminRoutes);
 app.use(`${config.app.apiPrefix}/content`, contentRoutes);
 app.use(`${config.app.apiPrefix}/app`, appRoutes);
 app.use(`${config.app.apiPrefix}/wx`, wxRoutes);
 app.use(`${config.app.apiPrefix}/analytics`, analyticsRoutes);
 app.use(`${config.app.apiPrefix}/upload`, uploadRoutes);
 app.use(`${config.app.apiPrefix}/system`, systemRoutes);
+app.use(`${config.app.apiPrefix}/logs`, operationLogsRoutes);
+app.use(`${config.app.apiPrefix}/recycle-bin`, recycleBinRoutes);
 
 // ==================== 错误处理 ====================
 
@@ -110,11 +120,23 @@ app.use(errorHandler);
 
 // ==================== 启动服务器 ====================
 
-app.listen(config.app.port, config.app.host, () => {
+app.listen(config.app.port, config.app.host, async () => {
   console.log(`🚀 AIRecipe Admin API 已启动`);
   console.log(`   环境: ${config.app.env}`);
   console.log(`   端口: ${config.app.port}`);
   console.log(`   API: http://localhost:${config.app.port}${config.app.apiPrefix}`);
+
+  // Warm up Prisma connection pool — avoids cold-start latency on first real query
+  try {
+    await prisma.$connect();
+    await prisma.ingredient.findFirst({ select: { id: true } });
+    console.log('[WARMUP] Prisma pool ready');
+
+    // Ensure system settings are seeded on first run
+    await settingsStore.ensureInitialized();
+  } catch (e) {
+    console.warn('[WARMUP] Failed to warm up Prisma pool:', e);
+  }
 });
 
 export default app;

@@ -2,11 +2,11 @@ import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { ElMessage } from 'element-plus';
 import router from '@/router';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/v1';
 
 const instance: AxiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -53,6 +53,8 @@ instance.interceptors.response.use(
         default:
           ElMessage.error(data?.message || '请求失败');
       }
+    } else if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+      ElMessage.error('请求超时，请检查后端服务是否运行');
     } else {
       ElMessage.error('网络错误，请检查网络连接');
     }

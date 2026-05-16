@@ -6,11 +6,11 @@ import { authenticate } from '../middleware/auth.middleware';
 const router: ExpressRouter = Router();
 
 router.post('/login', asyncHandler(login));
-router.post('/logout', authenticate, asyncHandler(logout));
-router.get('/profile', authenticate, asyncHandler(getProfile));
+router.post('/logout', asyncHandler(authenticate), asyncHandler(logout));
+router.get('/profile', asyncHandler(authenticate), asyncHandler(getProfile));
 router.post('/refresh-token', asyncHandler(refreshToken));
-router.put('/profile', authenticate, asyncHandler(updateProfile));
-router.put('/password', authenticate, asyncHandler(changePassword));
-router.put('/avatar', authenticate, asyncHandler(updateAvatar));
+router.put('/profile', asyncHandler(authenticate), asyncHandler(updateProfile));
+router.put('/password', asyncHandler(authenticate), asyncHandler(changePassword));
+router.put('/avatar', asyncHandler(authenticate), asyncHandler(updateAvatar));
 
 export default router;

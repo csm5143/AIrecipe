@@ -72,9 +72,11 @@ model Admin {
   username     String        @unique
   password     String
   nickname     String?
+  phone        String?
   avatar       String?
   role         AdminRole     @default(EDITOR)
   status       AccountStatus @default(ACTIVE)
+  isDeleted    Boolean       @default(false)
   lastLoginAt  DateTime?
   lastLoginIp  String?
   createdAt    DateTime      @default(now())
@@ -82,7 +84,9 @@ model Admin {
   
   operationLogs OperationLog[]
   feedbackReplies FeedbackReply[]
-  
+  adminLogs AdminLog[]
+  recycleItems RecycleBin[]
+
   @@map("admins")
 }
 
@@ -173,6 +177,7 @@ model Recipe {
   favorites    Favorite[]
   browseHistory BrowseHistory[]
   collectionItems CollectionItem[]
+  featuredRecipe FeaturedRecipe?
   
   @@index([source, status])
   @@index([category])
@@ -181,6 +186,22 @@ model Recipe {
   @@index([createdAt])
   @@index([authorId])
   @@map("recipes")
+}
+
+// 精选菜谱管理
+model FeaturedRecipe {
+  id        Int      @id @default(autoincrement())
+  recipeId  Int      @unique
+  weight    Int      @default(0)
+  note      String?
+  addedBy   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@index([weight])
+  @@map("featured_recipes")
 }
 
 // 食谱-食材关联表
@@ -206,6 +227,7 @@ model Ingredient {
   id           Int         @id @default(autoincrement())
   name         String      @unique
   alias        String?
+  subCategory  String?     // 细分分类，如"鸡肉"、"叶菜"
   coverImage   String?
   category     String?
   unit         String?
@@ -215,10 +237,11 @@ model Ingredient {
   status       ContentStatus @default(ACTIVE)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
-  
+
   recipeIngredients RecipeIngredient[]
-  
+
   @@index([category])
+  @@index([createdAt])
   @@map("ingredients")
 }
 
@@ -512,6 +535,54 @@ model ExtensionData {
   @@map("extension_data")
 }
 
+// =====================================================
+// 十一、管理员操作日志
+// =====================================================
+
+model AdminLog {
+  id         Int       @id @default(autoincrement())
+  adminId    Int
+  adminName  String?
+  action     String    // create|update|delete|publish|offline|login|logout
+  module     String    // recipe|user|ingredient|feedback|content|system
+  target     String?   // 操作对象描述
+  detail     String?   // 详情
+  ip         String?
+  createdAt  DateTime  @default(now())
+
+  admin      Admin     @relation(fields: [adminId], references: [id])
+
+  @@index([adminId])
+  @@index([module])
+  @@index([action])
+  @@index([createdAt])
+  @@map("admin_logs")
+}
+
+// =====================================================
+// 十二、回收站
+// =====================================================
+
+model RecycleBin {
+  id          Int       @id @default(autoincrement())
+  itemType    String    // recipe|user|feedback|ingredient
+  itemId      Int
+  itemData    Json      // 被删除时的完整数据快照
+  deletedBy   Int       // 操作的管理员 ID
+  reason      String?
+  restoredAt  DateTime? // 还原时间，为 null 表示仍在回收站
+  createdAt   DateTime  @default(now())
+  expiresAt  DateTime? // 过期时间，为 null 表示永不过期
+
+  admin       Admin     @relation(fields: [deletedBy], references: [id])
+
+  @@unique([itemType, itemId, createdAt])
+  @@index([itemType])
+  @@index([deletedBy])
+  @@index([createdAt])
+  @@map("recycle_bin")
+}
+
 // 扩展表1 - 菜谱版本管理
 model RecipeVersion {
   id           Int       @id @default(autoincrement())
@@ -543,7 +614,25 @@ model ScheduledTask {
 }
 
 // =====================================================
-// 十三、枚举定义
+// 十三、系统配置
+// =====================================================
+
+model SystemSetting {
+  id          Int       @id @default(autoincrement())
+  category    String    // 分组: site / seo / legal / security / email
+  key         String    // 配置键名
+  value       String?   // 配置值（存为字符串）
+  description String?   // 配置说明
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@unique([category, key])
+  @@index([category])
+  @@map("system_settings")
+}
+
+// =====================================================
+// 十四、枚举定义
 // =====================================================
 
 enum Gender {
@@ -586,6 +675,7 @@ enum Difficulty {
 
 enum ContentStatus {
   ACTIVE
+  INACTIVE
   DRAFT
   PUBLISHED
   OFFLINE

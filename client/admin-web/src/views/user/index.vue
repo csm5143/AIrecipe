@@ -6,6 +6,7 @@
         <p class="text-muted">管理平台注册用户</p>
       </div>
       <div class="header-actions">
+        <el-button type="primary" :icon="Plus" @click="showCreateDialog = true">新增用户</el-button>
         <el-button :icon="Download" @click="handleExport">导出</el-button>
         <el-button :icon="Refresh" @click="fetchUsers">刷新</el-button>
       </div>
@@ -128,13 +129,56 @@
       </div>
     </div>
 
+    <!-- 新增用户对话框 -->
+    <el-dialog v-model="showCreateDialog" title="新增用户" width="520px" destroy-on-close>
+      <el-form :model="createForm" :rules="createRules" ref="createFormRef" label-width="80px">
+        <el-form-item label="昵称" prop="nickname">
+          <el-input v-model="createForm.nickname" placeholder="请输入用户昵称" maxlength="30" show-word-limit />
+        </el-form-item>
+        <el-form-item label="手机号" prop="phone">
+          <el-input v-model="createForm.phone" placeholder="请输入手机号" maxlength="11" />
+        </el-form-item>
+        <el-form-item label="登录密码" prop="password">
+          <el-input v-model="createForm.password" type="password" placeholder="请输入登录密码（可选）" show-password />
+        </el-form-item>
+        <el-form-item label="性别" prop="gender">
+          <el-select v-model="createForm.gender" placeholder="请选择性别" style="width: 100%">
+            <el-option label="未设置" value="" />
+            <el-option label="男" value="male" />
+            <el-option label="女" value="female" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="头像 URL" prop="avatar">
+          <el-input v-model="createForm.avatar" placeholder="请输入头像图片地址（可选）" />
+        </el-form-item>
+        <el-form-item label="个人简介" prop="bio">
+          <el-input v-model="createForm.bio" type="textarea" placeholder="请输入个人简介（可选）" :rows="3" maxlength="200" show-word-limit />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showCreateDialog = false">取消</el-button>
+        <el-button type="primary" :loading="creating" @click="handleCreate">确认创建</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 用户详情对话框 -->
     <el-dialog v-model="detailVisible" title="用户详情" width="600px">
       <div v-if="currentUser" class="user-detail-modal">
         <div class="detail-header">
-          <el-avatar :size="72" :src="currentUser.avatar" class="detail-avatar">
-            {{ currentUser.nickname?.charAt(0) }}
-          </el-avatar>
+          <el-upload
+            action="#"
+            :auto-upload="true"
+            :show-file-list="false"
+            accept="image/*"
+            :before-upload="(file: File) => { handleAvatarChange(file); return false; }"
+          >
+            <el-avatar :size="72" :src="currentUser.avatar" class="detail-avatar uploadable-avatar">
+              {{ currentUser.nickname?.charAt(0) }}
+            </el-avatar>
+            <div v-if="avatarUploading" class="avatar-upload-mask">
+              <el-icon class="is-loading"><Upload /></el-icon>
+            </div>
+          </el-upload>
           <div class="detail-info">
             <h3>{{ currentUser.nickname || '未设置昵称' }}</h3>
             <p class="text-muted">ID: {{ currentUser.id }}</p>
@@ -153,22 +197,77 @@
               {{ currentUser.status === 'ACTIVE' ? '正常' : '禁用' }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="用户类型">{{ currentUser.userType || '普通用户' }}</el-descriptions-item>
         </el-descriptions>
 
         <div class="detail-section">
-          <h4>健身目标</h4>
-          <p class="text-muted">{{ currentUser.fitnessGoal || '未设置' }}</p>
-        </div>
-
-        <div class="detail-section">
-          <h4>孩子信息</h4>
-          <p class="text-muted">{{ currentUser.childInfo || '未设置' }}</p>
+          <h4>个人简介</h4>
+          <p class="text-muted">{{ currentUser.bio || '未设置' }}</p>
         </div>
       </div>
       <template #footer>
         <el-button @click="detailVisible = false">关闭</el-button>
         <el-button type="primary" @click="handleEditUser">编辑用户</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 导出弹窗 -->
+    <el-dialog v-model="exportDialogVisible" title="导出用户" width="480px" :close-on-click-modal="false">
+      <div class="export-dialog-body">
+        <p class="export-tip">
+          共 <strong>{{ pagination.total }}</strong> 条用户数据，将按照当前筛选条件导出
+        </p>
+        <div class="export-format-list">
+          <label
+            class="export-format-item"
+            :class="{ active: exportFormat === 'xlsx' }"
+            @click="exportFormat = 'xlsx'"
+          >
+            <input type="radio" name="exportFormat" value="xlsx" v-model="exportFormat" hidden />
+            <div class="format-icon xlsx-icon"><span>Excel</span></div>
+            <div class="format-info">
+              <span class="format-name">Excel 格式</span>
+              <span class="format-ext">.xlsx</span>
+              <span class="format-desc">支持公式、筛选，适合数据分析</span>
+            </div>
+            <div class="format-check" v-if="exportFormat === 'xlsx'"><el-icon><Check /></el-icon></div>
+          </label>
+
+          <label
+            class="export-format-item"
+            :class="{ active: exportFormat === 'csv' }"
+            @click="exportFormat = 'csv'"
+          >
+            <input type="radio" name="exportFormat" value="csv" v-model="exportFormat" hidden />
+            <div class="format-icon csv-icon"><span>CSV</span></div>
+            <div class="format-info">
+              <span class="format-name">CSV 格式</span>
+              <span class="format-ext">.csv</span>
+              <span class="format-desc">体积更小，兼容所有编辑器</span>
+            </div>
+            <div class="format-check" v-if="exportFormat === 'csv'"><el-icon><Check /></el-icon></div>
+          </label>
+
+          <label
+            class="export-format-item"
+            :class="{ active: exportFormat === 'json' }"
+            @click="exportFormat = 'json'"
+          >
+            <input type="radio" name="exportFormat" value="json" v-model="exportFormat" hidden />
+            <div class="format-icon json-icon"><span>JSON</span></div>
+            <div class="format-info">
+              <span class="format-name">JSON 数据</span>
+              <span class="format-ext">.json</span>
+              <span class="format-desc">保留完整结构，适合程序导入</span>
+            </div>
+            <div class="format-check" v-if="exportFormat === 'json'"><el-icon><Check /></el-icon></div>
+          </label>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="exportDialogVisible = false" :disabled="exporting">取消</el-button>
+        <el-button type="primary" :loading="exporting" @click="handleConfirm">
+          确认导出
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -183,14 +282,41 @@ import {
   View,
   Delete,
   Collection,
-  ChatDotRound
+  ChatDotRound,
+  Plus,
+  Upload,
+  Check,
 } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { userApi, type UserRow } from '@/api/user';
+import { uploadAvatar } from '@/api/upload';
+import { useExport, downloadFile } from '@/composables/useExport';
 
 const loading = ref(false);
 const detailVisible = ref(false);
-const currentUser = ref<any>(null);
+const showCreateDialog = ref(false);
+const creating = ref(false);
+const currentUser = ref<UserRow | null>(null);
 const selectedRows = ref<any[]>([]);
+const avatarUploading = ref(false);
+const { exportDialogVisible, exportFormat, exporting, showExportDialog, handleConfirm } = useExport();
+
+const createForm = reactive({
+  nickname: '',
+  phone: '',
+  password: '',
+  gender: '' as '' | 'male' | 'female',
+  avatar: '',
+  bio: '',
+});
+
+const createRules = {
+  phone: [
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' },
+  ],
+};
+
+const createFormRef = ref<any>(null);
 
 const filters = reactive({
   keyword: '',
@@ -204,56 +330,7 @@ const pagination = reactive({
   total: 0,
 });
 
-const tableData = ref([
-  {
-    id: 1001,
-    nickname: '美食爱好者',
-    avatar: 'https://picsum.photos/seed/user1/100/100',
-    phone: '138****5678',
-    gender: 'male',
-    collectionCount: 45,
-    feedbackCount: 3,
-    status: 'ACTIVE',
-    createdAt: '2024-01-15',
-    lastLoginAt: '2024-01-20 14:30',
-  },
-  {
-    id: 1002,
-    nickname: '健康生活家',
-    avatar: 'https://picsum.photos/seed/user2/100/100',
-    phone: '139****1234',
-    gender: 'female',
-    collectionCount: 78,
-    feedbackCount: 5,
-    status: 'ACTIVE',
-    createdAt: '2024-01-10',
-    lastLoginAt: '2024-01-20 10:15',
-  },
-  {
-    id: 1003,
-    nickname: '健身达人',
-    avatar: '',
-    phone: '137****9012',
-    gender: 'male',
-    collectionCount: 156,
-    feedbackCount: 1,
-    status: 'ACTIVE',
-    createdAt: '2024-01-05',
-    lastLoginAt: '2024-01-19 20:45',
-  },
-  {
-    id: 1004,
-    nickname: '小厨娘',
-    avatar: 'https://picsum.photos/seed/user4/100/100',
-    phone: '136****3456',
-    gender: 'female',
-    collectionCount: 89,
-    feedbackCount: 8,
-    status: 'DISABLED',
-    createdAt: '2024-01-01',
-    lastLoginAt: '2024-01-15 09:00',
-  },
-]);
+const tableData = ref<UserRow[]>([]);
 
 function handleSelectionChange(rows: any[]) {
   selectedRows.value = rows;
@@ -262,10 +339,37 @@ function handleSelectionChange(rows: any[]) {
 async function fetchUsers() {
   loading.value = true;
   try {
-    // TODO: 调用 API
-    pagination.total = tableData.value.length;
+    const res = await userApi.list({
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      keyword: filters.keyword || undefined,
+      gender: filters.gender || undefined,
+      status: filters.status || undefined,
+    });
+    tableData.value = res.data?.list || [];
+    pagination.total = res.data?.total || 0;
+  } catch (error) {
+    console.error('获取用户列表失败:', error);
   } finally {
     loading.value = false;
+  }
+}
+
+async function handleAvatarChange(file: File) {
+  if (!currentUser.value) return;
+  avatarUploading.value = true;
+  try {
+    const result = await uploadAvatar(file as any, String(currentUser.value.id));
+    const avatarUrl = result.url || (result.data as any)?.url || '';
+    currentUser.value.avatar = avatarUrl;
+    // 同步更新列表中的头像
+    const row = tableData.value.find(r => r.id === currentUser.value!.id);
+    if (row) row.avatar = avatarUrl;
+    ElMessage.success('头像更新成功');
+  } catch {
+    ElMessage.error('头像上传失败');
+  } finally {
+    avatarUploading.value = false;
   }
 }
 
@@ -278,21 +382,69 @@ function handleEditUser() {
   ElMessage.info('编辑用户功能开发中');
 }
 
-async function handleStatusChange(row: any) {
-  const action = row.status === 'ACTIVE' ? '启用' : '禁用';
-  ElMessage.success(`用户已${action}`);
+async function handleStatusChange(row: UserRow) {
+  try {
+    await userApi.updateStatus(row.id, row.status);
+    const action = row.status === 'ACTIVE' ? '启用' : '禁用';
+    ElMessage.success(`用户已${action}`);
+  } catch {
+    // revert UI
+    row.status = row.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
+  }
 }
 
-async function handleDelete(row: any) {
+async function handleDelete(row: UserRow) {
   await ElMessageBox.confirm(`确定要删除用户「${row.nickname}」吗？删除后无法恢复。`, '警告', {
     type: 'warning',
   });
+  await userApi.delete(row.id);
   ElMessage.success('删除成功');
   fetchUsers();
 }
 
 function handleExport() {
-  ElMessage.success('导出功能开发中');
+  const params = {
+    keyword: filters.keyword || undefined,
+    gender: filters.gender || undefined,
+    status: filters.status || undefined,
+  };
+  showExportDialog({
+    name: '用户',
+    total: pagination.total,
+    exportFn: (format) => downloadFile('/users/export', params, format),
+  });
+}
+
+async function handleCreate() {
+  if (!createForm.nickname && !createForm.phone) {
+    ElMessage.warning('手机号或昵称至少填写一项');
+    return;
+  }
+  try {
+    await createFormRef.value.validate();
+  } catch {
+    return;
+  }
+  creating.value = true;
+  try {
+    const payload: any = {};
+    if (createForm.nickname) payload.nickname = createForm.nickname;
+    if (createForm.phone) payload.phone = createForm.phone;
+    if (createForm.password) payload.password = createForm.password;
+    if (createForm.gender) payload.gender = createForm.gender.toUpperCase();
+    if (createForm.avatar) payload.avatar = createForm.avatar;
+    if (createForm.bio) payload.bio = createForm.bio;
+
+    await userApi.create(payload);
+    ElMessage.success('用户创建成功');
+    showCreateDialog.value = false;
+    Object.assign(createForm, { nickname: '', phone: '', password: '', gender: '', avatar: '', bio: '' });
+    fetchUsers();
+  } catch (error: any) {
+    ElMessage.error(error?.message || '创建失败');
+  } finally {
+    creating.value = false;
+  }
 }
 
 onMounted(() => {
@@ -418,11 +570,29 @@ onMounted(() => {
     margin-bottom: 24px;
     padding-bottom: 24px;
     border-bottom: 1px solid var(--border-primary);
+    position: relative;
 
     .detail-avatar {
       flex-shrink: 0;
       background: var(--surface-400);
       color: var(--cursor-dark);
+    }
+
+    .uploadable-avatar {
+      cursor: pointer;
+      transition: opacity var(--transition-fast);
+      &:hover { opacity: 0.8; }
+    }
+
+    .avatar-upload-mask {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
     }
 
     .detail-info {
@@ -458,5 +628,104 @@ onMounted(() => {
       font-size: 14px;
     }
   }
+}
+
+// 导出弹窗
+.export-dialog-body {
+  padding: 8px 4px;
+}
+
+.export-tip {
+  color: rgba(38, 37, 30, 0.6);
+  font-size: 13px;
+  margin-bottom: 20px;
+
+  strong {
+    color: var(--cursor-orange);
+    font-weight: 600;
+  }
+}
+
+.export-format-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.export-format-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--border-primary);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  user-select: none;
+
+  &:hover {
+    border-color: var(--cursor-orange);
+    background: rgba(245, 111, 32, 0.04);
+  }
+
+  &.active {
+    border-color: var(--cursor-orange);
+    background: rgba(245, 111, 32, 0.06);
+
+    .format-icon {
+      opacity: 1;
+    }
+  }
+}
+
+.format-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  color: #fff;
+
+  &.xlsx-icon { background: #1d7a3d; }
+  &.csv-icon { background: #3a6e38; }
+  &.json-icon { background: #c47f17; }
+}
+
+.format-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.format-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--cursor-dark);
+  font-family: var(--font-display);
+}
+
+.format-ext {
+  font-size: 11px;
+  color: rgba(38, 37, 30, 0.4);
+  font-family: monospace;
+}
+
+.format-desc {
+  font-size: 12px;
+  color: rgba(38, 37, 30, 0.5);
+  margin-top: 2px;
+}
+
+.format-check {
+  color: var(--cursor-orange);
+  font-size: 18px;
+  flex-shrink: 0;
 }
 </style>

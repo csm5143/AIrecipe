@@ -2,8 +2,8 @@ import type { Recipe } from '@airecipe/shared-types';
 
 export interface RecipeRow {
   id: string;
-  title?: string;   // 支持 title 字段
-  name?: string;    // 也支持 name 字段（兼容 JSON）
+  title?: string;
+  name?: string;
   coverImage: string;
   description: string;
   ingredients: string[];
@@ -18,8 +18,8 @@ export interface RecipeRow {
   ageBand?: string;
   childrenMeal: boolean;
   steps: string[];
-  viewCount?: number;   // 添加缺失字段
-  collectCount?: number; // 添加缺失字段
+  viewCount?: number;
+  collectCount?: number;
 }
 
 function mapDifficulty(d: string): string {
@@ -31,12 +31,11 @@ function mapDifficulty(d: string): string {
 
 function mapDishType(t: string): string {
   const map: Record<string, string> = {
-    stir_fry: '炒菜', diet: '减脂餐', noodles: '面食', steamed: '蒸菜',
-    stir_fried_staple: '炒主食', soup: '汤品', cold: '凉菜', boiled: '水煮',
-    stew: '炖菜', western: '西餐', porridge: '粥类', dessert: '甜点',
-    drink: '饮品', braised: '红烧', bbq: '烧烤', hotpot: '火锅',
-    fried: '油炸', baked: '烘焙', sashimi: '刺身', steamed_egg: '蒸蛋',
-    children: '儿童餐', main: '主菜', rice: '米饭', puree: '泥糊',
+    staple: '主食', stir_fry: '小炒菜', soup: '汤品', boiled: '煮食',
+    fried: '炒食', cold: '凉菜', porridge: '粥', noodles: '面食',
+    dessert: '甜品', drink: '饮品', braised: '卤味', bbq: '烧烤',
+    hotpot: '火锅', deep_fried: '油炸', baked: '烘焙', sashimi: '刺身',
+    western: '西餐', diet: '减脂餐', children: '儿童餐',
   };
   return map[t] || t;
 }
@@ -84,12 +83,11 @@ export function normalizeRecipe(raw: RecipeRow): Recipe {
 
 export function normalizeDishType(t: string): string {
   const map: Record<string, string> = {
-    stir_fry: '炒菜', diet: '减脂餐', noodles: '面食', steamed: '蒸菜',
-    stir_fried_staple: '炒主食', soup: '汤品', cold: '凉菜', boiled: '水煮',
-    stew: '炖菜', western: '西餐', porridge: '粥类', dessert: '甜点',
-    drink: '饮品', braised: '红烧', bbq: '烧烤', hotpot: '火锅',
-    fried: '油炸', baked: '烘焙', sashimi: '刺身', steamed_egg: '蒸蛋',
-    children: '儿童餐', main: '主菜', rice: '米饭', puree: '泥糊',
+    staple: '主食', stir_fry: '小炒菜', soup: '汤品', boiled: '煮食',
+    fried: '炒食', cold: '凉菜', porridge: '粥', noodles: '面食',
+    dessert: '甜品', drink: '饮品', braised: '卤味', bbq: '烧烤',
+    hotpot: '火锅', deep_fried: '油炸', baked: '烘焙', sashimi: '刺身',
+    western: '西餐', diet: '减脂餐', children: '儿童餐',
   };
   return map[t] || t;
 }
@@ -97,6 +95,7 @@ export function normalizeDishType(t: string): string {
 export function normalizeMealTime(t: string): string {
   const map: Record<string, string> = {
     breakfast: '早餐', lunch: '午餐', dinner: '晚餐', late_night: '夜宵',
+    '早餐': '早餐', '午餐': '午餐', '晚餐': '晚餐', '夜宵': '夜宵',
   };
   return map[t] || t;
 }
@@ -109,30 +108,25 @@ export function normalizeDifficulty(d: string): string {
 }
 
 export const DISH_TYPE_OPTIONS = [
-  { value: 'stir_fry', label: '炒菜' },
-  { value: 'diet', label: '减脂餐' },
-  { value: 'noodles', label: '面食' },
-  { value: 'steamed', label: '蒸菜' },
-  { value: 'stir_fried_staple', label: '炒主食' },
+  { value: 'staple', label: '主食' },
+  { value: 'stir_fry', label: '小炒菜' },
   { value: 'soup', label: '汤品' },
+  { value: 'boiled', label: '煮食' },
+  { value: 'fried', label: '炒食' },
   { value: 'cold', label: '凉菜' },
-  { value: 'boiled', label: '水煮' },
-  { value: 'stew', label: '炖菜' },
-  { value: 'western', label: '西餐' },
-  { value: 'porridge', label: '粥类' },
-  { value: 'dessert', label: '甜点' },
+  { value: 'porridge', label: '粥' },
+  { value: 'noodles', label: '面食' },
+  { value: 'dessert', label: '甜品' },
   { value: 'drink', label: '饮品' },
-  { value: 'braised', label: '红烧' },
+  { value: 'braised', label: '卤味' },
   { value: 'bbq', label: '烧烤' },
   { value: 'hotpot', label: '火锅' },
-  { value: 'fried', label: '油炸' },
+  { value: 'deep_fried', label: '油炸' },
   { value: 'baked', label: '烘焙' },
   { value: 'sashimi', label: '刺身' },
-  { value: 'steamed_egg', label: '蒸蛋' },
+  { value: 'western', label: '西餐' },
+  { value: 'diet', label: '减脂餐' },
   { value: 'children', label: '儿童餐' },
-  { value: 'main', label: '主菜' },
-  { value: 'rice', label: '米饭' },
-  { value: 'puree', label: '泥糊' },
 ];
 
 export const MEAL_TIME_OPTIONS = [
@@ -174,4 +168,9 @@ export const STATUS_OPTIONS = [
   { value: 'PUBLISHED', label: '已发布' },
   { value: 'DRAFT', label: '草稿' },
   { value: 'OFFLINE', label: '已下线' },
+];
+
+export const SOURCE_OPTIONS = [
+  { value: 'OFFICIAL', label: '官方' },
+  { value: 'USER', label: '用户上传' },
 ];

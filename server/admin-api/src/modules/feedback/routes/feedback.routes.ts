@@ -1,12 +1,15 @@
 import { Router, Router as ExpressRouter } from 'express';
 import { asyncHandler } from '../../../utils/helper';
-import { getFeedbacks, replyFeedback } from '../controllers/feedback.controller';
-import { authenticate } from '../../auth/middleware/auth.middleware';
+import { getFeedbacks, replyFeedback, updateFeedbackStatus, deleteFeedback } from '../controllers/feedback.controller';
+import { authenticate, authorize } from '../../auth/middleware/auth.middleware';
 
 const router: ExpressRouter = Router();
-router.use(authenticate);
+router.use(asyncHandler(authenticate));
 
-router.get('/', asyncHandler(getFeedbacks));
-router.post('/:id/reply', asyncHandler(replyFeedback));
+// ADMIN 和 AUDITOR 均可访问反馈管理（前端侧边栏会按角色过滤）
+router.get('/', asyncHandler(authorize('SUPER_ADMIN', 'ADMIN', 'AUDITOR')), asyncHandler(getFeedbacks));
+router.patch('/:id/status', asyncHandler(authorize('SUPER_ADMIN', 'ADMIN', 'AUDITOR')), asyncHandler(updateFeedbackStatus));
+router.post('/:id/reply', asyncHandler(authorize('SUPER_ADMIN', 'ADMIN', 'AUDITOR')), asyncHandler(replyFeedback));
+router.delete('/:id', asyncHandler(authorize('SUPER_ADMIN', 'ADMIN', 'AUDITOR')), asyncHandler(deleteFeedback));
 
 export default router;

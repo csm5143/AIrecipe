@@ -1,9 +1,9 @@
 {
   "site": {
-    "siteName": "AIrecipe",
-    "siteDescription": "AIrecipe - 您的智能食谱助手",
+    "siteName": "吃了嘛",
+    "siteDescription": "吃了嘛 - 您的智能菜谱助手",
     "logo": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/tmp/1777433737338_lzchyb.png",
-    "favicon": ""
+    "favicon": "https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/tmp/1778123289862_v1xtz1.png"
   },
   "seo": {
     "title": "AIRecipe - 智能菜谱推荐平台",

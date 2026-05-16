@@ -36,15 +36,13 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
 }
 
 export function authorize(...roles: string[]) {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     if (!req.admin) {
       throw new UnauthorizedException('未登录');
     }
-
     if (roles.length > 0 && !roles.includes(req.admin.role)) {
       throw new ForbiddenException('权限不足');
     }
-
     next();
   };
 }

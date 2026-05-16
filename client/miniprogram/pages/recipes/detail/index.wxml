@@ -1,0 +1,131 @@
+<view class="page">
+  <!-- Loading -->
+  <view wx:if="{{loading && !recipe}}" class="loading-wrap">
+    <view class="loading-ring"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- Error -->
+  <view wx:elif="{{error}}" class="error-wrap">
+    <text class="error-text">{{error}}</text>
+    <view class="retry-btn" bindtap="loadRecipeDetail">重新加载</view>
+  </view>
+
+  <!-- Recipe Content -->
+  <block wx:elif="{{recipe}}">
+    <scroll-view
+      class="detail-scroll"
+      scroll-y
+      enhanced
+      bounces="{{true}}"
+    >
+      <view class="content">
+
+        <!-- 封面图 -->
+        <view class="cover-wrap">
+          <image
+            class="cover-img"
+            src="{{recipe.coverImage || '/assets/占位图.png'}}"
+            mode="aspectFill"
+            lazy-load="{{true}}"
+          />
+          <view class="cover-overlay">
+            <text class="recipe-title-overlay">{{recipe.name || recipe.title}}</text>
+          </view>
+        </view>
+
+        <!-- 基本信息 -->
+        <view class="info-card">
+          <view class="info-row">
+            <view wx:if="{{recipe.difficulty}}" class="info-tag difficulty-{{recipe.difficulty}}">
+              <text>{{recipe.difficulty === 'easy' ? '简单' : recipe.difficulty === 'hard' ? '困难' : '中等'}}</text>
+            </view>
+            <view wx:if="{{recipe.timeCost}}" class="info-tag">
+              <text>{{recipe.timeCost}}分钟</text>
+            </view>
+            <view wx:if="{{recipe.calories}}" class="info-tag">
+              <text>{{recipe.calories}}千卡</text>
+            </view>
+          </view>
+          <text wx:if="{{recipe.description}}" class="recipe-desc">{{recipe.description}}</text>
+        </view>
+
+        <!-- 标签 -->
+        <view wx:if="{{recipe.tags && recipe.tags.length > 0}}" class="tags-card">
+          <view
+            wx:for="{{recipe.tags}}"
+            wx:key="*this"
+            class="tag-chip"
+          >{{item}}</view>
+        </view>
+
+        <!-- 食材 -->
+        <view class="section-card">
+          <view class="section-title">食材</view>
+          <view class="ingredient-list">
+            <block wx:if="{{recipe.usage && !recipe.ingredients}}">
+              <view
+                wx:for="{{recipe.usage}}"
+                wx:key="*this"
+                class="ingredient-row"
+              >
+                <text class="ingredient-name">{{item}}</text>
+              </view>
+            </block>
+            <block wx:elif="{{recipe.ingredients}}">
+              <view
+                wx:for="{{recipe.ingredients}}"
+                wx:key="name"
+                class="ingredient-row"
+              >
+                <text class="ingredient-name">{{item.name || item}}</text>
+                <text wx:if="{{item.amount}}" class="ingredient-amount">{{item.amount}}</text>
+              </view>
+            </block>
+          </view>
+        </view>
+
+        <!-- 步骤 -->
+        <view class="section-card">
+          <view class="section-title">步骤</view>
+          <view class="step-list">
+            <block wx:if="{{recipe.steps && recipe.steps.length > 0}}">
+              <view
+                wx:for="{{recipe.steps}}"
+                wx:key="*this"
+                class="step-item"
+              >
+                <view class="step-num">{{index + 1}}</view>
+                <text class="step-text">{{item.content || item}}</text>
+              </view>
+            </block>
+          </view>
+        </view>
+
+        <!-- 小贴士 -->
+        <view wx:if="{{recipe.tips}}" class="section-card tips-card">
+          <view class="section-title">小贴士</view>
+          <text class="tips-text">{{recipe.tips}}</text>
+        </view>
+
+        <view class="scroll-bottom-spacer"></view>
+      </view>
+    </scroll-view>
+
+    <!-- 底部操作栏 -->
+    <view class="action-bar">
+      <view class="action-btn-fav {{isFavorite ? 'favorited' : ''}}" bindtap="toggleFavorite">
+        <image
+          class="action-icon"
+          src="{{isFavorite ? '/assets/已收藏.png' : '/assets/收藏.png'}}"
+          mode="aspectFit"
+        />
+        <text>{{isFavorite ? '已收藏' : '收藏'}}</text>
+      </view>
+      <view class="action-btn-basket" bindtap="onAddToBasket">
+        <image class="action-icon" src="/assets/菜篮.png" mode="aspectFit" />
+        <text>加入小菜篮</text>
+      </view>
+    </view>
+  </block>
+</view>

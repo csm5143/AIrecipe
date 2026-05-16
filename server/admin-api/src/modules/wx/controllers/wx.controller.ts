@@ -155,7 +155,16 @@ export async function getWxUserInfo(req: Request, res: Response) {
       return;
     }
 
-    res.json(success(user));
+    res.json(success({
+      ...user,
+      id: user.id,
+      openid: user.openid,
+      nickname: user.nickname,
+      avatar: user.avatar,
+      phone: user.phone,
+      gender: user.gender,
+      createdAt: user.createdAt.toISOString(),
+    }));
   } catch (error) {
     throw error;
   }

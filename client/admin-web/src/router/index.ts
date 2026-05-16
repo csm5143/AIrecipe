@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import { useUserStore } from '@/store/modules/user';
+import { canAccessRoute, getAccessDeniedMessage } from '@/utils/permissions';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -33,6 +35,18 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '菜谱管理', icon: 'Food' },
       },
       {
+        path: 'recipes/featured',
+        name: 'FeaturedRecipes',
+        component: () => import('@/views/featured/index.vue'),
+        meta: { title: '精选菜谱', icon: 'Star' },
+      },
+      {
+        path: 'recipes/hot',
+        name: 'HotRecipes',
+        component: () => import('@/views/hot-recipes/index.vue'),
+        meta: { title: '热门菜谱', icon: 'TrendCharts' },
+      },
+      {
         path: 'recipes/create',
         name: 'RecipeCreate',
         component: () => import('@/views/recipe/create.vue'),
@@ -57,12 +71,6 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '食材管理', icon: 'FoodComponent' },
       },
       {
-        path: 'collections',
-        name: 'Collections',
-        component: () => import('@/views/collection/index.vue'),
-        meta: { title: '收藏管理', icon: 'Collection' },
-      },
-      {
         path: 'feedbacks',
         name: 'Feedbacks',
         component: () => import('@/views/feedback/index.vue'),
@@ -73,6 +81,12 @@ const routes: RouteRecordRaw[] = [
         name: 'RecipeAudit',
         component: () => import('@/views/recipe-audit/index.vue'),
         meta: { title: '菜谱审核', icon: 'Stamp' },
+      },
+      {
+        path: 'recycle',
+        name: 'Recycle',
+        component: () => import('@/views/recycle/index.vue'),
+        meta: { title: '回收站', icon: 'Delete' },
       },
       {
         path: 'content',
@@ -120,11 +134,29 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach(async (to, _from, next) => {
   if (to.meta.requiresAuth !== false) {
     const userStore = useUserStore();
     if (!userStore.token) {
       next({ name: 'Login', query: { redirect: to.fullPath } });
+      return;
+    }
+
+    // token 存在但 profile 未加载时，先拉取 profile 再做权限判断
+    if (!userStore.profile) {
+      try {
+        await userStore.fetchProfile();
+      } catch {
+        // 拉取失败说明 token 可能已失效，退回登录
+        next({ name: 'Login' });
+        return;
+      }
+    }
+
+    const role = userStore.profile?.role;
+    if (role && !canAccessRoute(role, to.path)) {
+      ElMessage.error(getAccessDeniedMessage(to.path));
+      next({ name: 'Dashboard' });
       return;
     }
   }

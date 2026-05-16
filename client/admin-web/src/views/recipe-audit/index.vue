@@ -363,19 +363,9 @@ async function fetchRecipes() {
       res = await recipeAuditApi.getProcessedRecipes({ ...params, status: filters.status as any });
     }
     
-    let data = res.data.data || [];
-    
-    // 客户端筛选关键字
-    if (filters.keyword) {
-      const kw = filters.keyword.toLowerCase();
-      data = data.filter((item: UserRecipeItem) =>
-        item.title.toLowerCase().includes(kw) ||
-        item.nickname.toLowerCase().includes(kw)
-      );
-    }
-    
+    let data = res.data?.list || [];
     tableData.value = data;
-    pagination.total = res.data.total || data.length;
+    pagination.total = res.data?.total || data.length;
   } catch (error) {
     console.error('获取菜谱列表失败', error);
     ElMessage.error('获取列表失败');

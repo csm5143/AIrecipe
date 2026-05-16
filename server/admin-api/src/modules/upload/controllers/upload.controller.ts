@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { COSService, COS_FOLDERS } from '../../../services/cos.service';
+import { prisma } from '../../../lib/prisma';
 
 // 根据环境决定是否使用 COS
 const USE_COS = !!(
@@ -43,50 +44,172 @@ const upload = multer({
 
 export const uploadMiddleware: any = upload.single('file');
 
+// 统一的响应结构
+function successResponse(res: Response, url: string, key: string, filename: string, size: number) {
+  res.json({
+    code: 200,
+    message: '上传成功',
+    data: { url, key, filename, size, storage: USE_COS ? 'cos' : 'local' },
+    timestamp: Date.now(),
+  });
+}
+
+function errorResponse(res: Response, status: number, message: string) {
+  res.status(status).json({ code: status, message, timestamp: Date.now() });
+}
+
+// 获取当前登录管理员的 username，用于 COS 目录组织
+async function getCurrentAdminUsername(req: Request): Promise<string> {
+  try {
+    const adminId = (req as any).admin?.id;
+    const username = (req as any).admin?.username;
+    console.log(`[Upload] getCurrentAdminUsername - adminId=${adminId}, username=${username}`);
+    if (adminId) {
+      const admin = await prisma.admin.findUnique({ where: { id: adminId, isDeleted: false } });
+      console.log(`[Upload] DB lookup adminId=${adminId}, found username=${admin?.username ?? 'NOT_FOUND'}`);
+      if (admin) return admin.username;
+    }
+  } catch (err) {
+    console.error('[Upload] getCurrentAdminUsername 失败，使用 anonymous:', (err as Error)?.message);
+  }
+  return 'anonymous';
+}
+
+// 通用文件上传（按 folder 上传）
 export async function uploadFile(req: Request, res: Response) {
   if (!req.file) {
-    res.status(400).json({ code: 400, message: '未检测到上传文件', timestamp: Date.now() });
+    errorResponse(res, 400, '未检测到上传文件');
     return;
   }
-
   try {
-    let url: string;
-    let key: string;
-    let savedFilename: string;
-
     if (USE_COS) {
-      // 使用 COS 上传（从内存获取 buffer）
-      const folder = (req.query.folder as string) || COS_FOLDERS.TMP;
-      const buffer = req.file.buffer;
-      const result = await COSService.uploadFile(buffer, folder, req.file.originalname);
-      url = result.url;
-      key = result.key;
-      savedFilename = req.file.originalname;
+      const folder = (req.body.folder as string) || COS_FOLDERS.TMP;
+      const result = await COSService.uploadFile(req.file.buffer, folder, req.file.originalname);
+      successResponse(res, result.url, result.key, req.file.originalname, req.file.size);
     } else {
-      // 回退到本地存储（filename 由 diskStorage 生成）
-      savedFilename = req.file.filename;
-      url = `/uploads/${savedFilename}`;
-      key = `tmp/${savedFilename}`;
+      successResponse(res, `/uploads/${req.file.filename}`, `tmp/${req.file.filename}`, req.file.filename, req.file.size);
     }
+  } catch (err: any) {
+    console.error('[Upload] 上传失败:', err);
+    errorResponse(res, 500, err.message || '上传失败');
+  }
+}
 
-    res.json({
-      code: 200,
-      message: '上传成功',
-      data: {
-        url,
-        key,
-        filename: savedFilename,
-        size: req.file.size,
-        storage: USE_COS ? 'cos' : 'local',
-      },
-      timestamp: Date.now(),
-    });
-  } catch (error: any) {
-    console.error('[Upload] 上传失败:', error);
-    res.status(500).json({
-      code: 500,
-      message: error.message || '上传失败',
-      timestamp: Date.now(),
-    });
+// 上传管理员头像
+export async function uploadAdminAvatar(req: Request, res: Response) {
+  if (!req.file) {
+    errorResponse(res, 400, '未检测到上传文件');
+    return;
+  }
+  try {
+    const username = await getCurrentAdminUsername(req);
+    if (USE_COS) {
+      const result = await COSService.uploadAdminAvatar(req.file.buffer, username);
+      successResponse(res, result.url, result.key, req.file.originalname, req.file.size);
+    } else {
+      successResponse(res, `/uploads/${req.file.filename}`, `admins/${username}/${req.file.filename}`, req.file.filename, req.file.size);
+    }
+  } catch (err: any) {
+    console.error('[Upload] 上传管理员头像失败:', err);
+    errorResponse(res, 500, err.message || '上传失败');
+  }
+}
+
+// 上传用户头像
+export async function uploadUserAvatar(req: Request, res: Response) {
+  if (!req.file) {
+    errorResponse(res, 400, '未检测到上传文件');
+    return;
+  }
+  try {
+    const userId = req.body.userId || 'default';
+    if (USE_COS) {
+      const result = await COSService.uploadAvatar(req.file.buffer, userId);
+      successResponse(res, result.url, result.key, req.file.originalname, req.file.size);
+    } else {
+      successResponse(res, `/uploads/${req.file.filename}`, `avatars/${userId}/${req.file.filename}`, req.file.filename, req.file.size);
+    }
+  } catch (err: any) {
+    console.error('[Upload] 上传用户头像失败:', err);
+    errorResponse(res, 500, err.message || '上传失败');
+  }
+}
+
+// 上传食材图片
+export async function uploadIngredient(req: Request, res: Response) {
+  if (!req.file) {
+    errorResponse(res, 400, '未检测到上传文件');
+    return;
+  }
+  try {
+    if (USE_COS) {
+      const result = await COSService.uploadFile(req.file.buffer, COS_FOLDERS.INGREDIENTS, req.file.originalname);
+      successResponse(res, result.url, result.key, req.file.originalname, req.file.size);
+    } else {
+      successResponse(res, `/uploads/${req.file.filename}`, `ingredients/${req.file.filename}`, req.file.filename, req.file.size);
+    }
+  } catch (err: any) {
+    console.error('[Upload] 上传食材图片失败:', err);
+    errorResponse(res, 500, err.message || '上传失败');
+  }
+}
+
+// 上传分类图标
+export async function uploadCategoryIcon(req: Request, res: Response) {
+  if (!req.file) {
+    errorResponse(res, 400, '未检测到上传文件');
+    return;
+  }
+  try {
+    const username = await getCurrentAdminUsername(req);
+    if (USE_COS) {
+      const result = await COSService.uploadCategoryIcon(req.file.buffer, username);
+      successResponse(res, result.url, result.key, req.file.originalname, req.file.size);
+    } else {
+      successResponse(res, `/uploads/${req.file.filename}`, `categories/${username}/${req.file.filename}`, req.file.filename, req.file.size);
+    }
+  } catch (err: any) {
+    console.error('[Upload] 上传分类图标失败:', err);
+    errorResponse(res, 500, err.message || '上传失败');
+  }
+}
+
+// 上传反馈附图
+export async function uploadFeedback(req: Request, res: Response) {
+  if (!req.file) {
+    errorResponse(res, 400, '未检测到上传文件');
+    return;
+  }
+  try {
+    if (USE_COS) {
+      const result = await COSService.uploadFile(req.file.buffer, COS_FOLDERS.FEEDBACK, req.file.originalname);
+      successResponse(res, result.url, result.key, req.file.originalname, req.file.size);
+    } else {
+      successResponse(res, `/uploads/${req.file.filename}`, `feedback/${req.file.filename}`, req.file.filename, req.file.size);
+    }
+  } catch (err: any) {
+    console.error('[Upload] 上传反馈图片失败:', err);
+    errorResponse(res, 500, err.message || '上传失败');
+  }
+}
+
+// 上传系统设置图片（Logo、Favicon 等）
+export async function uploadSettings(req: Request, res: Response) {
+  if (!req.file) {
+    errorResponse(res, 400, '未检测到上传文件');
+    return;
+  }
+  try {
+    const username = await getCurrentAdminUsername(req);
+    const type = (req.body.type as string) || 'image';
+    if (USE_COS) {
+      const result = await COSService.uploadSettings(req.file.buffer, type, username);
+      successResponse(res, result.url, result.key, req.file.originalname, req.file.size);
+    } else {
+      successResponse(res, `/uploads/${req.file.filename}`, `settings/${username}/${req.file.filename}`, req.file.filename, req.file.size);
+    }
+  } catch (err: any) {
+    console.error('[Upload] 上传系统设置图片失败:', err);
+    errorResponse(res, 500, err.message || '上传失败');
   }
 }

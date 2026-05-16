@@ -57,6 +57,7 @@ export interface AdminUser {
   id: number;
   username: string;
   nickname?: string;
+  phone?: string;
   avatar?: string;
   role: 'SUPER_ADMIN' | 'ADMIN' | 'EDITOR';
   status: AccountStatus;
@@ -126,6 +127,7 @@ export interface Recipe {
   shareCount: number;
   status: ContentStatus;
   isFeatured: boolean;
+  isHot: boolean;
   publishedAt?: string;
   createdAt: string;
   updatedAt: string;

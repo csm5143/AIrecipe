@@ -14,6 +14,14 @@
           <el-icon><Upload /></el-icon>
           导入
         </el-button>
+        <el-button
+          type="danger"
+          :disabled="!selectedRows?.length"
+          @click="handleBatchDelete"
+        >
+          <el-icon><Delete /></el-icon>
+          批量删除{{ selectedRows?.length ? ` (${selectedRows.length})` : '' }}
+        </el-button>
         <el-button type="primary" @click="handleCreate">
           <el-icon><Plus /></el-icon>
           添加食材
@@ -60,16 +68,21 @@
         :data="tableData"
         row-key="id"
         :header-cell-style="{ background: 'var(--surface-300)', color: 'var(--cursor-dark)' }"
+        @selection-change="handleSelectionChange"
       >
+        <el-table-column type="selection" width="40" fixed />
         <el-table-column prop="name" label="食材" min-width="180">
           <template #default="{ row }">
             <div class="ingredient-info">
-              <div class="ingredient-icon" :style="{ background: getCategoryColor(row.category) }">
-                {{ row.name?.charAt(0) }}
+              <div class="ingredient-icon">
+                <img v-if="row.coverImage" :src="row.coverImage" class="ingredient-cover" />
+                <div v-else :style="{ background: getCategoryColor(row.category) }">
+                  {{ row.name?.charAt(0) }}
+                </div>
               </div>
               <div class="ingredient-detail">
                 <span class="ingredient-name">{{ row.name }}</span>
-                <span v-if="row.subCategory" class="ingredient-alias">{{ row.subCategory }}</span>
+                <span v-if="row.alias" class="ingredient-alias">{{ row.alias }}</span>
               </div>
             </div>
           </template>
@@ -135,7 +148,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="别名">
-              <el-input v-model="form.subCategory" placeholder="如：西红柿是番茄的别名" />
+              <el-input v-model="form.alias" placeholder="如：西红柿是番茄的别名" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -162,6 +175,29 @@
               <el-switch v-model="form.isCommon" />
             </el-form-item>
           </el-col>
+          <el-col :span="12">
+            <el-form-item label="食材图片">
+              <div class="ingredient-upload-area">
+                <el-upload
+                  action="#"
+                  :auto-upload="false"
+                  :show-file-list="false"
+                  accept="image/*"
+                  :on-change="handleIngredientImageChange"
+                >
+                  <img v-if="ingredientPreview || form.coverImage" :src="ingredientPreview || form.coverImage" class="ingredient-image-preview" />
+                  <div v-else class="upload-placeholder">
+                    <el-icon><Upload /></el-icon>
+                    <span>点击上传图片</span>
+                  </div>
+                </el-upload>
+                <div v-if="ingredientUploading" class="upload-mask">
+                  <el-icon class="is-loading"><RefreshLeft /></el-icon>
+                  <span>上传中...</span>
+                </div>
+              </div>
+            </el-form-item>
+          </el-col>
         </el-row>
       </el-form>
       <template #footer>
@@ -171,33 +207,176 @@
     </el-dialog>
 
     <!-- 导入对话框 -->
-    <el-dialog v-model="importDialogVisible" title="导入食材" width="500px">
-      <div class="import-section">
-        <p class="import-desc">
-          上传 <code>miniprogram/data/ingredients.json</code> 文件导入食材数据。
-          当前共有 <strong>{{ pagination.total }}</strong> 种食材，可通过导入或添加新食材。
-        </p>
-        <el-upload
-          ref="uploadRef"
-          class="import-upload"
-          drag
+    <el-dialog v-model="importDialogVisible" title="导入食材" width="560px" :close-on-click-modal="false">
+      <!-- 步骤一：上传文件 -->
+      <div v-if="!importPreviewData" class="import-section">
+        <div class="step-badge">步骤 1 / 2</div>
+
+        <label class="upload-card" for="import-file-input">
+          <div class="upload-card-inner">
+            <div class="upload-icon-circle">
+              <el-icon class="upload-lg-icon"><Upload /></el-icon>
+            </div>
+            <div class="upload-card-text">
+              <span class="upload-card-title">选择 JSON 文件</span>
+              <span class="upload-card-sub">拖拽文件到此处，或<span class="link">点击选择</span></span>
+            </div>
+          </div>
+        </label>
+        <input
+          id="import-file-input"
+          ref="fileInputRef"
+          type="file"
           accept=".json"
-          :auto-upload="false"
-          :limit="1"
-          @change="handleFileChange"
-        >
-          <el-icon class="upload-icon"><Upload /></el-icon>
-          <div class="upload-text">将 JSON 文件拖到此处，或<em>点击上传</em></div>
-          <template #tip>
-            <div class="upload-tip">仅支持 .json 文件</div>
-          </template>
-        </el-upload>
+          class="import-file-input"
+          @change="handleFileInputChange"
+        />
+
+        <div v-if="selectedFile" class="file-badge">
+          <el-icon class="file-badge-icon"><Document /></el-icon>
+          <span class="file-badge-name">{{ selectedFile.name }}</span>
+          <span class="file-badge-size">{{ (selectedFile.size / 1024).toFixed(1) }} KB</span>
+          <span class="file-badge-divider"></span>
+          <button class="file-badge-remove" @click="handleClearFile">移除</button>
+        </div>
+
+        <div class="import-note">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5.5" stroke="#9c8b7e" stroke-width="1"/><path d="M6 5.5v3M6 4h.01" stroke="#9c8b7e" stroke-width="1" stroke-linecap="round"/></svg>
+          <span>支持 <code>miniprogram/data/ingredients.json</code>，当前库含 <strong>{{ pagination.total }}</strong> 种食材</span>
+        </div>
+      </div>
+
+      <!-- 步骤二：预览结果 -->
+      <div v-else class="import-preview-section">
+        <div class="step-badge">步骤 2 / 2</div>
+
+        <div class="stat-row">
+          <div class="stat-card accent">
+            <span class="stat-value">{{ importPreviewData.total }}</span>
+            <span class="stat-label">待导入</span>
+          </div>
+          <div class="stat-card" :class="importPreviewData.duplicateCount > 0 ? 'warn' : 'green'">
+            <span class="stat-value">{{ importPreviewData.duplicateCount }}</span>
+            <span class="stat-label">已存在</span>
+          </div>
+        </div>
+
+        <!-- 有重复时 -->
+        <div v-if="importPreviewData.duplicateCount > 0" class="dup-block">
+          <div class="dup-header">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0">
+              <path d="M7 0.5L8.65 5.25L13.5 5.65L10 8.75L11.2 13.5L7 11L2.8 13.5L4 8.75L0.5 5.65L5.35 5.25L7 0.5Z" fill="#e6a23c"/>
+            </svg>
+            <span>{{ importPreviewData.duplicateCount }} 条食材已存在</span>
+          </div>
+          <div class="dup-list-wrap">
+            <span class="dup-list-label">重复食材</span>
+            <span class="dup-list-names">{{ importPreviewData.duplicates.map((d: any) => d.name).join('、') }}</span>
+          </div>
+          <div class="dup-actions">
+            <el-radio-group v-model="importOverwriteMode">
+              <el-radio value="skip" class="dup-radio">
+                <span class="dup-radio-title">保留现有</span>
+              </el-radio>
+              <el-radio value="overwrite" class="dup-radio">
+                <span class="dup-radio-title">覆盖更新</span>
+              </el-radio>
+            </el-radio-group>
+          </div>
+        </div>
+
+        <!-- 无重复时 -->
+        <div v-else class="ok-block">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#67c23a" stroke-width="1.5"/><path d="M5 8l2 2 4-4" stroke="#67c23a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>全部新增，无重复数据</span>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer-bar">
+          <el-button text size="small" @click="handleBackToUpload" v-if="importPreviewData">重新选择</el-button>
+          <div class="footer-btn-group">
+            <el-button size="small" @click="handleImportCancel">取消</el-button>
+            <el-button
+              v-if="!importPreviewData"
+              type="primary"
+              size="small"
+              :disabled="!selectedFile || importLoading"
+              :loading="importLoading"
+              @click="handlePreviewImport"
+            >
+              开始分析
+            </el-button>
+            <el-button
+              v-else
+              type="primary"
+              size="small"
+              :loading="importLoading"
+              @click="handleConfirmImport"
+            >
+              确认导入
+            </el-button>
+          </div>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- 导出弹窗 -->
+    <el-dialog v-model="exportDialogVisible" title="导出食材" width="480px" :close-on-click-modal="false">
+      <div class="export-dialog-body">
+        <p class="export-tip">
+          共 <strong>{{ pagination.total }}</strong> 条食材数据，将按照当前筛选条件导出
+        </p>
+        <div class="export-format-list">
+          <label
+            class="export-format-item"
+            :class="{ active: exportFormat === 'xlsx' }"
+            @click="exportFormat = 'xlsx'"
+          >
+            <input type="radio" name="exportFormat" value="xlsx" v-model="exportFormat" hidden />
+            <div class="format-icon xlsx-icon"><span>Excel</span></div>
+            <div class="format-info">
+              <span class="format-name">Excel 格式</span>
+              <span class="format-ext">.xlsx</span>
+              <span class="format-desc">支持公式、筛选，适合数据分析</span>
+            </div>
+            <div class="format-check" v-if="exportFormat === 'xlsx'"><el-icon><Check /></el-icon></div>
+          </label>
+
+          <label
+            class="export-format-item"
+            :class="{ active: exportFormat === 'csv' }"
+            @click="exportFormat = 'csv'"
+          >
+            <input type="radio" name="exportFormat" value="csv" v-model="exportFormat" hidden />
+            <div class="format-icon csv-icon"><span>CSV</span></div>
+            <div class="format-info">
+              <span class="format-name">CSV 格式</span>
+              <span class="format-ext">.csv</span>
+              <span class="format-desc">体积更小，兼容所有编辑器</span>
+            </div>
+            <div class="format-check" v-if="exportFormat === 'csv'"><el-icon><Check /></el-icon></div>
+          </label>
+
+          <label
+            class="export-format-item"
+            :class="{ active: exportFormat === 'json' }"
+            @click="exportFormat = 'json'"
+          >
+            <input type="radio" name="exportFormat" value="json" v-model="exportFormat" hidden />
+            <div class="format-icon json-icon"><span>JSON</span></div>
+            <div class="format-info">
+              <span class="format-name">JSON 数据</span>
+              <span class="format-ext">.json</span>
+              <span class="format-desc">保留完整结构，适合程序导入</span>
+            </div>
+            <div class="format-check" v-if="exportFormat === 'json'"><el-icon><Check /></el-icon></div>
+          </label>
+        </div>
       </div>
       <template #footer>
-        <el-button @click="importDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="importLoading" :disabled="!selectedFile" @click="handleImport">
-          开始导入
-        </el-button>
+        <el-button @click="exportDialogVisible = false" :disabled="exporting">取消</el-button>
+        <el-button type="primary" :loading="exporting" @click="handleConfirm">确认导出</el-button>
       </template>
     </el-dialog>
   </div>
@@ -205,20 +384,14 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
-import { Search, Plus, Edit, Delete, Upload, Download, RefreshLeft } from '@element-plus/icons-vue';
+import { Search, Plus, Edit, Delete, Upload, Download, RefreshLeft, Check, Document, WarningFilled, CircleCheckFilled } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { UploadFile, FormInstance, FormRules } from 'element-plus';
 import { ingredientApi, type IngredientRow, type IngredientFormData } from '@/api/ingredient';
+import { uploadIngredient } from '@/api/upload';
+import { useExport, downloadFile } from '@/composables/useExport';
 
-interface LocalIngredient {
-  name: string;
-  category: string;
-  subCategory?: string;
-  selected?: boolean;
-  isCommon?: boolean;
-  status: 'ACTIVE' | 'INACTIVE';
-  id?: number;
-}
+const { exportDialogVisible, exportFormat, exporting, showExportDialog, handleConfirm } = useExport();
 
 const CATEGORY_OPTIONS = [
   { value: 'vegetable', label: '蔬菜' },
@@ -242,8 +415,11 @@ const dialogVisible = ref(false);
 const importDialogVisible = ref(false);
 const isEdit = ref(false);
 const formRef = ref<FormInstance>();
-const uploadRef = ref();
+const fileInputRef = ref<HTMLInputElement | null>(null);
 const selectedFile = ref<File | null>(null);
+const importPreviewData = ref<{ total: number; duplicateCount: number; duplicates: { name: string; existingId: number }[] } | null>(null);
+const importOverwriteMode = ref<'skip' | 'overwrite'>('skip');
+const pendingImportItems = ref<any[]>([]);
 
 const filters = reactive({
   keyword: '',
@@ -257,15 +433,20 @@ const pagination = reactive({
   total: 0,
 });
 
-const tableData = ref<LocalIngredient[]>([]);
+const tableData = ref<IngredientRow[]>([]);
+const selectedRows = ref<IngredientRow[]>([]);
 
-const form = reactive<IngredientFormData>({
+const form = reactive<IngredientFormData & { coverImage?: string }>({
   name: '',
   category: 'vegetable',
-  subCategory: '',
+  alias: '',
   isCommon: false,
   status: 'ACTIVE',
+  coverImage: '',
 });
+
+const ingredientUploading = ref(false);
+const ingredientPreview = ref('');
 
 const rules: FormRules = {
   name: [{ required: true, message: '请输入食材名称', trigger: 'blur' }],
@@ -304,11 +485,13 @@ async function fetchData() {
       category: filters.category || undefined,
       status: filters.status || undefined,
     });
-    tableData.value = res.data.data.list;
-    pagination.total = res.data.data.total;
+    // #endregion
+    tableData.value = res.data?.list || [];
+    pagination.total = res.data?.total || 0;
+    selectedRows.value = [];
   } catch (error) {
+    // 错误已在 request 拦截器中处理（显示 timeout 或网络错误提示）
     console.error('获取食材列表失败:', error);
-    ElMessage.error('加载食材数据失败，请检查网络连接');
   } finally {
     loading.value = false;
   }
@@ -320,22 +503,60 @@ function handleReset() {
   fetchData();
 }
 
+function handleSelectionChange(rows: IngredientRow[]) {
+  selectedRows.value = rows;
+}
+
+async function handleBatchDelete() {
+  if (selectedRows.value.length === 0) return;
+  const count = selectedRows.value.length;
+  const names = selectedRows.value.slice(0, 3).map(r => r.name).join('、');
+  const suffix = count > 3 ? `等 ${count} 种` : count > 1 ? `等 ${count} 种` : '';
+  const msg = count === 1
+    ? `确定要删除食材「${selectedRows.value[0].name}」吗？`
+    : `确定要删除选中的 ${count} 种食材吗？（${names}${suffix}）`;
+  await ElMessageBox.confirm(msg, '批量删除', { type: 'warning', confirmButtonText: '删除' });
+  await ingredientApi.batchDelete(selectedRows.value.map(r => r.id));
+  ElMessage.success(`成功删除 ${count} 种食材`);
+  selectedRows.value = [];
+  fetchData();
+}
+
 function handleCreate() {
   isEdit.value = false;
   Object.assign(form, {
     name: '',
     category: 'vegetable',
-    subCategory: '',
-    selected: false,
+    alias: '',
     isCommon: false,
     status: 'ACTIVE',
+    coverImage: '',
   });
+  ingredientPreview.value = '';
   dialogVisible.value = true;
+}
+
+async function handleIngredientImageChange(file: UploadFile) {
+  const raw = file.raw as File;
+  if (!raw) return;
+  ingredientUploading.value = true;
+  ingredientPreview.value = URL.createObjectURL(raw);
+  try {
+    const result = await uploadIngredient(raw);
+    form.coverImage = result.url || (result.data as any)?.url || '';
+    ElMessage.success('图片上传成功');
+  } catch {
+    ElMessage.error('图片上传失败');
+    ingredientPreview.value = '';
+  } finally {
+    ingredientUploading.value = false;
+  }
 }
 
 function handleEdit(row: IngredientRow) {
   isEdit.value = true;
   Object.assign(form, { ...row });
+  ingredientPreview.value = '';
   dialogVisible.value = true;
 }
 
@@ -345,13 +566,16 @@ async function handleSave() {
 
   saveLoading.value = true;
   try {
-    const data: IngredientFormData = {
+    const data: IngredientFormData & { coverImage?: string } = {
       name: form.name,
       category: form.category,
-      subCategory: form.subCategory,
+      alias: form.alias,
       isCommon: form.isCommon,
       status: form.status,
     };
+    if (form.coverImage) {
+      data.coverImage = form.coverImage;
+    }
 
     if (isEdit.value && form.id) {
       await ingredientApi.update(form.id, data);
@@ -362,8 +586,14 @@ async function handleSave() {
     }
     fetchData();
     dialogVisible.value = false;
-  } catch (error) {
-    console.error('保存失败:', error);
+  } catch (error: any) {
+    const status = error?.response?.status;
+    if (status === 409) {
+      const msg = error?.response?.data?.message || '食材已存在';
+      ElMessage.warning(msg);
+    } else {
+      ElMessage.error('保存失败，请重试');
+    }
   } finally {
     saveLoading.value = false;
   }
@@ -382,11 +612,37 @@ async function handleStatusChange(row: IngredientRow) {
   ElMessage.success(`食材「${row.name}」已${action}`);
 }
 
-function handleFileChange(file: UploadFile) {
-  selectedFile.value = file.raw as File;
+function handleFileInputChange(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (file) {
+    selectedFile.value = file;
+    importPreviewData.value = null;
+    pendingImportItems.value = [];
+  }
 }
 
-async function handleImport() {
+function handleClearFile() {
+  selectedFile.value = null;
+  importPreviewData.value = null;
+  pendingImportItems.value = [];
+  if (fileInputRef.value) {
+    fileInputRef.value.value = '';
+  }
+}
+
+function handleImportCancel() {
+  importDialogVisible.value = false;
+  handleClearFile();
+}
+
+function handleBackToUpload() {
+  importPreviewData.value = null;
+  pendingImportItems.value = [];
+}
+
+// 步骤一：上传文件后点击"开始分析" -> 调用 preview 接口
+async function handlePreviewImport() {
   if (!selectedFile.value) return;
 
   importLoading.value = true;
@@ -399,49 +655,61 @@ async function handleImport() {
       return;
     }
 
-    const ingredients = data.map(item => ({
+    const items = data.map(item => ({
       name: item.name || '',
       category: item.category || 'other',
-      subCategory: item.subCategory || '',
+      alias: Array.isArray(item.aliases) ? item.aliases.join(',') : (item.alias || ''),
       isCommon: item.isCommon || false,
-    })).filter(item => item.name);
+    })).filter((item: any) => item.name);
 
-    await ingredientApi.batchImport(ingredients);
-    importDialogVisible.value = false;
-    selectedFile.value = null;
-    uploadRef.value?.clearFiles();
-    ElMessage.success(`成功导入 ${ingredients.length} 种食材`);
-    fetchData();
+    pendingImportItems.value = items;
+    const res = await ingredientApi.previewImport(items) as any;
+    // 接口返回格式：{ code, message, data: { total, duplicateCount, duplicates } }
+    importPreviewData.value = res?.data ?? null;
   } catch {
-    ElMessage.error('JSON 解析失败，请检查文件格式');
+    ElMessage.error('预览失败，请检查 JSON 文件格式');
+  } finally {
+    importLoading.value = false;
+  }
+}
+
+// 步骤二：点击"确认导入"
+async function handleConfirmImport() {
+  if (!pendingImportItems.value.length) return;
+
+  importLoading.value = true;
+  try {
+    const overwrite = importOverwriteMode.value === 'overwrite';
+    const res = await ingredientApi.batchImport(pendingImportItems.value, overwrite);
+    const { imported = 0, updated = 0 } = (res as any).data ?? {};
+
+    importDialogVisible.value = false;
+    handleClearFile();
+    fetchData();
+
+    if (overwrite) {
+      ElMessage.success(`导入完成：新增 ${imported} 条，覆盖 ${updated} 条`);
+    } else {
+      ElMessage.success(`导入完成：新增 ${imported} 条`);
+    }
+  } catch {
+    ElMessage.error('导入失败，请重试');
   } finally {
     importLoading.value = false;
   }
 }
 
 async function handleExport() {
-  try {
-    const res = await ingredientApi.export();
-    const data = res.data.data?.list || [];
-
-    const exportData = data.map(item => ({
-      name: item.name,
-      category: item.category,
-      subCategory: item.subCategory || '',
-      isCommon: item.isCommon || false,
-    }));
-
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ingredients_${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    ElMessage.success(`已导出 ${exportData.length} 种食材`);
-  } catch {
-    ElMessage.error('导出失败');
-  }
+  const params = {
+    keyword: filters.keyword || undefined,
+    category: filters.category || undefined,
+    status: filters.status || undefined,
+  };
+  showExportDialog({
+    name: '食材',
+    total: pagination.total,
+    exportFn: (format) => downloadFile('/ingredients/export', params, format),
+  });
 }
 
 onMounted(() => {
@@ -503,6 +771,7 @@ onMounted(() => {
     width: 40px;
     height: 40px;
     border-radius: var(--radius-md);
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -511,6 +780,12 @@ onMounted(() => {
     font-weight: 500;
     color: var(--cursor-dark);
     flex-shrink: 0;
+
+    .ingredient-cover {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
   }
 
   .ingredient-detail {
@@ -573,52 +848,499 @@ onMounted(() => {
   }
 }
 
-.import-section {
-  .import-desc {
-    font-size: 13px;
-    color: rgba(38, 37, 30, 0.7);
-    margin-bottom: 16px;
-    line-height: 1.6;
+// ============================================================
+// 导入弹窗 — 温暖编辑风
+// ============================================================
 
-    code {
-      background: rgba(38, 37, 30, 0.06);
-      padding: 1px 5px;
-      border-radius: 3px;
-      font-family: var(--font-mono);
-      font-size: 12px;
-      color: var(--cursor-dark);
+$accent: #f56e2d;
+$accent-light: #fff4ee;
+$accent-border: #f8c9a8;
+$accent-mid: #fa8c55;
+$green: #3d8c6d;
+$green-light: #edf7f3;
+$warn: #e6a23c;
+$warn-light: #fdf6ec;
+$bg: #fffdfb;
+$border: #f0ebe5;
+$text: #3d2b1f;
+$muted: #9c8b7e;
+$radius: 8px;
+
+.import-section {
+  background: $bg;
+  border-radius: $radius + 4;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.step-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  background: rgba(245, 110, 45, 0.1);
+  color: $accent-mid;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  width: fit-content;
+}
+
+.upload-card {
+  border: 1.5px dashed $border;
+  border-radius: $radius + 2;
+  padding: 36px 24px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: $bg;
+
+  &:hover {
+    border-color: $accent;
+    background: $accent-light;
+
+    .upload-icon-circle {
+      background: $accent;
+      .upload-lg-icon { color: #fff; }
     }
   }
 }
 
-.import-upload {
+.upload-card-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.upload-icon-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: $border;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.upload-lg-icon {
+  font-size: 22px;
+  color: $muted;
+  transition: color 0.2s;
+}
+
+.upload-card-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.upload-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: $text;
+}
+
+.upload-card-sub {
+  font-size: 12px;
+  color: $muted;
+
+  .link {
+    color: $accent;
+    cursor: pointer;
+  }
+}
+
+.file-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: $green-light;
+  border: 1px solid rgba(61, 140, 109, 0.2);
+  border-radius: $radius;
+  font-size: 12px;
+  color: $text;
+}
+
+.file-badge-icon { color: $green; flex-shrink: 0; font-size: 14px; }
+.file-badge-name { font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-badge-size { color: $muted; flex-shrink: 0; font-family: monospace; font-size: 11px; }
+.file-badge-divider { width: 1px; height: 12px; background: rgba(61,140,109,0.25); flex-shrink: 0; }
+.file-badge-remove {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #e64a4a;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+  &:hover { opacity: 0.7; }
+}
+
+.import-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 11px;
+  color: $muted;
+  text-align: left;
+  justify-content: flex-start;
+  line-height: 1.6;
+  padding: 0 2px;
+
+  strong { color: $accent; font-weight: 600; }
+  code {
+    font-family: monospace;
+    font-size: 10.5px;
+    background: rgba(61,44,31,0.07);
+    padding: 1px 4px;
+    border-radius: 3px;
+    color: $text;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
+.import-file-input {
+  display: none;
+}
+
+// ============================================================
+// 步骤二：预览
+// ============================================================
+
+.import-preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 12px;
+  border-radius: $radius;
+  border: 1.5px solid transparent;
+  gap: 4px;
+
+  .stat-value {
+    font-family: var(--font-display, 'Georgia', serif);
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1;
+    color: $text;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: $muted;
+    letter-spacing: 0.2px;
+  }
+
+  &.accent {
+    border-color: $accent-border;
+    background: $accent-light;
+    .stat-value { color: $accent; }
+  }
+
+  &.warn {
+    border-color: rgba(230, 162, 60, 0.4);
+    background: $warn-light;
+    .stat-value { color: $warn; }
+  }
+
+  &.green {
+    border-color: rgba(61, 140, 109, 0.3);
+    background: $green-light;
+    .stat-value { color: $green; }
+  }
+}
+
+.dup-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  background: $warn-light;
+  border: 1px solid rgba(230, 162, 60, 0.3);
+  border-radius: $radius + 2;
+}
+
+.dup-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: $warn;
+  line-height: 1;
+}
+
+.dup-list-wrap {
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid rgba(230, 162, 60, 0.2);
+  border-radius: $radius;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.dup-list-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: $muted;
+  flex-shrink: 0;
+}
+
+.dup-list-names {
+  font-size: 12px;
+  color: $text;
+  line-height: 1.6;
+  max-height: 64px;
+  overflow-y: auto;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+.dup-actions {
+  .el-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+.dup-radio {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1.5px solid $border;
+  border-radius: $radius;
+  background: $bg;
+  width: 100%;
+  margin-right: 0;
+  transition: border-color 0.18s, background 0.18s;
+
+  &:has(.el-radio__input.is-checked) {
+    border-color: $accent;
+    background: $accent-light;
+  }
+}
+
+.dup-radio-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: $text;
+  line-height: 1.4;
+  padding-left: 2px;
+}
+
+.ok-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: $green-light;
+  border: 1px solid rgba(61, 140, 109, 0.25);
+  border-radius: $radius + 2;
+  font-size: 13px;
+  color: $green;
+  font-weight: 500;
+}
+
+.dialog-footer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
 
-  :deep(.el-upload-dragger) {
-    padding: 32px;
-    border-radius: var(--radius-md);
-  }
-
-  .upload-icon {
-    font-size: 32px;
-    color: rgba(38, 37, 30, 0.3);
-    margin-bottom: 12px;
-  }
-
-  .upload-text {
-    font-size: 13px;
-    color: rgba(38, 37, 30, 0.6);
-
-    em {
-      color: var(--el-color-primary);
-      font-style: normal;
-    }
-  }
-
-  .upload-tip {
-    font-size: 11px;
-    color: rgba(38, 37, 30, 0.4);
-    margin-top: 8px;
+  .footer-btn-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 }
+
+// 强制覆盖 el-dialog 的 footer flex 方向，让按钮组居中
+:deep(.el-dialog__footer) {
+  text-align: center !important;
+
+  .dialog-footer-bar {
+    justify-content: center;
+  }
+}
+
+// ============================================================
+// 导出弹窗
+// ============================================================
+
+.export-dialog-body {
+  padding: 8px 4px;
+}
+
+.export-tip {
+  color: rgba(38, 37, 30, 0.6);
+  font-size: 13px;
+  margin-bottom: 20px;
+
+  strong {
+    color: var(--cursor-orange);
+    font-weight: 600;
+  }
+}
+
+.export-format-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.export-format-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--border-primary);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  user-select: none;
+
+  &:hover {
+    border-color: var(--cursor-orange);
+    background: rgba(245, 111, 32, 0.04);
+  }
+
+  &.active {
+    border-color: var(--cursor-orange);
+    background: rgba(245, 111, 32, 0.06);
+
+    .format-icon {
+      opacity: 1;
+    }
+  }
+}
+
+.format-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  color: #fff;
+
+  &.xlsx-icon { background: #1d7a3d; }
+  &.csv-icon { background: #3a6e38; }
+  &.json-icon { background: #c47f17; }
+}
+
+.format-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.format-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--cursor-dark);
+  font-family: var(--font-display);
+}
+
+.format-ext {
+  font-size: 11px;
+  color: rgba(38, 37, 30, 0.4);
+  font-family: monospace;
+}
+
+.format-desc {
+  font-size: 12px;
+  color: rgba(38, 37, 30, 0.5);
+  margin-top: 2px;
+}
+
+.format-check {
+  color: var(--cursor-orange);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.ingredient-upload-area {
+  position: relative;
+
+  .upload-mask {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: var(--radius-md);
+    font-family: var(--font-display);
+    font-size: 12px;
+    color: var(--cursor-orange);
+    z-index: 1;
+  }
+
+  .ingredient-image-preview {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    border: 2px dashed var(--border-medium);
+  }
+
+  .upload-placeholder {
+    width: 80px;
+    height: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background: var(--surface-300);
+    border: 2px dashed var(--border-medium);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+
+    .el-icon {
+      font-size: 20px;
+      color: rgba(38, 37, 30, 0.3);
+    }
+
+    span {
+      font-family: var(--font-display);
+      font-size: 11px;
+      color: rgba(38, 37, 30, 0.5);
+    }
+  }
+}
+
 </style>

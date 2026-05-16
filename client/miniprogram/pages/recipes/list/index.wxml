@@ -1,0 +1,80 @@
+<view class="page">
+  <!-- 排序栏 -->
+  <view class="sort-bar">
+    <view
+      class="sort-btn {{sort === 'createdAt' ? 'active' : ''}}"
+      bindtap="onSortChange"
+      data-sort="createdAt"
+    >最新</view>
+    <view
+      class="sort-btn {{sort === 'publishedAt' ? 'active' : ''}}"
+      bindtap="onSortChange"
+      data-sort="publishedAt"
+    >最热</view>
+    <view
+      class="sort-btn {{sort === 'cookingTime' ? 'active' : ''}}"
+      bindtap="onSortChange"
+      data-sort="cookingTime"
+    >用时</view>
+  </view>
+
+  <!-- 列表 -->
+  <scroll-view
+    class="list-scroll"
+    scroll-y
+    enhanced
+    bounces="{{true}}"
+    refresher-enabled="{{true}}"
+    bindrefresherrefresh="loadRecipes"
+    bindscrolltolower="loadRecipes"
+  >
+    <view class="list-content">
+      <view
+        wx:for="{{recipeList}}"
+        wx:key="id"
+        class="recipe-card"
+        bindtap="onRecipeTap"
+        data-id="{{item.id}}"
+      >
+        <image
+          class="recipe-cover"
+          src="{{item.coverImage || '/assets/占位图.png'}}"
+          mode="aspectFill"
+          lazy-load="{{true}}"
+        />
+        <view class="recipe-info">
+          <text class="recipe-title">{{item.name || item.title}}</text>
+          <text class="recipe-desc">{{item.description}}</text>
+          <view class="recipe-tags">
+            <view wx:if="{{item.difficulty}}" class="tag tag-diff-{{item.difficulty}}">
+              <text>{{item.difficulty === 'easy' ? '简单' : item.difficulty === 'hard' ? '困难' : '中等'}}</text>
+            </view>
+            <view wx:if="{{item.timeCost}}" class="tag">
+              <text>{{item.timeCost}}分钟</text>
+            </view>
+            <view wx:if="{{item.calories}}" class="tag">
+              <text>{{item.calories}}千卡</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- Loading more -->
+      <view wx:if="{{loading}}" class="loading-more">
+        <view class="loading-ring-sm"></view>
+        <text class="loading-text-sm">加载中...</text>
+      </view>
+
+      <!-- No more -->
+      <view wx:elif="{{!hasMore && recipeList.length > 0}}" class="no-more">
+        <text>— 没有更多了 —</text>
+      </view>
+
+      <!-- Empty -->
+      <view wx:if="{{!loading && recipeList.length === 0}}" class="empty-wrap">
+        <image class="empty-icon" src="/assets/空状态.png" mode="aspectFit" />
+        <text class="empty-text">暂无菜谱</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>

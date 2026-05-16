@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../../lib/prisma';
 import { paginated, success, notFound, badRequest } from '../../../types/response';
 import { ContentStatus, LinkType } from '@prisma/client';
+import { createOperationLog } from '../../../utils/adminHelper';
 
 export async function getBanners(req: Request, res: Response) {
   const page = parseInt(req.query.page as string) || 1;
@@ -11,10 +12,9 @@ export async function getBanners(req: Request, res: Response) {
 
   const now = new Date();
   const where: Prisma.BannerWhereInput = {};
+
   if (status) {
     where.status = status as ContentStatus;
-  } else {
-    where.status = 'ACTIVE';
     where.OR = [
       { startTime: null, endTime: null },
       { startTime: { lte: now }, endTime: null },
@@ -22,6 +22,7 @@ export async function getBanners(req: Request, res: Response) {
       { startTime: { lte: now }, endTime: { gte: now } },
     ];
   }
+  // 不传 status 时返回所有 Banner（管理后台场景）
 
   const [total, list] = await Promise.all([
     prisma.banner.count({ where }),
@@ -105,6 +106,15 @@ export async function deleteBanner(req: Request, res: Response) {
     res.status(404).json(notFound('Banner 不存在'));
     return;
   }
+
+  const adminId = (req as any).admin?.id || 1;
+  const adminName = (req as any).admin?.username || '未知';
+
+  await createOperationLog(
+    adminId, adminName, 'delete', 'content',
+    String(id),
+    `删除 Banner「${existing.title}」`
+  );
 
   await prisma.banner.delete({ where: { id } });
   res.json(success(null, '删除成功'));
@@ -209,6 +219,15 @@ export async function deleteNotice(req: Request, res: Response) {
     res.status(404).json(notFound('公告不存在'));
     return;
   }
+
+  const adminId = (req as any).admin?.id || 1;
+  const adminName = (req as any).admin?.username || '未知';
+
+  await createOperationLog(
+    adminId, adminName, 'delete', 'content',
+    String(id),
+    `删除公告「${existing.title}」`
+  );
 
   await prisma.notice.delete({ where: { id } });
   res.json(success(null, '删除成功'));

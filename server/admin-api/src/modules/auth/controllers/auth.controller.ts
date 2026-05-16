@@ -2,8 +2,8 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import config from '../../../config';
+import { prisma } from '../../../lib/prisma';
 import { UnauthorizedException, BadRequestException } from '../../system/middleware/errorHandler';
-import { adminProfileStore } from '../adminProfileStore';
 
 interface LoginDto {
   username: string;
@@ -17,8 +17,8 @@ export async function login(req: Request, res: Response) {
     throw new UnauthorizedException('用户名和密码不能为空');
   }
 
-  const admin = adminProfileStore.getByUsername();
-  if (!admin || admin.username !== username || !bcrypt.compareSync(password, admin.passwordHash)) {
+  const admin = await prisma.admin.findUnique({ where: { username, isDeleted: false } });
+  if (!admin || !bcrypt.compareSync(password, admin.password)) {
     throw new UnauthorizedException('用户名或密码错误');
   }
 
@@ -34,7 +34,7 @@ export async function login(req: Request, res: Response) {
     { expiresIn: config.jwt.refreshExpiresIn as jwt.SignOptions['expiresIn'] }
   );
 
-  const { passwordHash: _, ...safeAdmin } = admin;
+  const { password: _, ...safeAdmin } = admin;
 
   res.json({
     code: 200,
@@ -58,11 +58,21 @@ export async function logout(req: Request, res: Response) {
 }
 
 export async function getProfile(req: Request, res: Response) {
-  const admin = adminProfileStore.get();
+  const adminId = (req as any).admin?.id;
+  if (!adminId) {
+    throw new UnauthorizedException('未登录');
+  }
+
+  const admin = await prisma.admin.findUnique({ where: { id: adminId, isDeleted: false } });
+  if (!admin) {
+    throw new UnauthorizedException('管理员不存在');
+  }
+
+  const { password: _, ...safeAdmin } = admin;
   res.json({
     code: 200,
     message: 'success',
-    data: admin,
+    data: safeAdmin,
     timestamp: Date.now(),
   });
 }
@@ -79,7 +89,7 @@ export async function refreshToken(req: Request, res: Response) {
       throw new UnauthorizedException('无效的刷新令牌');
     }
 
-    const admin = adminProfileStore.getByUsername();
+    const admin = await prisma.admin.findUnique({ where: { id: payload.id } });
     if (!admin) {
       throw new UnauthorizedException('管理员不存在');
     }
@@ -107,18 +117,32 @@ interface UpdateProfileDto {
 }
 
 export async function updateProfile(req: Request, res: Response) {
+  const adminId = (req as any).admin?.id;
+  if (!adminId) {
+    throw new UnauthorizedException('未登录');
+  }
+
   const { nickname, phone } = req.body as UpdateProfileDto;
+  console.log(`[Auth] updateProfile - adminId=${adminId}, nickname=${nickname}, phone=${phone}`);
 
   if (!nickname && !phone) {
     throw new BadRequestException('至少需要提供昵称或手机号其中一项');
   }
 
-  const updated = adminProfileStore.update({ nickname, phone });
+  const updated = await prisma.admin.update({
+    where: { id: adminId },
+    data: {
+      ...(nickname !== undefined && { nickname }),
+      ...(phone !== undefined && { phone }),
+    },
+  });
+
+  const { password: _, ...safeAdmin } = updated;
 
   res.json({
     code: 200,
     message: '个人信息更新成功',
-    data: updated,
+    data: safeAdmin,
     timestamp: Date.now(),
   });
 }
@@ -129,6 +153,11 @@ interface ChangePasswordDto {
 }
 
 export async function changePassword(req: Request, res: Response) {
+  const adminId = (req as any).admin?.id;
+  if (!adminId) {
+    throw new UnauthorizedException('未登录');
+  }
+
   const { oldPassword, newPassword } = req.body as ChangePasswordDto;
 
   if (!oldPassword || !newPassword) {
@@ -139,7 +168,12 @@ export async function changePassword(req: Request, res: Response) {
     throw new BadRequestException('新密码长度不能少于 6 位');
   }
 
-  if (!adminProfileStore.verifyPassword(oldPassword)) {
+  const admin = await prisma.admin.findUnique({ where: { id: adminId, isDeleted: false } });
+  if (!admin) {
+    throw new UnauthorizedException('管理员不存在');
+  }
+
+  if (!bcrypt.compareSync(oldPassword, admin.password)) {
     throw new UnauthorizedException('当前密码错误');
   }
 
@@ -147,7 +181,11 @@ export async function changePassword(req: Request, res: Response) {
     throw new BadRequestException('新密码不能与当前密码相同');
   }
 
-  adminProfileStore.changePassword(bcrypt.hashSync(newPassword, 10));
+  const passwordHash = bcrypt.hashSync(newPassword, 10);
+  await prisma.admin.update({
+    where: { id: adminId },
+    data: { password: passwordHash },
+  });
 
   res.json({
     code: 200,
@@ -161,13 +199,21 @@ interface UpdateAvatarDto {
 }
 
 export async function updateAvatar(req: Request, res: Response) {
+  const adminId = (req as any).admin?.id;
+  if (!adminId) {
+    throw new UnauthorizedException('未登录');
+  }
+
   const { avatar } = req.body as UpdateAvatarDto;
 
   if (!avatar) {
     throw new BadRequestException('请上传头像');
   }
 
-  const updated = adminProfileStore.update({ avatar });
+  const updated = await prisma.admin.update({
+    where: { id: adminId },
+    data: { avatar },
+  });
 
   res.json({
     code: 200,

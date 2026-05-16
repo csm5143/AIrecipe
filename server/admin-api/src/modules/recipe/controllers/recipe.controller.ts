@@ -3,18 +3,23 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../../lib/prisma';
 import { paginated, success, notFound, badRequest } from '../../../types/response';
 import { ContentStatus, Difficulty } from '@prisma/client';
+import { getAdminId, getAdminName, createOperationLog, addToRecycleBin } from '../../../utils/adminHelper';
+import { exportRecipes } from '../../../services/export.service';
 
 function mapRecipeToFrontend(recipe: any) {
   const rawIngredients: any[] = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
   const rawSteps: any[] = Array.isArray(recipe.steps) ? recipe.steps : [];
+  // dishTypes 为 null 时 fallback 到 category
+  const dishTypes: string[] = Array.isArray(recipe.dishTypes) && recipe.dishTypes.length
+    ? recipe.dishTypes
+    : recipe.category ? [recipe.category]
+    : [];
   return {
     ...recipe,
     difficulty: recipe.difficulty,
-    dishType: recipe.tags?.[0] || recipe.category || '',
-    dishTypes: recipe.tags || [],
-    mealTimes: (recipe.tags || []).filter((t: string) =>
-      ['breakfast', 'lunch', 'dinner', 'late_night'].includes(t)
-    ),
+    dishType: dishTypes[0] || '',
+    dishTypes,
+    mealTimes: Array.isArray(recipe.mealTimes) ? recipe.mealTimes : [],
     timeCost: recipe.cookingTime,
     fitnessMeal: (recipe.tags || []).includes('diet'),
     childrenMeal: (recipe.tags || []).includes('children'),
@@ -35,7 +40,7 @@ function mapRecipeToFrontend(recipe: any) {
 function buildPrismaWhere(query: any) {
   const where: Prisma.RecipeWhereInput = { isDeleted: false };
   if (query.status) where.status = query.status as ContentStatus;
-  if (query.category) where.category = query.category;
+  if (query.dishType) where.dishTypes = { array_contains: query.dishType };
   if (query.keyword) {
     where.OR = [
       { title: { contains: query.keyword, mode: 'insensitive' } },
@@ -43,6 +48,8 @@ function buildPrismaWhere(query: any) {
     ];
   }
   if (query.difficulty) where.difficulty = query.difficulty as Difficulty;
+  if (query.source) where.source = query.source;
+  if (query.mealTime) where.mealTimes = { array_contains: query.mealTime };
   return where;
 }
 
@@ -92,6 +99,7 @@ export async function createRecipe(req: Request, res: Response) {
     calories, cuisine, category, tips, status = 'DRAFT',
     ingredients = [], steps = [], nutrition,
     isFeatured,
+    isHot,
     dishType, dishTypes = [], mealTimes = [], fitnessMeal, childrenMeal,
   } = body;
 
@@ -106,16 +114,19 @@ export async function createRecipe(req: Request, res: Response) {
       title,
       description,
       coverImage,
-      difficulty: (difficulty as Difficulty) || 'MEDIUM',
+      difficulty: normalizeDifficulty(difficulty),
       cookingTime: cookingTime || null,
       servings: servings || null,
       calories: calories || null,
       cuisine,
       category: dishType || category || null,
       tips,
-      status: (status as ContentStatus) || 'DRAFT',
+      status: normalizeStatus(status),
       isFeatured: isFeatured || false,
+      isHot: isHot || false,
       tags,
+      mealTimes: mealTimes?.length ? mealTimes : undefined,
+      dishTypes: dishTypes?.length ? dishTypes : undefined,
       nutrition: nutrition || undefined,
       ingredients: ingredients.map((ing: any) => ({
         name: ing.name || '',
@@ -130,6 +141,8 @@ export async function createRecipe(req: Request, res: Response) {
       ),
     },
   });
+
+  await createOperationLog(getAdminId(req), getAdminName(req), 'create', 'recipe', title, `创建了菜谱「${title}」`, req.ip || undefined);
 
   res.json(success(mapRecipeToFrontend(result), '创建成功'));
 }
@@ -152,7 +165,7 @@ export async function updateRecipe(req: Request, res: Response) {
     title, description, coverImage, difficulty, cookingTime, servings,
     calories, cuisine, category, tips, status,
     ingredients = [], steps = [], nutrition,
-    isFeatured, isAiGenerated, aiPrompt,
+    isFeatured, isHot, isAiGenerated, aiPrompt,
     dishType, dishTypes = [], mealTimes = [], fitnessMeal, childrenMeal,
   } = body;
 
@@ -175,9 +188,12 @@ export async function updateRecipe(req: Request, res: Response) {
       ...(tips !== undefined && { tips }),
       ...(status !== undefined && { status }),
       ...(isFeatured !== undefined && { isFeatured }),
+      ...(isHot !== undefined && { isHot }),
       ...(isAiGenerated !== undefined && { isAiGenerated }),
       ...(aiPrompt !== undefined && { aiPrompt }),
       ...(category !== undefined && { category }),
+      ...(mealTimes !== undefined && { mealTimes }),
+      ...(dishTypes !== undefined && { dishTypes }),
       tags: tags.length ? tags : undefined,
       nutrition: nutrition || undefined,
       ingredients: ingredients.length > 0 ? ingredients.map((ing: any) => ({
@@ -194,6 +210,8 @@ export async function updateRecipe(req: Request, res: Response) {
     },
   });
 
+  await createOperationLog(getAdminId(req), getAdminName(req), 'update', 'recipe', existing.title, `编辑了菜谱「${existing.title}」`, req.ip || undefined);
+
   res.json(success(mapRecipeToFrontend(result), '更新成功'));
 }
 
@@ -209,6 +227,8 @@ export async function deleteRecipe(req: Request, res: Response) {
     return;
   }
   await prisma.recipe.update({ where: { id }, data: { isDeleted: true } });
+  await addToRecycleBin(getAdminId(req), 'recipe', id, existing, undefined, 30);
+  await createOperationLog(getAdminId(req), getAdminName(req), 'delete', 'recipe', existing.title, `删除了菜谱「${existing.title}」`, req.ip || undefined);
   res.json(success(null, '删除成功'));
 }
 
@@ -219,7 +239,12 @@ export async function batchDeleteRecipes(req: Request, res: Response) {
     return;
   }
   const intIds = ids.map((id: any) => parseInt(id)).filter((id: number) => !isNaN(id));
+  const existing = await prisma.recipe.findMany({ where: { id: { in: intIds }, isDeleted: false } });
   await prisma.recipe.updateMany({ where: { id: { in: intIds } }, data: { isDeleted: true } });
+  for (const r of existing) {
+    await addToRecycleBin(getAdminId(req), 'recipe', r.id, r, undefined, 30);
+    await createOperationLog(getAdminId(req), getAdminName(req), 'delete', 'recipe', r.title, `批量删除了菜谱「${r.title}」`, req.ip || undefined);
+  }
   res.json(success({ deleted: intIds.length }, `成功删除 ${intIds.length} 条记录`));
 }
 
@@ -233,6 +258,7 @@ export async function publishRecipe(req: Request, res: Response) {
     res.status(404).json(notFound('菜谱不存在'));
     return;
   }
+  await createOperationLog(getAdminId(req), getAdminName(req), 'publish', 'recipe', result.title, `发布了菜谱「${result.title}」`, req.ip || undefined);
   res.json(success(null, '发布成功'));
 }
 
@@ -246,5 +272,96 @@ export async function offlineRecipe(req: Request, res: Response) {
     res.status(404).json(notFound('菜谱不存在'));
     return;
   }
+  await createOperationLog(getAdminId(req), getAdminName(req), 'offline', 'recipe', result.title, `下架了菜谱「${result.title}」`, req.ip || undefined);
   res.json(success(null, '下线成功'));
+}
+
+function normalizeDifficulty(raw: string | undefined | null): Difficulty {
+  if (!raw) return 'MEDIUM';
+  const upper = String(raw).toUpperCase() as Difficulty;
+  if (upper === 'EASY' || upper === 'MEDIUM' || upper === 'HARD') return upper;
+  return 'MEDIUM';
+}
+
+function normalizeStatus(raw: string | undefined | null): ContentStatus {
+  if (!raw) return 'DRAFT';
+  const upper = String(raw).toUpperCase() as ContentStatus;
+  if (['ACTIVE', 'DRAFT', 'PUBLISHED', 'OFFLINE', 'DELETED'].includes(upper)) return upper;
+  return 'DRAFT';
+}
+
+export async function importRecipes(req: Request, res: Response) {
+  const items: any[] = Array.isArray(req.body) ? req.body : req.body.recipes || [];
+  if (!items.length) {
+    res.status(400).json(badRequest('请传入要导入的菜谱数组'));
+    return;
+  }
+  const now = new Date();
+  const data = items.map(item => ({
+    recipeKey: 'r_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+    title: item.title || item.name || '',
+    description: item.description || '',
+    coverImage: item.coverImage || '',
+    difficulty: normalizeDifficulty(item.difficulty),
+    cookingTime: item.cookingTime || item.timeCost || null,
+    servings: item.servings || null,
+    calories: item.nutrition?.calories || item.calories || null,
+    cuisine: item.cuisine || null,
+    category: item.category || item.dishTypes?.[0] || null,
+    tips: item.tips || null,
+    nutrition: item.nutrition || undefined,
+    ingredients: item.ingredients || [],
+    steps: item.steps || [],
+    tags: [...(item.dishTypes || []), ...(item.mealTimes || []), ...(item.tags || [])],
+    mealTimes: item.mealTimes?.length ? item.mealTimes : undefined,
+    dishTypes: item.dishTypes?.length ? item.dishTypes : undefined,
+    goal: item.goal || null,
+    ageBand: item.ageBand || null,
+    isFeatured: item.isFeatured || false,
+    isHot: item.isHot || false,
+    status: normalizeStatus(item.status) || 'PUBLISHED',
+    publishedAt: now,
+    createdAt: now,
+    updatedAt: now,
+  }));
+  await prisma.recipe.createMany({ data });
+  await createOperationLog(getAdminId(req), getAdminName(req), 'create', 'recipe', 'batch', `批量导入了 ${data.length} 条菜谱`, req.ip || undefined);
+  res.json(success({ imported: data.length }, `成功导入 ${data.length} 条记录`));
+}
+
+export async function exportRecipesHandler(req: Request, res: Response) {
+  const format = req.query.format as string;
+  if (format && !['csv', 'xlsx', 'json'].includes(format)) {
+    res.status(400).json(badRequest('format 参数仅支持 csv、xlsx 或 json'));
+    return;
+  }
+
+  const where = buildPrismaWhere(req.query);
+
+  const recipes = await prisma.recipe.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true, recipeKey: true, title: true, coverImage: true, description: true,
+      difficulty: true, cookingTime: true, servings: true, calories: true,
+      category: true, cuisine: true, tags: true, source: true, status: true,
+      isFeatured: true, isHot: true, viewCount: true, collectCount: true,
+      mealTimes: true, dishTypes: true, publishedAt: true, createdAt: true,
+    },
+  });
+
+  const rows = recipes.map(r => ({
+    ...r,
+    title: r.title || '',
+    coverImage: r.coverImage || '',
+    description: r.description || '',
+    cuisine: r.cuisine || '',
+    category: r.category || '',
+    tags: r.tags || [],
+    mealTimes: r.mealTimes || [],
+    dishTypes: r.dishTypes || [],
+  }));
+
+  const fmt = (format === 'csv' || format === 'json') ? format : 'xlsx';
+  exportRecipes(res, fmt, rows);
 }

@@ -2,7 +2,7 @@
   "name": "airecipe-monorepo",
   "version": "1.0.0",
   "private": true,
-  "description": "AIRecipe - 智能食谱全栈应用 Monorepo",
+  "description": "AIrecipe - 智能食谱全栈应用 Monorepo",
   "scripts": {
     "dev:admin-api": "pnpm --filter @airecipe/admin-api dev",
     "dev:admin-web": "pnpm --filter @airecipe/admin-web dev",

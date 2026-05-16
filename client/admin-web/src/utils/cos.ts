@@ -11,6 +11,7 @@ export const cosConfig = {
 
   // 文件夹类型
   folders: {
+    ADMINS: 'admins',
     AVATARS: 'avatars',
     RECIPES: 'recipes',
     RECIPE_COVER: 'recipes',
@@ -20,6 +21,7 @@ export const cosConfig = {
     BANNERS: 'banners',
     CATEGORIES: 'categories',
     INGREDIENTS: 'ingredients',
+    SETTINGS: 'settings',
     TMP: 'tmp',
   } as const,
 };

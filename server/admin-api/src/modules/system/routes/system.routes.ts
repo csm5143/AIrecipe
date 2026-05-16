@@ -14,24 +14,25 @@ import {
   updateSecuritySettings,
   updateEmailSettings,
 } from '../controllers/system.controller';
-import { authenticate } from '../../auth/middleware/auth.middleware';
+import { authenticate, authorize } from '../../auth/middleware/auth.middleware';
 
 const router: ExpressRouter = Router();
 
-router.get('/info', getSystemInfo);
-router.use(authenticate);
+router.get('/info', asyncHandler(getSystemInfo));
+router.use(asyncHandler(authenticate));
 
-router.get('/settings', asyncHandler(getAllSettings));
-router.get('/settings/site', asyncHandler(getSiteSettings));
-router.get('/settings/seo', asyncHandler(getSeoSettings));
-router.get('/settings/legal', asyncHandler(getLegalSettings));
-router.get('/settings/security', asyncHandler(getSecuritySettings));
-router.get('/settings/email', asyncHandler(getEmailSettings));
+// 基础设置：仅限 SUPER_ADMIN
+router.get('/settings', asyncHandler(authorize('SUPER_ADMIN')), asyncHandler(getAllSettings));
+router.get('/settings/site', asyncHandler(authorize('SUPER_ADMIN')), asyncHandler(getSiteSettings));
+router.get('/settings/seo', asyncHandler(authorize('SUPER_ADMIN')), asyncHandler(getSeoSettings));
+router.get('/settings/legal', asyncHandler(authorize('SUPER_ADMIN')), asyncHandler(getLegalSettings));
+router.get('/settings/security', asyncHandler(authorize('SUPER_ADMIN')), asyncHandler(getSecuritySettings));
+router.get('/settings/email', asyncHandler(authorize('SUPER_ADMIN')), asyncHandler(getEmailSettings));
 
-router.put('/settings/site', asyncHandler(updateSiteSettings));
-router.put('/settings/seo', asyncHandler(updateSeoSettings));
-router.put('/settings/legal', asyncHandler(updateLegalSettings));
-router.put('/settings/security', asyncHandler(updateSecuritySettings));
-router.put('/settings/email', asyncHandler(updateEmailSettings));
+router.put('/settings/site', asyncHandler(authorize('SUPER_ADMIN')), asyncHandler(updateSiteSettings));
+router.put('/settings/seo', asyncHandler(authorize('SUPER_ADMIN')), asyncHandler(updateSeoSettings));
+router.put('/settings/legal', asyncHandler(authorize('SUPER_ADMIN')), asyncHandler(updateLegalSettings));
+router.put('/settings/security', asyncHandler(authorize('SUPER_ADMIN')), asyncHandler(updateSecuritySettings));
+router.put('/settings/email', asyncHandler(authorize('SUPER_ADMIN')), asyncHandler(updateEmailSettings));
 
 export default router;

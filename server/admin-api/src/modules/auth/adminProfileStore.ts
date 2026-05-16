@@ -1,8 +1,5 @@
-import fs from 'fs';
-import path from 'path';
 import bcrypt from 'bcryptjs';
-
-const DATA_FILE = path.join(process.cwd(), 'data', 'admin.json');
+import { prisma } from '../../../lib/prisma';
 
 export interface AdminProfile {
   id: number;
@@ -17,84 +14,95 @@ export interface AdminProfile {
   updatedAt: string;
 }
 
-const defaultAdmin: AdminProfile = {
-  id: 1,
-  username: 'admin',
-  passwordHash: bcrypt.hashSync('admin123', 10),
-  nickname: '管理员',
-  phone: '',
-  avatar: '',
-  role: 'ADMIN',
-  status: 'ACTIVE',
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-};
-
-function ensureDataDir() {
-  const dir = path.dirname(DATA_FILE);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-}
-
-function loadData(): AdminProfile {
-  try {
-    ensureDataDir();
-    if (!fs.existsSync(DATA_FILE)) {
-      fs.writeFileSync(DATA_FILE, JSON.stringify(defaultAdmin, null, 2), 'utf-8');
-      return { ...defaultAdmin };
-    }
-    const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-    const loaded = JSON.parse(raw) as AdminProfile;
-    return { ...defaultAdmin, ...loaded };
-  } catch {
-    return { ...defaultAdmin };
-  }
-}
-
-function saveData(admin: AdminProfile) {
-  ensureDataDir();
-  fs.writeFileSync(DATA_FILE, JSON.stringify(admin, null, 2), 'utf-8');
-}
-
+/**
+ * 管理员个人资料数据访问层（PostgreSQL）
+ * 移除了 JSON 文件读写，以数据库为唯一数据源
+ */
 class AdminProfileStore {
-  private admin: AdminProfile;
-
-  constructor() {
-    this.admin = loadData();
+  private mapToProfile(admin: {
+    id: number;
+    username: string;
+    password: string;
+    nickname: string | null;
+    phone: string | null;
+    avatar: string | null;
+    role: string;
+    status: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }): AdminProfile {
+    return {
+      id: admin.id,
+      username: admin.username,
+      passwordHash: admin.password,
+      nickname: admin.nickname ?? '',
+      phone: admin.phone ?? '',
+      avatar: admin.avatar ?? '',
+      role: admin.role as AdminProfile['role'],
+      status: admin.status as AdminProfile['status'],
+      createdAt: admin.createdAt.toISOString(),
+      updatedAt: admin.updatedAt.toISOString(),
+    };
   }
 
-  get(): Omit<AdminProfile, 'passwordHash'> {
-    const { passwordHash: _, ...safe } = this.admin;
+  /**
+   * 按 username 查找管理员（返回包含 passwordHash 的完整对象）
+   */
+  async getByUsername(): Promise<AdminProfile | null> {
+    const admin = await prisma.admin.findFirst({ where: { isDeleted: false } });
+    if (!admin) return null;
+    return this.mapToProfile(admin);
+  }
+
+  /**
+   * 获取管理员资料（不包含 passwordHash）
+   */
+  async get(): Promise<Omit<AdminProfile, 'passwordHash'>> {
+    const admin = await prisma.admin.findFirst({ where: { isDeleted: false } });
+    if (!admin) {
+      const { passwordHash: _, ...safe } = {} as Omit<AdminProfile, 'passwordHash'>;
+      return safe;
+    }
+    const { password: _, ...safe } = this.mapToProfile(admin);
     return safe;
   }
 
-  update(data: Partial<Pick<AdminProfile, 'nickname' | 'phone' | 'avatar'>>) {
-    this.admin = {
-      ...this.admin,
-      ...data,
-      updatedAt: new Date().toISOString(),
-    };
-    saveData(this.admin);
-    const { passwordHash: _, ...safe } = this.admin;
+  /**
+   * 更新管理员资料（昵称、手机号、头像）
+   */
+  async update(data: Partial<Pick<AdminProfile, 'nickname' | 'phone' | 'avatar'>>) {
+    const admin = await this.getByUsername();
+    if (!admin) throw new Error('管理员未找到');
+
+    const updated = await prisma.admin.update({
+      where: { id: admin.id },
+      data,
+    });
+
+    const { passwordHash: _, ...safe } = this.mapToProfile(updated);
     return safe;
   }
 
-  verifyPassword(password: string): boolean {
-    return bcrypt.compareSync(password, this.admin.passwordHash);
+  /**
+   * 验证密码
+   */
+  async verifyPassword(password: string): Promise<boolean> {
+    const admin = await this.getByUsername();
+    if (!admin) return false;
+    return bcrypt.compare(password, admin.passwordHash);
   }
 
-  changePassword(newPasswordHash: string) {
-    this.admin = {
-      ...this.admin,
-      passwordHash: newPasswordHash,
-      updatedAt: new Date().toISOString(),
-    };
-    saveData(this.admin);
-  }
+  /**
+   * 修改密码
+   */
+  async changePassword(newPasswordHash: string) {
+    const admin = await this.getByUsername();
+    if (!admin) throw new Error('管理员未找到');
 
-  getByUsername(): AdminProfile | null {
-    return this.admin;
+    await prisma.admin.update({
+      where: { id: admin.id },
+      data: { password: newPasswordHash },
+    });
   }
 }
 

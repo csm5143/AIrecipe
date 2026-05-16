@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "openapi": []
-  },
-  "dependencies": {
-    "cos-wx-sdk-v5": "^1.8.0"
-  }
-}
