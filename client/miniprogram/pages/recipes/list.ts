@@ -1,10 +1,9 @@
 // 菜谱列表页：根据食材 + 分类筛选展示菜谱
-// 注意：不再使用 import 导入 recipes.ts，改为运行时从 recipes.json 加载数据
-// 这样可以避免微信小程序模块加载错误
+// 优先从后端 API 加载，Storage 缓存兜底
 
 import { Recipe } from '../../types/index';
 import { SEASONING_INGREDIENTS } from '../../utils/constants';
-import { loadRecipesJson, loadRecipesAsync } from '../../utils/dataLoader';
+import { getGlobalRecipesAsync, getGlobalRecipes } from '../../utils/httpServices/recipeService';
 import { extractCalories, normalizeStepsForDisplay } from '../../utils/recipeUtils';
 import { expandUserIngredients, isIngredientOwnedWithChickenExceptions } from '../../utils/ingredientUtils';
 import {
@@ -27,7 +26,6 @@ import {
   isRecipeInAnyCollection
 } from '../../utils/collections';
 import { handleWarning, handleInfo } from '../../utils/errorHandler';
-import { getFallbackRecipes } from '../../utils/fallbackRecipes';
 import { saveRecipeSearchHistory } from '../../utils/recipeSearchStorage';
 import { matchKeyword } from '../../utils/pinyin';
 import { syncDebounced } from '../../utils/dataSync';
@@ -187,29 +185,30 @@ Page({
     // 加载收藏状态
     this.updateFavoriteStatus();
 
-    // 主菜谱（本地优先）
-    let recipes: Recipe[] = [];
+    // 优先从后端 API 加载（经过转换的数据格式）
+    let rawRecipes: Recipe[] = [];
     try {
-      // 使用本地 JSON 加载菜谱数据
-      recipes = await loadRecipesAsync();
-      
-      if (recipes.length > 0) {
-        handleInfo(`已加载菜谱数据，共 ${recipes.length} 道`, 'RecipesList');
+      rawRecipes = await getGlobalRecipesAsync();
+
+      if (rawRecipes.length > 0) {
+        handleInfo(`已从 API 加载菜谱数据，共 ${rawRecipes.length} 道`, 'RecipesList');
       }
     } catch (e: any) {
-      handleWarning(e, '加载菜谱失败');
+      handleWarning(e, '从 API 加载菜谱失败');
     }
 
-    // 兜底：本地 JSON
-    let rawRecipes = recipes;
+    // API 加载失败或为空时，尝试同步缓存
     if (!rawRecipes.length) {
-      rawRecipes = loadRecipesJson();
+      const cached = getGlobalRecipes();
+      if (cached && cached.length > 0) {
+        rawRecipes = cached;
+        handleInfo(`从 Storage 缓存加载菜谱，共 ${rawRecipes.length} 道`, 'RecipesList');
+      }
     }
+
+    // 最终兜底：本地 JSON
     if (!rawRecipes.length) {
-      handleWarning(null, '菜谱数据加载失败，请检查 /data/recipes.json 文件');
-    }
-    if (!rawRecipes.length) {
-      rawRecipes = getFallbackRecipes();
+      handleWarning(null, '菜谱数据加载失败，请检查后端 API 连接');
     }
 
     let initialSearch = '';

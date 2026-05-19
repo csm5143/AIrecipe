@@ -408,13 +408,33 @@ model AiScan {
   recipes      Json?     // 推荐菜谱
   status       ScanStatus @default(PROCESSING)
   errorMsg     String?
+  tokensUsed   Int?      // 本次调用消耗 Token 数
+  apiKeyName   String?   // 使用的 Key 名称
+  model        String?   // 使用的模型名称
   createdAt    DateTime  @default(now())
-  
+
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId])
   @@index([createdAt])
+  @@index([model])
   @@map("ai_scans")
+}
+
+// AI API Key 管理
+model AiApiKey {
+  id           Int      @id @default(autoincrement())
+  name         String   // 管理员自定义名称，如"GPT-4o-mini 官方Key"
+  apiKey       String   // 实际 API Key
+  baseUrl      String   // API Base URL
+  model        String   // 模型名称，如 gpt-4o-mini
+  totalTokens  Int      // 用户填写的总量上限
+  usedTokens   Int      @default(0)  // 累计已消耗
+  isActive     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("ai_api_keys")
 }
 
 // =====================================================

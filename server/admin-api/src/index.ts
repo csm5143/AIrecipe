@@ -27,9 +27,12 @@ import uploadRoutes from './modules/upload/routes/upload.routes';
 import systemRoutes from './modules/system/routes/system.routes';
 import appRoutes from './modules/app/routes';
 import wxRoutes from './modules/wx/routes/wx.routes';
+import fridgeRoutes from './modules/fridge/routes/fridge.routes';
 import operationLogsRoutes from './modules/operation-logs/routes/operation-logs.routes';
 import recycleBinRoutes from './modules/recycle-bin/routes/recycle-bin.routes';
 import featuredRoutes from './modules/featured/routes/featured.routes';
+import aiScanRoutes from './modules/ai-scan/routes/ai-scan.routes';
+import aiKeyRoutes, { aiKeyPublicRoutes } from './modules/ai-key/routes/ai-key.routes';
 
 const app: Express = express();
 
@@ -107,7 +110,11 @@ app.use(`${config.app.apiPrefix}/user-recipes`, userRecipeRoutes);
 app.use(`${config.app.apiPrefix}/admins`, adminRoutes);
 app.use(`${config.app.apiPrefix}/content`, contentRoutes);
 app.use(`${config.app.apiPrefix}/app`, appRoutes);
+app.use(`${config.app.apiPrefix}/ai-scans`, aiScanRoutes);
+app.use(`${config.app.apiPrefix}/ai-keys`, aiKeyRoutes);
+app.use(`${config.app.apiPrefix}/ai-keys/active`, aiKeyPublicRoutes);
 app.use(`${config.app.apiPrefix}/wx`, wxRoutes);
+app.use(`${config.app.apiPrefix}/app/fridge`, fridgeRoutes);
 app.use(`${config.app.apiPrefix}/analytics`, analyticsRoutes);
 app.use(`${config.app.apiPrefix}/upload`, uploadRoutes);
 app.use(`${config.app.apiPrefix}/system`, systemRoutes);

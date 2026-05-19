@@ -46,8 +46,6 @@ Page({
         keyword: this.data.keyword,
         category: this.data.category,
         sort: this.data.sort,
-      }, {
-        baseUrl: 'http://localhost:3000',
       });
 
       if (res.success && res.data) {

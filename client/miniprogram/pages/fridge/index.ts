@@ -2,25 +2,71 @@
  * 小冰箱页面
  *
  * 功能：
- * 1. 展示冰箱中的食材列表
- * 2. 拍照添加食材
+ * 1. 展示冰箱中的食材列表（从后端 /v1/app/fridge 加载）
+ * 2. 拍照添加食材（AI 识别后加入冰箱）
  * 3. 手动添加食材
  * 4. 编辑/删除食材
  */
 
 import {
-  getFridgeItems,
-  addToFridge,
-  addMultipleToFridge,
+  getFridgeItemsWithCache,
+  addToFridgeCached,
+  addBatchCached,
   removeFromFridge,
   updateFridgeItem,
-  clearFridge,
+  clearAllCached,
   type FridgeItem
-} from '../../utils/fridgeStore';
-import { loadIngredientsJson } from '../../utils/dataLoader';
-import { getFallbackIngredients } from '../../utils/fallbackIngredients';
+} from '../../utils/services/fridgeService';
 import { recognizeImage, type IngredientRecognitionResult } from '../../utils/ingredientRecognize';
-import { isFormalUser, checkScanAccess, consumeScanCountIfNeeded, getDisplayRemainingCount } from '../../utils/userAuth';
+import { getAppIngredientsList } from '../../utils/httpApi/ingredient';
+
+// ============ 食材建议 API ============
+
+interface IngredientSuggestion {
+  id: number;
+  name: string;
+  alias: string;
+  subCategory: string;
+  category: string;
+  unit: string;
+}
+
+let cachedIngredients: IngredientSuggestion[] = [];
+let ingredientCacheTime = 0;
+const INGREDIENT_CACHE_TTL = 5 * 60 * 1000; // 5分钟
+
+async function fetchIngredientSuggestions(keyword?: string): Promise<IngredientSuggestion[]> {
+  const now = Date.now();
+  if (keyword && cachedIngredients.length > 0 && now - ingredientCacheTime < INGREDIENT_CACHE_TTL) {
+    return cachedIngredients.filter(i =>
+      !keyword || i.name.toLowerCase().includes(keyword.toLowerCase())
+    );
+  }
+
+  try {
+    const res = await getAppIngredientsList({ pageSize: 1000, keyword });
+    if (res.success && res.data && res.data.length > 0) {
+      if (!keyword) {
+        cachedIngredients = res.data.map(i => ({
+          id: i.id,
+          name: i.name,
+          alias: i.alias || '',
+          subCategory: i.subCategory || '',
+          category: i.category || 'other',
+          unit: i.unit || '',
+        }));
+        ingredientCacheTime = now;
+      }
+      return cachedIngredients.filter(i =>
+        !keyword || i.name.toLowerCase().includes(keyword.toLowerCase())
+      );
+    }
+  } catch (e) {
+    console.warn('[Fridge] 获取食材建议失败', e);
+  }
+
+  return [];
+}
 
 Page({
   data: {
@@ -72,6 +118,9 @@ Page({
 
     // 剩余拍照次数
     remainingCount: 3,
+
+    // 加载状态
+    loading: false,
   },
 
   onLoad() {
@@ -84,27 +133,33 @@ Page({
   },
 
   onReady() {
-    // 设置导航栏标题
     wx.setNavigationBarTitle({ title: '小冰箱' });
   },
 
   // ==================== 数据刷新 ====================
 
-  refresh() {
-    const items = getFridgeItems();
-    const categoryCount = this.countByCategory(items);
-
-    this.setData({
-      items,
-      displayedItems: items,
-      itemCount: items.length,
-      categories: this.data.categories.map(cat => ({
-        ...cat,
-        count: categoryCount[cat.id] || 0
-      })),
-      isEmpty: items.length === 0,
-      searchKeyword: ''
-    });
+  async refresh() {
+    this.setData({ loading: true });
+    try {
+      const items = await getFridgeItemsWithCache();
+      const categoryCount = this.countByCategory(items);
+      this.setData({
+        items,
+        displayedItems: items,
+        itemCount: items.length,
+        categories: this.data.categories.map(cat => ({
+          ...cat,
+          count: categoryCount[cat.id] || 0
+        })),
+        isEmpty: items.length === 0,
+        searchKeyword: '',
+      });
+    } catch (e) {
+      console.error('[Fridge] 刷新失败', e);
+      wx.showToast({ title: '加载失败', icon: 'none' });
+    } finally {
+      this.setData({ loading: false });
+    }
   },
 
   countByCategory(items: FridgeItem[]): Record<string, number> {
@@ -171,7 +226,7 @@ Page({
   },
 
   // 手动添加 - 输入
-  onAddInput(e: any) {
+  async onAddInput(e: any) {
     const input = (e.detail.value || '').trim();
     this.setData({ addInputValue: input });
 
@@ -180,11 +235,14 @@ Page({
       return;
     }
 
-    // 匹配食材建议
-    const allIngredients = this.getAllIngredientNames();
-    const matched = allIngredients.filter(name =>
-      name.toLowerCase().includes(input.toLowerCase())
-    ).slice(0, 8);
+    // 从 API 获取食材建议（带缓存）
+    const allIngredients = await fetchIngredientSuggestions(input);
+    const matched = allIngredients
+      .map((item: any) => item.name)
+      .filter((name: string, idx: number, arr: string[]) =>
+        name.toLowerCase().includes(input.toLowerCase()) && arr.indexOf(name) === idx
+      )
+      .slice(0, 8);
 
     this.setData({ addSuggestions: matched });
   },
@@ -196,159 +254,94 @@ Page({
   },
 
   // 手动添加 - 确认
-  onConfirmAdd() {
+  async onConfirmAdd() {
     const input = this.data.addInputValue.trim();
     if (!input) return;
 
-    // 尝试匹配食材库
-    const matchedName = this.findBestMatch(input);
-    if (!matchedName) {
-      wx.showToast({ title: '未找到该食材', icon: 'none' });
-      return;
+    this.setData({ loading: true });
+    try {
+      // 尝试匹配食材库
+      const matchedName = await this.findBestMatch(input);
+      if (!matchedName) {
+        wx.showToast({ title: '未找到该食材', icon: 'none' });
+        return;
+      }
+
+      // 获取分类
+      const category = this.getIngredientCategory(matchedName);
+      const unit = this.getSmartUnit(matchedName, category);
+
+      const result = await addToFridgeCached({
+        name: matchedName,
+        amount: String(1),
+        unit,
+        category,
+      });
+      if (result.success) {
+        await this.refresh();
+        this.onCloseAddPanel();
+        wx.showToast({ title: `已添加「${matchedName}」`, icon: 'success' });
+      }
+    } finally {
+      this.setData({ loading: false });
     }
-
-    // 获取分类
-    const category = this.getIngredientCategory(matchedName);
-
-    // 根据分类智能推荐单位
-    const unit = this.getSmartUnit(matchedName, category);
-
-    // 添加到冰箱
-    addToFridge(matchedName, 1, unit, category);
-    this.refresh();
-    this.onCloseAddPanel();
-    wx.showToast({ title: `已添加「${matchedName}」`, icon: 'success' });
   },
 
   // 根据食材类型智能推荐单位
   getSmartUnit(name: string, category: string): string {
-    // 肉类默认用克
-    if (category === 'meat' || category === 'seafood') {
-      return '克';
-    }
-    // 蔬菜水果可以是个
-    if (category === 'vegetable' || category === 'fruit') {
-      return '个';
-    }
-    // 蛋奶默认用个
-    if (category === 'egg_dairy') {
-      return '个';
-    }
-    // 豆制品
-    if (category === 'soy') {
-      return '块';
-    }
-    // 默认用个
+    if (category === 'meat' || category === 'seafood') return '克';
+    if (category === 'vegetable' || category === 'fruit') return '个';
+    if (category === 'egg_dairy') return '个';
+    if (category === 'soy') return '块';
     return '个';
   },
 
-  // 获取所有食材名称
-  getAllIngredientNames(): string[] {
-    try {
-      const jsonData = loadIngredientsJson();
-      if (jsonData && jsonData.length) {
-        return jsonData.map((item: any) =>
-          item.name || item.title || item.ingredient || ''
-        ).filter(Boolean);
-      }
-    } catch (e) {}
-    return getFallbackIngredients().map((item: any) => item.name);
-  },
-
-  // 获取食材分类
-  getIngredientCategory(name: string): string {
-    // 常见食材硬编码映射（优先匹配）
-    const categoryMap: Record<string, string> = {
-      // 蛋奶类
-      '鸡蛋': 'egg_dairy',
-      '鸭蛋': 'egg_dairy',
-      '鹌鹑蛋': 'egg_dairy',
-      '皮蛋': 'egg_dairy',
-      '牛奶': 'egg_dairy',
-      '酸奶': 'egg_dairy',
-      // 肉类
-      '猪肉': 'meat',
-      '牛肉': 'meat',
-      '羊肉': 'meat',
-      '鸡肉': 'meat',
-      '鸭肉': 'meat',
-      '猪排': 'meat',
-      '牛排': 'meat',
-      '鸡翅': 'meat',
-      '鸡腿': 'meat',
-      '五花肉': 'meat',
-      '里脊肉': 'meat',
-      '排骨': 'meat',
-      '猪蹄': 'meat',
-      '虾': 'seafood',
-      '鱼': 'seafood',
-      '螃蟹': 'seafood',
-      '虾仁': 'seafood',
-      // 蔬菜
-      '番茄': 'vegetable',
-      '西红柿': 'vegetable',
-      '土豆': 'vegetable',
-      '胡萝卜': 'vegetable',
-      '黄瓜': 'vegetable',
-      '青菜': 'vegetable',
-      '白菜': 'vegetable',
-      '菠菜': 'vegetable',
-      '油菜': 'vegetable',
-      '芹菜': 'vegetable',
-      '洋葱': 'vegetable',
-      '大蒜': 'vegetable',
-      '姜': 'vegetable',
-      '葱': 'vegetable',
-      '韭菜': 'vegetable',
-      '青椒': 'vegetable',
-      '辣椒': 'vegetable',
-      // 豆制品
-      '豆腐': 'soy',
-      '豆浆': 'soy',
-      '豆皮': 'soy',
-      '腐竹': 'soy',
-      '千张': 'soy',
-    };
-
-    // 先查映射表
-    if (categoryMap[name]) return categoryMap[name];
-
-    // 再查JSON数据
-    try {
-      const jsonData = loadIngredientsJson();
-      if (jsonData && jsonData.length) {
-        const found = jsonData.find((item: any) => {
-          const itemName = item.name || item.title || item.ingredient || '';
-          return itemName === name;
-        });
-        if (found && found.category) return found.category;
-      }
-    } catch (e) {}
-    return 'other';
-  },
-
   // 查找最佳匹配
-  findBestMatch(input: string): string | null {
-    const allIngredients = this.getAllIngredientNames();
+  async findBestMatch(input: string): Promise<string | null> {
+    const allIngredients = await fetchIngredientSuggestions();
     const inputLower = input.toLowerCase();
 
     // 精确匹配
-    for (const name of allIngredients) {
-      if (name.toLowerCase() === inputLower) return name;
+    for (const item of allIngredients) {
+      if (item.name.toLowerCase() === inputLower) return item.name;
     }
 
     // 包含匹配
-    for (const name of allIngredients) {
-      if (name.toLowerCase().includes(inputLower)) return name;
+    for (const item of allIngredients) {
+      if (item.name.toLowerCase().includes(inputLower)) return item.name;
     }
 
     // 反向包含
-    for (const name of allIngredients) {
-      if (inputLower.includes(name.toLowerCase())) return name;
+    for (const item of allIngredients) {
+      if (inputLower.includes(item.name.toLowerCase())) return item.name;
     }
 
-    // 返回原输入（未找到匹配时）
-    return input;
+    return input; // 返回原输入
+  },
+
+  // 获取食材分类
+  async getIngredientCategory(name: string): Promise<string> {
+    const categoryMap: Record<string, string> = {
+      '鸡蛋': 'egg_dairy', '鸭蛋': 'egg_dairy', '鹌鹑蛋': 'egg_dairy', '皮蛋': 'egg_dairy',
+      '牛奶': 'egg_dairy', '酸奶': 'egg_dairy',
+      '猪肉': 'meat', '牛肉': 'meat', '羊肉': 'meat', '鸡肉': 'meat', '鸭肉': 'meat',
+      '鸡翅': 'meat', '鸡腿': 'meat', '五花肉': 'meat', '里脊肉': 'meat', '排骨': 'meat', '猪蹄': 'meat',
+      '虾': 'seafood', '鱼': 'seafood', '螃蟹': 'seafood', '虾仁': 'seafood',
+      '番茄': 'vegetable', '西红柿': 'vegetable', '土豆': 'vegetable', '胡萝卜': 'vegetable',
+      '黄瓜': 'vegetable', '青菜': 'vegetable', '白菜': 'vegetable', '菠菜': 'vegetable',
+      '油菜': 'vegetable', '芹菜': 'vegetable', '洋葱': 'vegetable', '大蒜': 'vegetable',
+      '姜': 'vegetable', '葱': 'vegetable', '韭菜': 'vegetable', '青椒': 'vegetable', '辣椒': 'vegetable',
+      '豆腐': 'soy', '豆浆': 'soy', '豆皮': 'soy', '腐竹': 'soy', '千张': 'soy',
+    };
+
+    if (categoryMap[name]) return categoryMap[name];
+
+    // 从 API 数据中查找
+    const allIngredients = await fetchIngredientSuggestions();
+    const found = allIngredients.find((item: any) => item.name === name);
+    if (found && found.category) return found.category;
+
+    return 'other';
   },
 
   // ==================== 拍照添加 ====================
@@ -378,10 +371,7 @@ Page({
       sizeType: ['compressed'],
       success: (res) => {
         const tempFilePath = res.tempFiles[0].tempFilePath;
-        this.setData({
-          imageUrls: [tempFilePath],
-          recognizing: true,
-        });
+        this.setData({ imageUrls: [tempFilePath], recognizing: true });
         this.recognizeImage(tempFilePath);
       },
       fail: (err) => {
@@ -417,7 +407,6 @@ Page({
           recognizing: true,
         });
 
-        // 并行识别
         Promise.all(
           tempFilePaths.map(path => recognizeImage(path).catch(() => []))
         ).then(results => {
@@ -490,35 +479,29 @@ Page({
   },
 
   // 规范化食材名称
-  normalizeIngredientName(name: string): string | null {
-    const allIngredients = this.getAllIngredientNames();
+  async normalizeIngredientName(name: string): Promise<string | null> {
+    const allIngredients = await fetchIngredientSuggestions();
     const normalized = name.trim().toLowerCase();
 
     // 精确匹配
-    for (const ing of allIngredients) {
-      if (ing.toLowerCase() === normalized) return ing;
+    for (const item of allIngredients) {
+      if (item.name.toLowerCase() === normalized) return item.name;
     }
 
     // 别名映射
     const aliasMap: Record<string, string> = {
-      '西红柿': '番茄',
-      '马铃薯': '土豆',
-      '大蒜': '蒜',
-      '姜': '姜',
-      '小葱': '葱',
-      '大葱': '葱',
+      '西红柿': '番茄', '马铃薯': '土豆', '大蒜': '蒜',
+      '小葱': '葱', '大葱': '葱',
     };
 
     for (const [alias, standard] of Object.entries(aliasMap)) {
-      if (normalized.includes(alias.toLowerCase())) {
-        return standard;
-      }
+      if (normalized.includes(alias.toLowerCase())) return standard;
     }
 
     // 包含匹配
-    for (const ing of allIngredients) {
-      if (ing.toLowerCase().includes(normalized) || normalized.includes(ing.toLowerCase())) {
-        return ing;
+    for (const item of allIngredients) {
+      if (item.name.toLowerCase().includes(normalized) || normalized.includes(item.name.toLowerCase())) {
+        return item.name;
       }
     }
 
@@ -541,28 +524,42 @@ Page({
   },
 
   // 确认添加识别到的食材
-  onConfirmRecognized() {
+  async onConfirmRecognized() {
     const { selectedIngredients } = this.data;
     if (selectedIngredients.length === 0) {
       wx.showToast({ title: '请先选择食材', icon: 'none' });
       return;
     }
 
-    // 批量添加到冰箱
-    const ingredients = selectedIngredients.map(name => ({
-      name,
-      quantity: 1,
-      unit: '个',
-      category: this.getIngredientCategory(name)
-    }));
+    this.setData({ loading: true });
+    try {
+      const ingredients = await Promise.all(
+        selectedIngredients.map(async (name) => {
+          const category = await this.getIngredientCategory(name);
+          return {
+            name,
+            count: 1,
+            unit: '个',
+            category,
+          };
+        })
+      );
 
-    addMultipleToFridge(ingredients);
-    this.refresh();
-    this.onCloseAddPanel();
-    wx.showToast({
-      title: `已添加 ${selectedIngredients.length} 种食材`,
-      icon: 'success'
-    });
+      await addBatchCached(ingredients.map(i => ({
+        name: i.name,
+        amount: String(i.count || 1),
+        unit: i.unit,
+        category: i.category,
+      })));
+      await this.refresh();
+      this.onCloseAddPanel();
+      wx.showToast({
+        title: `已添加 ${selectedIngredients.length} 种食材`,
+        icon: 'success'
+      });
+    } finally {
+      this.setData({ loading: false });
+    }
   },
 
   // 重新拍照
@@ -584,8 +581,8 @@ Page({
     this.setData({
       showEditPanel: true,
       editingItem: item,
-      editQuantity: item.quantity,
-      editUnit: item.unit
+      editQuantity: item.count || 1,
+      editUnit: item.unit || '个'
     });
   },
 
@@ -603,32 +600,26 @@ Page({
     this.setData({ editQuantity: Math.max(1, quantity) });
   },
 
-  // 数量减1
   onQtyMinus() {
     const { editQuantity, editUnit } = this.data;
-    // 克、kg、ml、斤 这些单位一次减50或0.5
     const bulkUnits = ['克', 'g', 'kg', 'ml', 'L', '斤', '两'];
     let newQty = editQuantity;
 
     if (bulkUnits.includes(editUnit)) {
-      // 肉类等单位以50g或0.5斤为单位
       if (editUnit === '斤' || editUnit === '两') {
         newQty = Math.max(0.5, editQuantity - 0.5);
       } else {
         newQty = Math.max(50, editQuantity - 50);
       }
     } else {
-      // 个/颗等单位以1为单位
       newQty = Math.max(1, editQuantity - 1);
     }
 
     this.setData({ editQuantity: newQty });
   },
 
-  // 数量加1（或对应单位增量）
   onQtyPlus() {
     const { editQuantity, editUnit } = this.data;
-    // 克、kg、ml、斤 这些单位一次加50或0.5
     const bulkUnits = ['克', 'g', 'kg', 'ml', 'L', '斤', '两'];
 
     if (bulkUnits.includes(editUnit)) {
@@ -642,7 +633,6 @@ Page({
     }
   },
 
-  // 选择单位
   onSelectUnit(e: any) {
     const unit = e.currentTarget.dataset.unit as string;
     this.setData({ editUnit: unit });
@@ -652,21 +642,21 @@ Page({
     this.setData({ editUnit: e.detail.value });
   },
 
-  onSaveEdit() {
+  async onSaveEdit() {
     const { editingItem, editQuantity, editUnit } = this.data;
     if (!editingItem) return;
 
-    updateFridgeItem(editingItem.id, {
-      quantity: editQuantity,
-      unit: editUnit
+    await fridgeService.updateFridgeItem(editingItem.id, {
+      count: editQuantity,
+      unit: editUnit,
     });
 
-    this.refresh();
+    await this.refresh();
     this.onCloseEditPanel();
     wx.showToast({ title: '已更新', icon: 'success' });
   },
 
-  onDeleteItem(e: any) {
+  async onDeleteItem(e: any) {
     const id = e.currentTarget.dataset.id as string;
     const item = this.data.items.find(i => i.id === id);
     if (!item) return;
@@ -677,10 +667,10 @@ Page({
       confirmText: '删除',
       confirmColor: '#ff3b30',
       cancelText: '取消',
-      success: (res) => {
+      success: async (res) => {
         if (res.confirm) {
-          removeFromFridge(id);
-          this.refresh();
+          await fridgeService.deleteFridgeItemCached(id);
+          await this.refresh();
           wx.showToast({ title: '已删除', icon: 'none' });
         }
       }
@@ -689,7 +679,7 @@ Page({
 
   // ==================== 一键清空 ====================
 
-  onClearAll() {
+  async onClearAll() {
     if (this.data.items.length === 0) {
       wx.showToast({ title: '冰箱已经是空的', icon: 'none' });
       return;
@@ -701,10 +691,10 @@ Page({
       confirmText: '清空',
       confirmColor: '#ff3b30',
       cancelText: '取消',
-      success: (res) => {
+      success: async (res) => {
         if (res.confirm) {
-          clearFridge();
-          this.refresh();
+          await fridgeService.clearAllCached();
+          await this.refresh();
           wx.showToast({ title: '已清空', icon: 'none' });
         }
       }

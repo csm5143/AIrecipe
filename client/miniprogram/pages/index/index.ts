@@ -2,7 +2,7 @@
  * 首页热门菜品数据
  * 基于日期轮换，每天展示不同的热门菜品
  */
-import { loadRecipesJson, loadHotRecipesJson } from '../../utils/dataLoader';
+import { getHot } from '../../utils/httpServices/recipeService';
 
 interface HotRecipe {
   id: string;
@@ -17,9 +17,9 @@ interface HotDish {
   category: string;
 }
 
-const HOT_RECIPES_PER_DAY = 24; // 每天展示24道热门菜
-const INITIAL_COUNT = 12;       // 首次展示数量
-const LOAD_COUNT = 6;           // 每次追加数量
+const HOT_RECIPES_PER_DAY = 100; // 最多缓存100道热门菜供分批展示
+const INITIAL_COUNT = 24;        // 首次展示数量
+const LOAD_COUNT = 12;           // 每次追加数量
 
 // IntersectionObserver 实例（运行时动态创建，模块级变量避免小程序编译问题）
 let _observer: any = null;
@@ -80,6 +80,7 @@ Page({
     hasMore: true,                // 是否还有更多可加载
     allHotDishes: [] as HotDish[], // 全部热门菜（懒加载时不重新请求）
     loadingMore: false,           // 是否正在加载更多（用于显示加载动画）
+    isEmpty: false,               // 是否为空
   },
 
   onShow() {
@@ -104,82 +105,95 @@ Page({
     return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
   },
 
-  _loadDailyHot() {
+  async _loadDailyHot() {
     this.setData({ isLoading: true });
 
-    setTimeout(() => {
-      // 1. 从 recipes.json 构建 id -> recipe 映射（用于获取封面图）
-      const recipes = loadRecipesJson() as any[];
-      const recipeMap: Record<string, any> = {};
-      if (Array.isArray(recipes)) {
-        for (const r of recipes) {
-          if (r && r.id && r.name) {
-            recipeMap[String(r.id)] = r;
-          }
-        }
+    try {
+      // 从后端 API 加载热门菜谱
+      const hotRecipes = await getHot();
+
+      if (!hotRecipes || hotRecipes.length === 0) {
+        // 回退到本地数据
+        this._loadFromLocal();
+        return;
       }
 
-      // 2. 加载热门菜库（使用 dataLoader 中已导出的函数）
-      const hotRaw = loadHotRecipesJson() as any;
-      const hotRecipes: HotRecipe[] = (hotRaw && hotRaw.hotRecipes) || [];
+      // 转换为 HotDish 格式
+      const today = new Date();
+      const seed = dateToSeed(today);
+      const random = seededRandom(seed);
+      const shuffled = shuffleArray(hotRecipes, random);
 
-      // 3. 根据日期选择当日菜品
-      const dailyRecipes = getDailyHotRecipes(hotRecipes);
+      const hotDishes: HotDish[] = shuffled.slice(0, HOT_RECIPES_PER_DAY).map(r => ({
+        id: String(r.id),
+        name: r.title || r.name || '',
+        coverUrl: r.coverImage || '',
+        category: (r.mealTimes && r.mealTimes[0]) || (r.dishTypes && r.dishTypes[0]) || 'lunch',
+      }));
 
-      // 4. 匹配封面图
-      const enriched = dailyRecipes.map(dish => {
-        const recipe = recipeMap[dish.id];
-        return {
-          id: dish.id,
-          name: dish.name,
-          coverUrl: (recipe ? recipe.coverImage : '') || '',
-          category: dish.category,
-        };
-      }).filter(d => d.coverUrl && !d.coverUrl.includes('dummyimage.com')); // 只保留有真实图片的
-
-      // 如果过滤后不足6道，补齐
-      let filteredEnriched = enriched;
-      if (enriched.length < HOT_RECIPES_PER_DAY) {
-        const allWithImages = Object.values(recipeMap)
-          .filter((r: any) => r.coverImage && !r.coverImage.includes('dummyimage.com'))
-          .map((r: any) => ({
-            id: String(r.id),
-            name: r.name,
-            coverUrl: r.coverImage,
-            category: (r.mealTimes || [])[0] || 'lunch',
-          }));
-
-        const usedIds = new Set(enriched.map(e => e.id));
-        const today = new Date();
-        const seed = dateToSeed(today) + 1; // 不同种子确保补齐的菜品不同
-        const random = seededRandom(seed);
-        const shuffled = shuffleArray(
-          allWithImages.filter(r => !usedIds.has(r.id)),
-          random
-        );
-
-        while (enriched.length < HOT_RECIPES_PER_DAY && shuffled.length > 0) {
-          enriched.push(shuffled.shift()!);
-        }
-      }
-
-      // 5. 取首次展示数量
-      const displayed = enriched.slice(0, INITIAL_COUNT);
-      const hasMore = enriched.length > INITIAL_COUNT;
+      const displayed = hotDishes.slice(0, INITIAL_COUNT);
+      const hasMore = hotDishes.length > INITIAL_COUNT;
 
       this.setData({
         hotDishes: displayed,
-        allHotDishes: enriched,
+        allHotDishes: hotDishes,
         dailyDate: this._getTodayString(),
         isLoading: false,
         displayedCount: INITIAL_COUNT,
         hasMore,
       });
 
-      // 6. 数据加载完成后，延迟设置 IntersectionObserver（等 DOM 渲染完毕）
       setTimeout(() => {
         this._setupIntersectionObserver();
       }, 500);
+    } catch (e) {
+      console.warn('[Index] _loadDailyHot failed, falling back to local', e);
+      this._loadFromLocal();
+    }
+  },
+
+  // 本地回退加载（API 失败时使用 recipeService 的缓存）
+  _loadFromLocal() {
+    setTimeout(async () => {
+      try {
+        const hotRecipes = await getHot();
+        if (!hotRecipes || hotRecipes.length === 0) {
+          this.setData({ isEmpty: true, isLoading: false });
+          return;
+        }
+
+        const today = new Date();
+        const seed = dateToSeed(today);
+        const random = seededRandom(seed);
+        const shuffled = shuffleArray(hotRecipes, random);
+
+        const hotDishes: HotDish[] = shuffled.slice(0, HOT_RECIPES_PER_DAY).map(r => ({
+          id: r.id,
+          name: r.name || (r as any).title || '',
+          coverUrl: r.coverImage || '',
+          category: (r.mealTimes && r.mealTimes[0]) || (r.dishTypes && r.dishTypes[0]) || 'lunch',
+        }));
+
+        const displayed = hotDishes.slice(0, INITIAL_COUNT);
+        const hasMore = hotDishes.length > INITIAL_COUNT;
+
+        this.setData({
+          hotDishes: displayed,
+          allHotDishes: hotDishes,
+          dailyDate: this._getTodayString(),
+          isLoading: false,
+          displayedCount: INITIAL_COUNT,
+          hasMore,
+          isEmpty: false,
+        });
+
+        setTimeout(() => {
+          this._setupIntersectionObserver();
+        }, 500);
+      } catch (e) {
+        console.warn('[Index] _loadFromLocal failed:', e);
+        this.setData({ isEmpty: true, isLoading: false });
+      }
     }, 300);
   },
 

@@ -196,7 +196,9 @@ import { adminApi } from '@/api/admin';
 import { useUserStore } from '@/store/modules/user';
 import { usePermission } from '@/composables/usePermission';
 import { uploadAdminAvatar } from '@/api/upload';
+import { usePreferences } from '@/composables/usePreferences';
 
+const { defaultPageSize, formatDateTime } = usePreferences();
 const router = useRouter();
 const userStore = useUserStore();
 const { isSuperAdmin } = usePermission();
@@ -214,7 +216,7 @@ const avatarUploading = ref(false);
 
 const filters = reactive({ keyword: '' });
 
-const pagination = reactive({ page: 1, pageSize: 20, total: 0 });
+const pagination = reactive({ page: 1, pageSize: defaultPageSize(), total: 0 });
 const tableData = ref<any[]>([]);
 
 const form = reactive({
@@ -266,15 +268,8 @@ const resetRules = {
   ],
 };
 
-function formatTime(iso: string) {
-  if (!iso) return '-';
-  const d = new Date(iso);
-  return d.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-}
-
 function formatDate(iso: string) {
-  if (!iso) return '-';
-  return iso.split('T')[0];
+  return formatDateTime(iso);
 }
 
 function getRoleText(role: string) {

@@ -1,19 +1,6 @@
-// 登录页面：微信一键登录（HTTP 版，移除云开发依赖）
+// 登录页面：微信一键登录（统一 authService）
 
-import {
-  getUserInfo,
-  saveUserProfile,
-  logout
-} from '../../../utils/userAuth';
-
-interface LoginResult {
-  success: boolean;
-  openid?: string;
-  unionid?: string;
-  isNewUser?: boolean;
-  token?: string;
-  error?: string;
-}
+import { login as authLogin, updateProfile, getCurrentUser, logout as authLogout } from '../../../utils/services/authService';
 
 Page({
   data: {
@@ -38,62 +25,45 @@ Page({
   },
 
   loadUserInfo() {
-    const info = getUserInfo();
-    const hasLogin = info.loginState && !!info.nickname;
+    const info = getCurrentUser();
+    // 只要有 loginState=true 就视为已登录，nickname 为空是正常的（注册时未填）
+    const hasLogin = !!(info && info.loginState);
 
     this.setData({
       userInfo: info,
       hasLogin,
-      nickname: info.nickname || '',
-      avatarUrl: info.avatar || '',
+      nickname: info?.nickname || '',
+      avatarUrl: info?.avatar || '',
     });
   },
 
-  // 切换用户协议勾选状态
   onToggleAgreement() {
-    this.setData({
-      isAgreed: !this.data.isAgreed,
-    });
+    this.setData({ isAgreed: !this.data.isAgreed });
   },
 
-  // 选择头像（本地保存，不上传云端）
   onChooseAvatar(e: any) {
     const avatarUrl = e.detail.avatarUrl;
     this.setData({ avatarUrl });
 
     const nickname = this.data.tempNickname || this.data.nickname;
     if (nickname) {
-      const info = saveUserProfile(nickname, avatarUrl);
-      this.setData({
-        userInfo: info,
-        hasLogin: true,
-      });
+      updateProfile(nickname, avatarUrl);
+      this.setData({ hasLogin: true });
       wx.showToast({ title: '头像已更新', icon: 'success' });
     }
   },
 
-  // 输入昵称
   onNicknameInput(e: any) {
-    this.setData({
-      tempNickname: e.detail.value,
-    });
+    this.setData({ tempNickname: e.detail.value });
   },
 
-  // 清空昵称
   onClearNickname() {
-    this.setData({
-      tempNickname: '',
-    });
+    this.setData({ tempNickname: '' });
   },
 
-  // 微信一键登录（HTTP 版本）
   async onWechatLogin() {
     if (!this.data.isAgreed) {
-      wx.showToast({
-        title: '请阅读并勾选用户协议',
-        icon: 'none',
-        duration: 2000,
-      });
+      wx.showToast({ title: '请阅读并勾选用户协议', icon: 'none', duration: 2000 });
       return;
     }
 
@@ -101,113 +71,49 @@ Page({
     wx.showLoading({ title: '登录中...', mask: true });
 
     try {
-      // 1. 获取微信登录凭证 code
-      const loginResult = await this.wxLogin();
-      if (!loginResult.code) {
-        throw new Error('微信登录失败');
+      // 优先使用用户输入的昵称，其次用已有的昵称，都没有则留空让后端生成
+      const nickname = this.data.tempNickname.trim() || this.data.nickname || undefined;
+      const avatarUrl = this.data.avatarUrl || undefined;
+
+      // 如果没有昵称，引导用户先填写
+      if (!nickname) {
+        wx.hideLoading();
+        this.setData({ loginLoading: false });
+        wx.showToast({ title: '请先设置昵称', icon: 'none' });
+        this.setData({ showNicknameInput: true });
+        return;
       }
 
-      // 2. 调用后端 HTTP API 进行登录
-      const res = await this.httpLogin(loginResult.code);
-      if (!res.success) {
-        throw new Error(res.error || '登录失败');
+      const result = await authLogin({
+        nickName: nickname,
+        avatarUrl: avatarUrl,
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || '登录失败');
       }
 
-      const { openid, token, isNewUser } = res;
-
-      // 3. 保存用户信息
-      const nickname = this.data.tempNickname.trim() || this.data.nickname;
-      const avatarRaw = this.data.avatarUrl || '';
-      const avatar = avatarRaw.startsWith('http') && !avatarRaw.includes('127.0.0.1') && !avatarRaw.includes('localhost') ? avatarRaw : '';
-      const finalNickname = nickname || '美食家' + Math.floor(Math.random() * 9000 + 1000);
-
-      const info = saveUserProfile(finalNickname, avatar, openid);
-
-      // 保存 token 和 openid
-      if (openid) wx.setStorageSync('savedOpenid', openid);
-      if (token) wx.setStorageSync('authToken', token);
-
+      // authService.login 已经从数据库获取最新资料并保存到本地，直接刷新页面显示
       wx.hideLoading();
+      this.loadUserInfo(); // 重新加载，显示数据库中的昵称/头像
       this.setData({ loginLoading: false });
 
       wx.showToast({
-        title: isNewUser ? '注册成功' : '登录成功',
+        title: result.isNewUser ? '注册成功' : '登录成功',
         icon: 'success',
       });
 
       setTimeout(() => {
         wx.navigateBack();
       }, 1500);
-
     } catch (err: any) {
       console.error('[Login] 微信登录失败', err);
       wx.hideLoading();
       this.setData({ loginLoading: false });
-      wx.showToast({
-        title: err.message || '登录失败，请重试',
-        icon: 'none',
-      });
+      wx.showToast({ title: err.message || '登录失败，请重试', icon: 'none' });
     }
   },
 
-  // 调用后端登录接口
-  httpLogin(code: string): Promise<{
-    success: boolean;
-    openid?: string;
-    token?: string;
-    isNewUser?: boolean;
-    error?: string;
-  }> {
-    return new Promise((resolve) => {
-      wx.request({
-        url: 'http://localhost:3000/v1/wx/login',
-        method: 'POST',
-        data: { code },
-        header: { 'Content-Type': 'application/json' },
-        timeout: 15000,
-        success: (res: any) => {
-          if (res.statusCode >= 200 && res.statusCode < 300) {
-            const body = res.data;
-            if (body.success && body.data) {
-              resolve({
-                success: true,
-                openid: body.data.openid,
-                token: body.data.token,
-                isNewUser: body.data.isNewUser || false,
-              });
-            } else {
-              resolve({ success: false, error: body.message || '登录失败' });
-            }
-          } else {
-            resolve({ success: false, error: '服务器错误 (' + res.statusCode + ')' });
-          }
-        },
-        fail: () => {
-          resolve({ success: false, error: '网络异常，请检查网络连接' });
-        },
-      });
-    });
-  },
-
-  // 微信登录获取 code
-  wxLogin(): Promise<{ code: string; errMsg: string }> {
-    return new Promise((resolve, reject) => {
-      wx.login({
-        success: (res) => {
-          if (res.code) {
-            resolve({ code: res.code, errMsg: res.errMsg });
-          } else {
-            reject(new Error('未获取到登录凭证'));
-          }
-        },
-        fail: (err) => {
-          reject(err);
-        },
-      });
-    });
-  },
-
-  // 显示昵称输入框
   onShowNicknameInput() {
     this.setData({
       showNicknameInput: true,
@@ -215,7 +121,6 @@ Page({
     });
   },
 
-  // 确认保存昵称
   onConfirmNickname() {
     const nickname = this.data.tempNickname.trim();
 
@@ -229,44 +134,32 @@ Page({
     }
 
     const avatarRaw = this.data.avatarUrl || '';
-    const avatar = avatarRaw.startsWith('http') && !avatarRaw.includes('127.0.0.1') && !avatarRaw.includes('localhost') ? avatarRaw : '';
+    const avatar = avatarRaw.startsWith('http') && !avatarRaw.includes('127.0.0.1') && !avatarRaw.includes('localhost')
+      ? avatarRaw : '';
 
-    const info = saveUserProfile(nickname, avatar);
+    updateProfile(nickname, avatar);
     this.setData({
-      userInfo: info,
-      nickname: info.nickname,
+      nickname,
       showNicknameInput: false,
     });
-
     wx.showToast({ title: '保存成功', icon: 'success' });
   },
 
-  // 取消编辑昵称
   onCancelNickname() {
     this.setData({ showNicknameInput: false });
   },
 
-  // 阻止默认事件
   preventTouchMove() {
     return false;
   },
 
-  // 退出登录
   onLogout() {
     wx.showModal({
       title: '提示',
       content: '确定要退出登录吗？',
       success: (res) => {
         if (res.confirm) {
-          const info = getUserInfo();
-          const savedOpenid = info.openid || '';
-          const savedToken = wx.getStorageSync('authToken');
-
-          logout();
-
-          if (savedOpenid) wx.setStorageSync('savedOpenid', savedOpenid);
-          if (savedToken) wx.setStorageSync('authToken', savedToken);
-
+          authLogout();
           this.setData({
             userInfo: null,
             hasLogin: false,
@@ -280,7 +173,6 @@ Page({
     });
   },
 
-  // 查看用户协议
   onViewAgreement() {
     wx.showModal({
       title: '用户协议',
@@ -310,7 +202,6 @@ Page({
     });
   },
 
-  // 查看隐私政策
   onViewPrivacy() {
     wx.showModal({
       title: '隐私政策',

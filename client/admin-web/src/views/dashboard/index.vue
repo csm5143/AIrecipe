@@ -39,6 +39,44 @@
         <div class="stat-label">{{ stat.label }}</div>
         <div class="stat-sublabel">较上{{ stat.period }}</div>
       </div>
+
+      <!-- AI Token 卡片（按模型分组，每模型一张迷你卡） -->
+      <div class="stat-card ai-token-card" :style="{ '--accent-color': '#a855f7' }">
+        <div class="stat-header">
+          <div class="stat-icon" style="background: rgba(168, 85, 247, 0.08); color: #a855f7;">
+            <el-icon><Cpu /></el-icon>
+          </div>
+          <el-tag v-if="aiTokenSummary.total > 0" type="success" size="small">
+            共 {{ aiTokenKeys.length }} 个 Key
+          </el-tag>
+        </div>
+        <div class="stat-value" style="font-size: 28px;">
+          {{ aiTokenKeys.length > 0 ? aiTokenKeys.length + ' 个模型' : '无 Key' }}
+        </div>
+        <div class="stat-label">AI Token</div>
+        <div v-if="aiTokenSummary.total > 0" class="ai-token-sub">
+          已用 {{ formatToken(aiTokenSummary.usedTokens) }} /
+          剩余 {{ formatToken(aiTokenSummary.remaining) }}
+        </div>
+        <div class="ai-token-list">
+          <div v-for="key in aiTokenKeys" :key="key.model" class="ai-token-item">
+            <div class="ai-token-item-header">
+              <span class="ai-token-model">{{ key.model }}</span>
+              <el-tag v-if="key.isActive" type="success" size="small" effect="plain">使用中</el-tag>
+            </div>
+            <el-progress
+              :percentage="key.totalTokens > 0 ? Math.round((key.usedTokens / key.totalTokens) * 100) : 0"
+              :stroke-width="4"
+              :show-text="false"
+              style="margin: 4px 0;"
+            />
+            <div class="ai-token-item-stats">
+              <span>{{ formatToken(key.usedTokens) }} / {{ formatToken(key.totalTokens) }}</span>
+              <span>{{ key.totalTokens > 0 ? Math.round((key.remaining / key.totalTokens) * 100) : 0 }}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 图表区域 -->
@@ -136,13 +174,13 @@ import { useRouter } from 'vue-router';
 import {
   User,
   Food,
-  Collection,
   ChatDotRound,
   Refresh,
   TrendCharts,
   Bottom,
   Plus,
-  Document
+  Document,
+  Cpu,
 } from '@element-plus/icons-vue';
 import * as echarts from 'echarts';
 import type { ECharts } from 'echarts';
@@ -169,7 +207,6 @@ interface StatCard {
 const statCards = ref<StatCard[]>([
   { key: 'users', label: '用户总数', value: 0, icon: User, color: '#f54e00', change: 0, period: '月' },
   { key: 'recipes', label: '菜谱总数', value: 0, icon: Food, color: '#1f8a65', change: 0, period: '月' },
-  { key: 'collections', label: '收藏总量', value: 0, icon: Collection, color: '#4a7dbf', change: 0, period: '月' },
   { key: 'feedbacks', label: '反馈总数', value: 0, icon: ChatDotRound, color: '#d4880e', change: 0, period: '月' },
 ]);
 
@@ -189,8 +226,25 @@ interface RecentFeedback {
 
 const recentFeedbacks = ref<RecentFeedback[]>([]);
 
+const aiTokenKeys = ref<Array<{
+  model: string;
+  name: string;
+  totalTokens: number;
+  usedTokens: number;
+  remaining: number;
+  isActive: boolean;
+}>>([]);
+
+const aiTokenSummary = ref({ total: 0, usedTokens: 0, remaining: 0 });
+
 function formatNumber(num: number): string {
   if (num >= 10000) return (num / 10000).toFixed(1) + 'w';
+  return num.toLocaleString();
+}
+
+function formatToken(num: number): string {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
   return num.toLocaleString();
 }
 
@@ -333,9 +387,10 @@ function initPieChart() {
 async function fetchStats() {
   isRefreshing.value = true;
   try {
-    const [dashRes, catRes] = await Promise.all([
+    const [dashRes, catRes, tokenRes] = await Promise.all([
       analyticsApi.dashboard(),
       analyticsApi.getCategoryStats(),
+      analyticsApi.getAiTokenStats().catch(() => null),
     ]);
     const data = dashRes.data as any;
     const catData = catRes.data?.data ?? [];
@@ -343,9 +398,15 @@ async function fetchStats() {
     statCards.value = [
       { key: 'users', label: '用户总数', value: data?.totalUsers ?? 0, icon: User, color: '#f54e00', change: 0, period: '月' },
       { key: 'recipes', label: '菜谱总数', value: data?.totalRecipes ?? 0, icon: Food, color: '#1f8a65', change: 0, period: '月' },
-      { key: 'collections', label: '收藏总量', value: data?.totalCollections ?? 0, icon: Collection, color: '#4a7dbf', change: 0, period: '月' },
       { key: 'feedbacks', label: '反馈总数', value: data?.totalFeedbacks ?? 0, icon: ChatDotRound, color: '#d4880e', change: 0, period: '月' },
     ];
+
+    // AI Token 数据
+    if (tokenRes?.data) {
+      const tdata = tokenRes.data as any;
+      aiTokenKeys.value = tdata.keys ?? [];
+      aiTokenSummary.value = tdata.summary ?? { total: 0, usedTokens: 0, remaining: 0 };
+    }
 
     recentFeedbacks.value = data?.recentFeedbacks ?? [];
 
@@ -440,6 +501,8 @@ onUnmounted(() => {
 }
 
 .stat-card {
+  display: flex;
+  flex-direction: column;
   background: var(--surface-200);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-lg);
@@ -505,6 +568,7 @@ onUnmounted(() => {
     color: var(--cursor-dark);
     line-height: 1.1;
     margin-bottom: 4px;
+    font-variant-numeric: tabular-nums;
   }
 
   .stat-label {
@@ -520,6 +584,7 @@ onUnmounted(() => {
     color: rgba(38, 37, 30, 0.4);
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    margin-top: auto;
   }
 }
 
@@ -670,6 +735,47 @@ onUnmounted(() => {
     font-family: var(--font-display);
     font-size: 12px;
     color: rgba(38, 37, 30, 0.7);
+  }
+}
+
+.ai-token-card {
+  .ai-token-sub {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(38, 37, 30, 0.5);
+    margin-bottom: 10px;
+  }
+
+  .ai-token-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 140px;
+    overflow-y: auto;
+  }
+
+  .ai-token-item {
+    .ai-token-item-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+
+    .ai-token-model {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: rgba(38, 37, 30, 0.7);
+      font-weight: 500;
+    }
+
+    .ai-token-item-stats {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: rgba(38, 37, 30, 0.45);
+    }
   }
 }
 </style>

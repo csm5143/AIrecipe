@@ -446,3 +446,13 @@
   box-shadow: 0 12rpx 28rpx rgba(125, 90, 50, 0.1);
   box-shadow: var(--shadow, 0 12rpx 28rpx rgba(125, 90, 50, 0.1));
 }
+
+/* 增量加载提示条 */
+.loading-tip {
+  text-align: center;
+  padding: 16rpx 24rpx;
+  font-size: 24rpx;
+  color: #9ca3af;
+  background: transparent;
+  flex-shrink: 0;
+}

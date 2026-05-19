@@ -48,9 +48,7 @@ Page({
     }
 
     try {
-      const res = await get(`/v1/app/recipes/${id}`, {}, {
-        baseUrl: 'http://localhost:3000',
-      });
+      const res = await get(`/v1/app/recipes/${id}`);
 
       if (res.success && res.data) {
         this.setData({ recipe: res.data, loading: false });
@@ -95,10 +93,9 @@ Page({
     }
 
     try {
-      const res = await post('/v1/wx/app/favorites', {
+      const res = await post('/app/favorites', {
         recipeId: recipe.id,
       }, {
-        baseUrl: 'http://localhost:3000',
         withToken: true,
       });
 

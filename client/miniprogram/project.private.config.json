@@ -3,7 +3,7 @@
   "projectname": "%E5%90%83%E4%BA%86%E5%98%9B",
   "setting": {
     "compileHotReLoad": true,
-    "urlCheck": true,
+    "urlCheck": false,
     "coverView": false,
     "lazyloadPlaceholderEnable": false,
     "skylineRenderEnable": true,
@@ -20,5 +20,10 @@
     "ignoreDevUnusedFiles": true
   },
   "libVersion": "3.14.2",
-  "condition": {}
+  "condition": {},
+  "env": {
+    "APP_ENV": {
+      "API_BASE_URL": "https://airecipe.natapp1.cc"
+    }
+  }
 }

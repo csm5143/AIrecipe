@@ -1,6 +1,6 @@
 // 我的页面：用户信息、功能菜单
 
-import { getUserInfo, isLoggedIn } from '../../utils/userAuth';
+import { getCurrentUser, authService } from '../../utils/services/authService';
 import { getPreferenceStats } from '../../utils/preferenceStore';
 
 // 获取收藏数量
@@ -50,16 +50,16 @@ Page({
 
   // 加载用户信息
   loadUserInfo() {
-    const hasLogin = isLoggedIn();
-    const info = getUserInfo();
+    const hasLogin = authService.isLoggedIn();
+    const info = getCurrentUser();
     const favoriteCount = getFavoriteCount();
     const fridgeItemCount = getFridgeItemCount();
     const stats = getPreferenceStats();
     this.setData({
       hasLogin,
       userInfo: {
-        nickname: info.nickname || '',
-        avatar: info.avatar || ''
+        nickname: info?.nickname || '',
+        avatar: info?.avatar || ''
       },
       favoriteCount,
       fridgeItemCount,

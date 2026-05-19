@@ -36,6 +36,8 @@
         </el-button>
       </div>
 
+      <div class="mobile-hint"><el-icon><DArrowLeft /></el-icon><span>左右滑动查看更多</span><el-icon><DArrowRight /></el-icon></div>
+      <div class="hide-mobile">
       <el-table
         v-loading="loading"
         :data="tableData"
@@ -113,6 +115,13 @@
           </template>
         </el-table-column>
       </el-table>
+      </div><!-- /hide-mobile -->
+
+      <div v-if="tableData.length === 0 && !loading" class="empty-state">
+        <div class="empty-icon"><el-icon><FolderOpened /></el-icon></div>
+        <div class="empty-title">暂无精选菜谱</div>
+        <div class="empty-desc">点击上方按钮添加精选菜谱</div>
+      </div>
 
       <div class="pagination-wrap">
         <el-pagination
@@ -207,7 +216,9 @@ import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Refresh, Plus, Search, Edit, Delete, View, Star, Picture, Check } from '@element-plus/icons-vue';
 import { featuredApi, type FeaturedRecipeItem, type RecipeSearchItem } from '@/api/featured';
+import { usePreferences } from '@/composables/usePreferences';
 
+const { defaultPageSize, formatDate } = usePreferences();
 const router = useRouter();
 
 const loading = ref(false);
@@ -221,11 +232,14 @@ const selectedRecipe = ref<RecipeSearchItem | null>(null);
 const addNote = ref('');
 
 const filters = reactive({ keyword: '' });
-const pagination = reactive({ page: 1, pageSize: 20, total: 0 });
+const pagination = reactive({ page: 1, pageSize: 0, total: 0 });
 
 let searchTimer: ReturnType<typeof setTimeout>;
 
-onMounted(() => fetchList());
+onMounted(() => {
+  pagination.pageSize = defaultPageSize();
+  fetchList();
+});
 
 async function fetchList() {
   loading.value = true;
@@ -251,11 +265,6 @@ function handleSearch() {
 
 function handlePageChange() { fetchList(); }
 function handleSizeChange() { pagination.page = 1; fetchList(); }
-
-function formatDate(ts: number) {
-  if (!ts) return '-';
-  return new Date(ts).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-}
 
 async function handleWeightChange(row: FeaturedRecipeItem) {
   try {

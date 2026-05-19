@@ -54,6 +54,11 @@
     </view>
   </scroll-view>
 
+  <!-- 增量加载提示 -->
+  <view wx:if="{{isLoading}}" class="loading-tip">
+    <text>{{loadingText}}</text>
+  </view>
+
   <!-- 使用 swiper 实现左右滑动切换分类 -->
   <swiper
     class="ingredients-swiper"

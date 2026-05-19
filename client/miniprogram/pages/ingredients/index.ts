@@ -1,8 +1,8 @@
 // 食材选择页
+// 优先从后端 API 加载，Storage 缓存兜底
 
-import { loadIngredientsAsync } from '../../utils/dataLoader';
-import { handleWarning, handleInfo, handleError } from '../../utils/errorHandler';
-import { getFallbackIngredients } from '../../utils/fallbackIngredients';
+import { getAppIngredientsList } from '../../utils/httpApi/ingredient';
+import { handleWarning, handleInfo } from '../../utils/errorHandler';
 
 // 常用食材优先级配置（数字越小越靠前）
 // 基于中餐高频使用场景：肉类 > 蛋奶 > 基础蔬菜 > 常见主料
@@ -293,47 +293,40 @@ Page({
   },
 
   /**
-   * 加载食材数据（异步，从本地文件加载）
+   * 从后端 API 加载全部食材（一次性请求，请求上限 1000 条）
+   */
+  async loadIngredientsFromApi(): Promise<Array<{ name: string; category: string; subCategory?: string; selected: boolean; isCommon?: boolean }>> {
+    try {
+      const res = await getAppIngredientsList({ pageSize: 1000 });
+    if (!res.success || !res.data || !Array.isArray(res.data) || res.data.length === 0) {
+        handleWarning(null, 'API 返回空食材数据');
+        return [];
+    }
+
+      const ingredients = res.data
+        .filter((ing: any) => ing.name && ing.status !== 'INACTIVE')
+        .map((ing: any) => ({
+          name: String(ing.name || '').trim(),
+          category: String(ing.category || 'other').trim(),
+          subCategory: ing.subCategory ? String(ing.subCategory).trim() : '',
+          selected: false,
+          isCommon: false,
+        }));
+
+      handleInfo(`从 API 加载食材数据，共 ${ingredients.length} 种`, 'Ingredients');
+      return ingredients;
+    } catch (e) {
+      handleWarning(e, '从 API 加载食材失败');
+      return [];
+    }
+  },
+
+  /**
+   * 加载食材数据（优先从后端 API）
    */
   async loadIngredientsData(): Promise<Array<{ name: string; category: string; subCategory?: string; selected: boolean; isCommon?: boolean }>> {
-    let ingredients: Array<{ name: string; category: string; subCategory?: string; selected: boolean; isCommon?: boolean }> = [];
-
-    try {
-      const jsonData = await loadIngredientsAsync();
-
-      if (jsonData.length) {
-        ingredients = (jsonData as Array<Record<string, any>>)
-          .map((raw) => {
-            // 这里不能使用 ?. / ??，因为微信开发工具编译到 pages/ingredients/index.js 后
-            // 运行环境不一定支持，可读性稍差但更兼容
-            const safe = raw || {};
-            const name =
-              (safe.name != null && String(safe.name).trim()) ||
-              (safe.title != null && String(safe.title).trim()) ||
-              (safe.ingredient != null && String(safe.ingredient).trim()) ||
-              '';
-            if (!name) return null;
-            const categorySource =
-              (safe.category != null && String(safe.category).trim()) || 'other';
-            const category = categorySource || 'other';
-            const subCategory = (safe.subCategory != null && String(safe.subCategory).trim()) || '';
-            const selected = !!safe.selected;
-            const isCommon = !!safe.isCommon;
-            return { name, category, subCategory, selected, isCommon };
-          })
-          .filter(Boolean) as Array<{ name: string; category: string; subCategory?: string; selected: boolean; isCommon?: boolean }>;
-
-        handleInfo(`已加载食材数据，共 ${ingredients.length} 种`, 'Ingredients');
-      }
-    } catch (e) {
-      handleWarning(e, '加载食材失败，使用默认数据');
-    }
-
-    if (!ingredients.length) {
-      ingredients = getFallbackIngredients();
-    }
-
-    return ingredients;
+    const apiIngredients = await this.loadIngredientsFromApi();
+    return apiIngredients;
   },
 
   async onLoad() {

@@ -1,0 +1,274 @@
+import { Request, Response } from 'express';
+import { success, paginated, notFound } from '../../../types/response';
+import { prisma } from '../../../lib/prisma';
+import { getAdminId, createOperationLog } from '../../../utils/adminHelper';
+
+function maskKey(key: string): string {
+  if (key.length <= 8) return '****';
+  return key.slice(0, 4) + '****' + key.slice(-4);
+}
+
+export async function getAiKeys(req: Request, res: Response) {
+  const keys = await prisma.aiApiKey.findMany({
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const list = keys.map(k => ({
+    id: k.id,
+    name: k.name,
+    apiKey: maskKey(k.apiKey),
+    apiKeyRaw: k.apiKey,
+    baseUrl: k.baseUrl,
+    model: k.model,
+    totalTokens: k.totalTokens,
+    usedTokens: k.usedTokens,
+    remaining: Math.max(0, k.totalTokens - k.usedTokens),
+    isActive: k.isActive,
+    createdAt: k.createdAt.toISOString().slice(0, 16).replace('T', ' '),
+  }));
+
+  res.json(success(list));
+}
+
+export async function createAiKey(req: Request, res: Response) {
+  const { name, apiKey, baseUrl, model, totalTokens } = req.body;
+
+  if (!name || !apiKey || !baseUrl || !model || !totalTokens) {
+    res.status(400).json({ code: 400, message: '缺少必填字段', timestamp: Date.now() });
+    return;
+  }
+
+  // 如果是第一个 Key，自动设为激活
+  const count = await prisma.aiApiKey.count();
+  const isFirst = count === 0;
+
+  const key = await prisma.aiApiKey.create({
+    data: {
+      name,
+      apiKey,
+      baseUrl,
+      model,
+      totalTokens: Number(totalTokens),
+      isActive: isFirst,
+    },
+  });
+
+  // 操作日志写入失败不影响主业务，改为静默捕获
+  try {
+    await createOperationLog(
+      getAdminId(req),
+      '',
+      'create',
+      'aiKey',
+      String(key.id),
+      `新增 AI Key「${name}」${isFirst ? '（设为当前使用）' : ''}`,
+      req.ip || undefined
+    );
+  } catch (e) {
+    console.warn('[AI-Key] 操作日志写入失败:', e);
+  }
+
+  res.json(success({
+    id: key.id,
+    name: key.name,
+    apiKey: maskKey(key.apiKey),
+    baseUrl: key.baseUrl,
+    model: key.model,
+    totalTokens: key.totalTokens,
+    usedTokens: key.usedTokens,
+    remaining: key.totalTokens,
+    isActive: key.isActive,
+    createdAt: key.createdAt.toISOString().slice(0, 16).replace('T', ' '),
+  }, 'AI Key 创建成功'));
+}
+
+export async function updateAiKey(req: Request, res: Response) {
+  const id = parseInt(req.params.id);
+  const { name, apiKey, baseUrl, model, totalTokens } = req.body;
+
+  const existing = await prisma.aiApiKey.findUnique({ where: { id } });
+  if (!existing) {
+    res.status(404).json(notFound('AI Key 不存在'));
+    return;
+  }
+
+  const updateData: any = {};
+  if (name !== undefined) updateData.name = name;
+  if (apiKey !== undefined) updateData.apiKey = apiKey;
+  if (baseUrl !== undefined) updateData.baseUrl = baseUrl;
+  if (model !== undefined) updateData.model = model;
+  if (totalTokens !== undefined) updateData.totalTokens = Number(totalTokens);
+
+  const updated = await prisma.aiApiKey.update({
+    where: { id },
+    data: updateData,
+  });
+
+  try {
+    await createOperationLog(
+      getAdminId(req),
+      '',
+      'update',
+      'aiKey',
+      String(id),
+      `更新 AI Key「${updated.name}」`,
+      req.ip || undefined
+    );
+  } catch (e) {
+    console.warn('[AI-Key] 操作日志写入失败:', e);
+  }
+
+  res.json(success({
+    id: updated.id,
+    name: updated.name,
+    apiKey: maskKey(updated.apiKey),
+    baseUrl: updated.baseUrl,
+    model: updated.model,
+    totalTokens: updated.totalTokens,
+    usedTokens: updated.usedTokens,
+    remaining: Math.max(0, updated.totalTokens - updated.usedTokens),
+    isActive: updated.isActive,
+    createdAt: updated.createdAt.toISOString().slice(0, 16).replace('T', ' '),
+  }, 'AI Key 更新成功'));
+}
+
+export async function deleteAiKey(req: Request, res: Response) {
+  const id = parseInt(req.params.id);
+  const existing = await prisma.aiApiKey.findUnique({ where: { id } });
+  if (!existing) {
+    res.status(404).json(notFound('AI Key 不存在'));
+    return;
+  }
+
+  await prisma.aiApiKey.delete({ where: { id } });
+
+  try {
+    await createOperationLog(
+      getAdminId(req),
+      '',
+      'delete',
+      'aiKey',
+      String(id),
+      `删除了 AI Key「${existing.name}」`,
+      req.ip || undefined
+    );
+  } catch (e) {
+    console.warn('[AI-Key] 操作日志写入失败:', e);
+  }
+
+  res.json(success(null, '删除成功'));
+}
+
+export async function activateAiKey(req: Request, res: Response) {
+  const id = parseInt(req.params.id);
+  const existing = await prisma.aiApiKey.findUnique({ where: { id } });
+  if (!existing) {
+    res.status(404).json(notFound('AI Key 不存在'));
+    return;
+  }
+
+  // 取消所有 Key 的激活状态
+  await prisma.aiApiKey.updateMany({
+    data: { isActive: false },
+  });
+
+  // 激活指定 Key
+  const updated = await prisma.aiApiKey.update({
+    where: { id },
+    data: { isActive: true },
+  });
+
+  try {
+    await createOperationLog(
+      getAdminId(req),
+      '',
+      'update',
+      'aiKey',
+      String(id),
+      `切换 AI Key 为「${updated.name}」`,
+      req.ip || undefined
+    );
+  } catch (e) {
+    console.warn('[AI-Key] 操作日志写入失败:', e);
+  }
+
+  res.json(success({ isActive: true }, `已切换为「${updated.name}」`));
+}
+
+export async function getActiveAiKey(req: Request, res: Response) {
+  const key = await prisma.aiApiKey.findFirst({
+    where: { isActive: true },
+  });
+
+  if (!key) {
+    res.json(success(null, '暂无激活的 AI Key'));
+    return;
+  }
+
+  res.json(success({
+    id: key.id,
+    name: key.name,
+    apiKey: key.apiKey,
+    baseUrl: key.baseUrl,
+    model: key.model,
+    totalTokens: key.totalTokens,
+    usedTokens: key.usedTokens,
+    remaining: Math.max(0, key.totalTokens - key.usedTokens),
+    isActive: key.isActive,
+  }));
+}
+
+export async function testAiKey(req: Request, res: Response) {
+  const { apiKey, baseUrl, model } = req.body as { apiKey?: string; baseUrl?: string; model?: string };
+
+  if (!apiKey || !baseUrl || !model) {
+    res.status(400).json({ code: 400, message: 'apiKey、baseUrl、model 均不能为空', timestamp: Date.now() });
+    return;
+  }
+
+  const start = Date.now();
+  try {
+    const response = await fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: 'Hi, respond with just "ok".' }],
+        max_tokens: 10,
+      }),
+    });
+
+    const elapsed = Date.now() - start;
+    const data = await response.json();
+
+    if (!response.ok) {
+      res.json(success({
+        success: false,
+        status: response.status,
+        error: data?.error?.message || response.statusText,
+        elapsed,
+      }));
+      return;
+    }
+
+    const content = data.choices?.[0]?.message?.content || '';
+    const tokens = (data.usage?.prompt_tokens || 0) + (data.usage?.completion_tokens || 0);
+
+    res.json(success({
+      success: true,
+      model: data.model || model,
+      response: content.trim(),
+      tokens,
+      elapsed,
+    }));
+  } catch (err: any) {
+    res.json(success({
+      success: false,
+      error: err.message,
+      elapsed: Date.now() - start,
+    }));
+  }
+}

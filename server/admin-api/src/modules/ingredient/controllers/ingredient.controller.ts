@@ -360,3 +360,62 @@ export async function exportIngredientsHandler(req: Request, res: Response) {
   const fmt = (format === 'csv' || format === 'json') ? format : 'xlsx';
   exportIngredients(res, fmt, rows);
 }
+
+/**
+ * 获取小程序端食材列表（轻量版，无需分页）
+ * GET /v1/app/ingredients
+ */
+export async function getAppIngredients(req: Request, res: Response) {
+  try {
+    const keyword = (req.query.keyword as string) || '';
+    const category = (req.query.category as string) || '';
+    const requestedTake = parseInt(req.query.pageSize as string) || 1000;
+    const take = Math.min(requestedTake, 1000);
+
+    console.log(`[getAppIngredients] req.query:`, req.query, `| take: ${take}`);
+
+    const where: any = {};
+    if (keyword) {
+      where.OR = [
+        { name: { contains: keyword, mode: 'insensitive' } },
+        { alias: { contains: keyword, mode: 'insensitive' } },
+      ];
+    }
+    if (category) {
+      where.category = category;
+    }
+
+    const countAll = await prisma.ingredient.count({ where });
+    console.log(`[getAppIngredients] countAll=${countAll}, take=${take}`);
+
+    const ingredients = await prisma.ingredient.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        alias: true,
+        subCategory: true,
+        category: true,
+        unit: true,
+      },
+      orderBy: { name: 'asc' },
+      take,
+    });
+
+    console.log(`[getAppIngredients] returning ${ingredients.length} items`);
+
+    const result = ingredients.map(ing => ({
+      id: ing.id,
+      name: ing.name,
+      alias: ing.alias || '',
+      subCategory: ing.subCategory || '',
+      category: ing.category || 'other',
+      unit: ing.unit || '',
+    }));
+
+    res.json(success(result));
+  } catch (error) {
+    console.error('[Ingredient] 获取小程序食材列表失败:', error);
+    res.status(500).json(badRequest('获取失败'));
+  }
+}

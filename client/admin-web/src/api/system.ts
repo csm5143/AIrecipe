@@ -39,12 +39,25 @@ export interface EmailSettings {
   password: string;
 }
 
+export interface AiSettings {
+  provider: string;
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+  visionModel: string;
+  temperature: number;
+  maxTokens: number;
+  imageMaxSize: number;
+  enabled: boolean;
+}
+
 export interface SystemSettings {
   site: SiteSettings;
   seo: SeoSettings;
   legal: LegalSettings;
   security: SecuritySettings;
   email: EmailSettings;
+  ai?: AiSettings;
 }
 
 export const systemApi = {
@@ -53,4 +66,10 @@ export const systemApi = {
 
   updateSettings: (category: keyof SystemSettings, data: any) =>
     request.put<ApiResponse<null>>(`/system/settings/${category}`, data),
+
+  getAiSettings: () =>
+    request.get<ApiResponse<AiSettings>>('/system/settings/ai'),
+
+  updateAiSettings: (data: AiSettings) =>
+    request.put<ApiResponse<AiSettings>>('/system/settings/ai', data),
 };

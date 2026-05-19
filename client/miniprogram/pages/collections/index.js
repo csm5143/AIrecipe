@@ -1,14 +1,8 @@
 /**
  * 收藏页 - 调用 /v1/wx/app/my-collections
- * 支持离线降级
  */
 
-const { get } = require('../../../utils/httpApi/request');
-const {
-  getOfflineFavoriteDetails,
-  syncFavoriteDetails,
-  getOfflineFavoriteIds,
-} = require('../../../utils/localCache');
+import { collectionService } from '../../utils/services/collectionService';
 
 Page({
   data: {
@@ -32,63 +26,32 @@ Page({
     this.setData({ loading: true, error: '' });
 
     try {
-      const res = await get('/v1/wx/app/my-collections', {}, {
-        baseUrl: 'http://localhost:3000',
-        withToken: true,
-      });
-
-      if (res.success && res.data && res.data.length > 0) {
-        await syncFavoriteDetails();
+      const collections = await collectionService.getCollectionsWithCache();
+      if (collections && collections.length > 0) {
         this.setData({
-          collections: res.data,
+          collections,
           isEmpty: false,
           loading: false,
         });
       } else {
-        this._loadOffline();
+        this.setData({ isEmpty: true, loading: false });
       }
     } catch (e) {
       console.error('[Collections] loadCollections failed:', e);
-      this._loadOffline();
+      this.setData({ error: '加载失败', isEmpty: true, loading: false });
     } finally {
       wx.stopPullDownRefresh();
     }
   },
 
-  _loadOffline() {
-    const cached = getOfflineFavoriteDetails();
-    if (cached.length > 0) {
-      // 离线模式：显示收藏的菜谱直接列表
-      const offlineItems = cached.map(item => ({
-        id: item.id,
-        name: item.title || item.name || '（无标题）',
-        coverImage: item.coverImage || '',
-        itemCount: 1,
-        isOffline: true,
-      }));
-      this.setData({ collections: offlineItems, isEmpty: false, loading: false });
-    } else {
-      this.setData({ isEmpty: true, loading: false });
-    }
-  },
-
-  onCollectionTap(e) {
+  onCollectionTap(e: any) {
     const { id } = e.currentTarget.dataset;
     wx.navigateTo({ url: `/pages/collection-detail/index?id=${id}` });
   },
 
-  onRecipeTap(e) {
+  onRecipeTap(e: any) {
     const { id } = e.currentTarget.dataset;
     wx.navigateTo({ url: `/pages/recipes/detail/index?id=${id}` });
-  },
-
-  onItemTap(e) {
-    const { id, offline } = e.currentTarget.dataset;
-    if (offline) {
-      this.onRecipeTap(e);
-    } else {
-      this.onCollectionTap(e);
-    }
   },
 
   onGoExplore() {

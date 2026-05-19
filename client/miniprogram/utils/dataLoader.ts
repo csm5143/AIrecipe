@@ -1,14 +1,56 @@
 /**
- * 本地 JSON 数据加载器
- * 微信小程序不支持 import JSON，使用 require() .js 同名模块代替
- * 原始 .json 文件保留，但代码使用 .js 版本
+ * 本地 JSON 数据加载器（安全版）
+ *
+ * 所有 require 调用都包裹在 try-catch 中，
+ * 文件不存在时返回空数组而非崩溃。
+ *
+ * 注意：所有函数均同步，不依赖网络。
+ * 调用方应优先使用 API 接口，此模块仅作兜底。
  */
 
-// 使用 require() 加载 .js 模块（由 gen-js.js 从同名 .json 生成）
-// 路径相对于 utils/ 目录，所以要回到 data/
-const ingredientsData: any[] = require('../data/ingredients.js');
-const hotRecipesData: any = require('../data/hotRecipes.js');
-const recipesData: any = require('../data/recipes.js');
+// 尝试加载本地 JSON 文件，不存在时返回空
+function safeRequireJson(path: string): any {
+  try {
+    const data = require(path);
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.recipes)) return data.recipes;
+    if (data && Array.isArray(data.hotRecipes)) return data.hotRecipes;
+    return data;
+  } catch (e) {
+    return [];
+  }
+}
+
+// 食材数据（来自本地 ingredients.js，不存在则为空）
+let _ingredients: any[] = [];
+try {
+  const raw = require('../data/ingredients.js');
+  _ingredients = Array.isArray(raw) ? raw : [];
+} catch (e) {
+  _ingredients = [];
+}
+
+// 热榜数据
+let _hotRecipes: any = {};
+try {
+  const raw = require('../data/hotRecipes.js');
+  _hotRecipes = raw || {};
+} catch (e) {
+  _hotRecipes = {};
+}
+
+// 菜谱数据
+let _recipes: any[] = [];
+try {
+  const raw = require('../data/recipes.js');
+  _recipes = Array.isArray(raw)
+    ? raw
+    : (raw && Array.isArray(raw.recipes))
+    ? raw.recipes
+    : [];
+} catch (e) {
+  _recipes = [];
+}
 
 export interface IngredientItem {
   name: string;
@@ -16,20 +58,29 @@ export interface IngredientItem {
   subCategory?: string;
 }
 
-/** 加载食材数据（来自本地 JSON） */
+/** 加载食材数据（来自本地 JSON，不存在则为空数组） */
 export function loadIngredientsJson(): IngredientItem[] {
-  if (Array.isArray(ingredientsData)) {
-    return ingredientsData as IngredientItem[];
-  }
-  return [];
+  return _ingredients as IngredientItem[];
 }
 
-/** 加载热门菜谱数据（来自本地 JSON）
- * hotRecipes.json 结构为 { lastUpdated, description, hotRecipes: [...] }
- * 所以 data 本身是对象，不是数组
- */
+/** 加载热榜数据（来自本地 JSON，不存在则为空对象） */
 export function loadHotRecipesJson(): any {
-  return hotRecipesData || {};
+  return _hotRecipes;
+}
+
+/** 加载菜谱数据（同步，来自本地 JSON，不存在则为空数组） */
+export function loadRecipesJson(): any[] {
+  return _recipes;
+}
+
+/** 加载食材数据（异步，Promise 包装） */
+export function loadIngredientsAsync(): Promise<any[]> {
+  return Promise.resolve(_ingredients);
+}
+
+/** 加载菜谱数据（异步，Promise 包装） */
+export function loadRecipesAsync(): Promise<any[]> {
+  return Promise.resolve(_recipes);
 }
 
 /** 按分类获取食材列表 */
@@ -54,23 +105,7 @@ export function searchIngredients(keyword: string): IngredientItem[] {
   );
 }
 
-/** 加载菜谱数据（同步，来自本地 JSON） */
-export function loadRecipesJson(): any[] {
-  if (Array.isArray(recipesData)) {
-    return recipesData;
-  }
-  if (recipesData && Array.isArray((recipesData as any).recipes)) {
-    return (recipesData as any).recipes;
-  }
-  return [];
-}
-
-/** 加载菜谱数据（异步，Promise 包装） */
-export function loadRecipesAsync(): Promise<any[]> {
-  return Promise.resolve(loadRecipesJson());
-}
-
-// ============ 全局单例（与 cloudService 兼容）============
+// ============ 全局单例缓存（与 cloudService 兼容）============
 
 const CACHE_KEY = 'local_recipes_cache';
 const CACHE_META = 'local_recipes_meta';
@@ -112,9 +147,7 @@ export function getGlobalRecipes(): any[] {
 export function preloadGlobalRecipes(_fallback: () => any[]): void {
   try {
     const cached = wx.getStorageSync(CACHE_KEY);
-    if (cached) return; // 已有缓存，无需重复加载
-
-    // 静默预加载本地 JSON
+    if (cached) return;
     const recipes = loadRecipesJson();
     if (recipes.length > 0) {
       wx.setStorageSync(CACHE_KEY, JSON.stringify(recipes));

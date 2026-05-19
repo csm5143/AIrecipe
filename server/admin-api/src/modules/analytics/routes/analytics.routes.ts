@@ -1,7 +1,7 @@
 import { Router, Router as ExpressRouter } from 'express';
 import { asyncHandler } from '../../../utils/helper';
-import { getDashboardStats, getUserStats, getRecipeStats, getFeedbackStats, getRecipeCategoryStats } from '../controllers/analytics.controller';
-import { authenticate } from '../../auth/middleware/auth.middleware';
+import { getDashboardStats, getUserStats, getRecipeStats, getFeedbackStats, getRecipeCategoryStats, getAiTokenStats } from '../controllers/analytics.controller';
+import { authenticate, authorize } from '../../auth/middleware/auth.middleware';
 
 const router: ExpressRouter = Router();
 router.use(asyncHandler(authenticate));
@@ -11,5 +11,6 @@ router.get('/users', asyncHandler(getUserStats));
 router.get('/recipes', asyncHandler(getRecipeStats));
 router.get('/feedbacks', asyncHandler(getFeedbackStats));
 router.get('/category-stats', asyncHandler(getRecipeCategoryStats));
+router.get('/ai-token-stats', asyncHandler(authorize('SUPER_ADMIN', 'ADMIN')), asyncHandler(getAiTokenStats));
 
 export default router;

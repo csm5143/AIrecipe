@@ -163,3 +163,27 @@ export async function getRecipeCategoryStats(req: Request, res: Response) {
 
   res.json(success({ data }));
 }
+
+export async function getAiTokenStats(req: Request, res: Response) {
+  const keys = await prisma.aiApiKey.findMany({
+    orderBy: { createdAt: 'asc' },
+  });
+
+  const stats = keys.map(k => ({
+    model: k.model,
+    name: k.name,
+    totalTokens: k.totalTokens,
+    usedTokens: k.usedTokens,
+    remaining: Math.max(0, k.totalTokens - k.usedTokens),
+    isActive: k.isActive,
+  }));
+
+  const totalUsed = stats.reduce((sum, s) => sum + s.usedTokens, 0);
+  const totalRemaining = stats.reduce((sum, s) => sum + s.remaining, 0);
+  const total = stats.reduce((sum, s) => sum + s.totalTokens, 0);
+
+  res.json(success({
+    keys: stats,
+    summary: { total, usedTokens: totalUsed, remaining: totalRemaining },
+  }));
+}

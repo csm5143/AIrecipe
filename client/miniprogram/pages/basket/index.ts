@@ -11,9 +11,8 @@ import {
   type BasketRecipeEntry,
   type BasketIngredient
 } from '../../utils/shoppingList';
-import { isFormalUser, guideToLogin } from '../../utils/userAuth';
-import { syncDebounced } from '../../utils/dataSync';
-import { getFridgeItems } from '../../utils/fridgeStore';
+import { authService } from '../../utils/services/authService';
+import { fridgeService } from '../../utils/services/fridgeService';
 
 Page({
   data: {
@@ -28,42 +27,39 @@ Page({
     fridgeOwnedCount: 0,
   },
 
-  onLoad() {
-    if (!isFormalUser()) {
-      guideToLogin(() => {
-        // 登录成功后刷新
+  async onLoad() {
+    if (!authService.isLoggedIn()) {
+      authService.requireAuth(() => {
         this.refresh();
       });
       return;
     }
-    this.refresh();
+    await this.refresh();
   },
 
-  onShow() {
-    // 每次显示都检查登录状态
-    if (!isFormalUser()) {
-      guideToLogin(() => {
+  async onShow() {
+    if (!authService.isLoggedIn()) {
+      authService.requireAuth(() => {
         this.refresh();
       });
       return;
     }
-    this.refresh();
+    await this.refresh();
     const tab = typeof this.getTabBar === 'function' && this.getTabBar();
     if (tab) tab.setData({ selected: 1 });
   },
 
-  refresh() {
+  async refresh() {
     const recipes = getBasket();
     const totalCount = getTotalIngredientCount();
     const recipeCount = getRecipeCount();
-    // 已有数据时默认展开第一道菜，避免一进来满屏空白
     const expandedIds =
       recipes.length > 0
         ? [recipes[0].recipeId]
         : [];
 
     // 计算冰箱已有的食材名称集合
-    const fridgeItems = getFridgeItems();
+    const fridgeItems = await fridgeService.getFridgeItemsWithCache();
     const fridgeNames = new Set(fridgeItems.map(i => i.name));
 
     // 为每个食材标记是否在冰箱中
@@ -128,7 +124,6 @@ Page({
       success: (res) => {
         if (res.confirm) {
           removeRecipeById(id);
-          syncDebounced();
           this.refresh();
           wx.showToast({ title: '已删除', icon: 'none', duration: 1200 });
         }
@@ -152,7 +147,6 @@ Page({
       success: (res) => {
         if (res.confirm) {
           removeIngredientFromRecipe(recipeId, ingredientName);
-          syncDebounced();
           this.refresh();
           wx.showToast({ title: '已移除', icon: 'none', duration: 1200 });
         }
@@ -175,17 +169,16 @@ Page({
     if (!showMerged) {
       const { core, seasoning } = getMergedIngredientsSplit();
       // 获取冰箱食材名称
-      const fridgeItems = getFridgeItems();
-      const fridgeNames = new Set(fridgeItems.map(i => i.name));
-      // 为合并食材添加 owned 状态
-      const coreWithOwned = core.map(ing => ({ ...ing, owned: fridgeNames.has(ing.name) }));
-      const seasoningWithOwned = seasoning.map(ing => ({ ...ing, owned: fridgeNames.has(ing.name) }));
-      const mergedTotalCount = core.length + seasoning.length;
-      this.setData({
-        showMerged: true,
-        mergedCoreList: coreWithOwned,
-        mergedSeasoningList: seasoningWithOwned,
-        mergedTotalCount
+      fridgeService.getFridgeItemsWithCache().then(fridgeItems => {
+        const fridgeNames = new Set(fridgeItems.map(i => i.name));
+        const coreWithOwned = core.map(ing => ({ ...ing, owned: fridgeNames.has(ing.name) }));
+        const seasoningWithOwned = seasoning.map(ing => ({ ...ing, owned: fridgeNames.has(ing.name) }));
+        const mergedTotalCount = core.length + seasoning.length;
+        this.setData({
+          showMerged: true,
+          mergedCoreList: coreWithOwned,
+          mergedSeasoningList: seasoningWithOwned,
+          mergedTotalCount
       });
     } else {
       this.setData({
@@ -238,7 +231,6 @@ Page({
       success: (res) => {
         if (res.confirm) {
           clearBasket();
-          syncDebounced();
           this.refresh();
           wx.showToast({ title: '已清空', icon: 'none', duration: 1200 });
         }

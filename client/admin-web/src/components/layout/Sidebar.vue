@@ -88,6 +88,11 @@
             <template #title>反馈管理</template>
           </el-menu-item>
 
+            <el-menu-item v-if="canAccess('/ai-scans')" index="/ai-scans">
+              <el-icon><Cpu /></el-icon>
+              <template #title>AI 扫描记录</template>
+            </el-menu-item>
+
           <el-menu-item v-if="canAccess('/recipe-audit')" index="/recipe-audit">
             <el-icon><Stamp /></el-icon>
             <template #title>菜谱审核</template>
@@ -137,18 +142,30 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
+import { Odometer, Food, Goods, TrendCharts, User, ChatDotRound, Stamp, Delete, Setting, DArrowRight, DArrowLeft, Cpu } from '@element-plus/icons-vue';
 import { useSiteSettingsStore } from '@/store/modules/siteSettings';
 import { usePermission } from '@/composables/usePermission';
+import { usePreferences } from '@/composables/usePreferences';
 
 const route = useRoute();
+const { preferences } = usePreferences();
 const isCollapse = ref(false);
 const activeMenu = computed(() => route.path);
 const siteSettingsStore = useSiteSettingsStore();
 const { canAccess } = usePermission();
 
+import { watch } from 'vue';
+
 function toggleCollapse() {
   isCollapse.value = !isCollapse.value;
 }
+
+// 初始化时同步偏好设置
+watch(
+  () => preferences.collapseSidebar,
+  (val) => { isCollapse.value = val; },
+  { immediate: true }
+);
 
 function getFullImageUrl(path: string): string {
   if (!path) return '';
@@ -248,7 +265,7 @@ function getFullImageUrl(path: string): string {
   cursor: pointer;
 
   .logo-image {
-    height: 32px;
+    height: 48px;
     width: auto;
     object-fit: contain;
     flex-shrink: 0;

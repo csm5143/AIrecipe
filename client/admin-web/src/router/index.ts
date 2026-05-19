@@ -77,6 +77,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '反馈管理', icon: 'ChatDotRound' },
       },
       {
+        path: 'ai-scans',
+        name: 'AiScans',
+        component: () => import('@/views/ai-scan/index.vue'),
+        meta: { title: 'AI 扫描记录', icon: 'Cpu' },
+      },
+      {
         path: 'recipe-audit',
         name: 'RecipeAudit',
         component: () => import('@/views/recipe-audit/index.vue'),

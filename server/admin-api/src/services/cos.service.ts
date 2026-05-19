@@ -28,6 +28,7 @@ export const COS_FOLDERS = {
   CATEGORIES: 'categories',
   INGREDIENTS: 'ingredients',
   SETTINGS: 'settings',
+  AI_SCAN: 'ai-scan',  // 用户拍照识别照片（临时文件，建议配置生命周期清理）
   TMP: 'tmp',
 } as const;
 

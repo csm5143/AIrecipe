@@ -30,3 +30,20 @@ export function restoreLocalData(_data: UserCloudData): void {
 export function getUserOpenid(): string | null {
   return wx.getStorageSync('savedOpenid') || null;
 }
+
+/** 保存用户数据到云端（stub） */
+export async function saveUserDataToCloud(_data: UserCloudData): Promise<boolean> {
+  console.warn('[cloudUserData] 云开发已移除，跳过保存');
+  return false;
+}
+
+/** 合并云端数据到本地（stub） */
+export async function mergeCloudDataToLocal(): Promise<boolean> {
+  console.warn('[cloudUserData] 云开发已移除，跳过合并');
+  return false;
+}
+
+/** 清除用户数据缓存（stub） */
+export function clearUserDataCache(): void {
+  console.warn('[cloudUserData] 云开发已移除，无缓存可清除');
+}

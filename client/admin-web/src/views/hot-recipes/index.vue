@@ -46,6 +46,8 @@
             <el-button type="danger" size="small" @click="handleBatchCancelHot">批量取消热门</el-button>
           </div>
 
+          <div class="mobile-hint"><el-icon><DArrowLeft /></el-icon><span>左右滑动查看更多</span><el-icon><DArrowRight /></el-icon></div>
+          <div class="hide-mobile">
           <el-table
             v-loading="loading"
             :data="tableData"
@@ -114,6 +116,12 @@
             </el-table-column>
           </el-table>
 
+          <div v-if="tableData.length === 0 && !loading" class="empty-state">
+            <div class="empty-icon"><el-icon><FolderOpened /></el-icon></div>
+            <div class="empty-title">暂无热门菜谱</div>
+            <div class="empty-desc">点击上方按钮设置热门菜谱</div>
+          </div>
+
           <div class="pagination-wrap">
             <el-pagination
               v-model:current-page="pagination.page"
@@ -125,6 +133,7 @@
               @current-change="handlePageChange"
             />
           </div>
+          </div><!-- /hide-mobile -->
         </el-tab-pane>
 
         <!-- Tab 2: 设置热门 -->
@@ -152,6 +161,8 @@
             <el-button type="warning" size="small" @click="handleBatchSetHot">批量设为热门</el-button>
           </div>
 
+          <div class="mobile-hint"><el-icon><DArrowLeft /></el-icon><span>左右滑动查看更多</span><el-icon><DArrowRight /></el-icon></div>
+          <div class="hide-mobile">
           <el-table
             v-loading="setLoading"
             :data="setTableData"
@@ -221,6 +232,7 @@
               </template>
             </el-table-column>
           </el-table>
+          </div><!-- /hide-mobile -->
 
           <div class="pagination-wrap">
             <el-pagination
@@ -245,7 +257,9 @@ import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Refresh, Search, Edit, View, Star, Picture, Plus, Close, Select } from '@element-plus/icons-vue';
 import { hotRecipesApi, type HotRecipeItem } from '@/api/featured';
+import { usePreferences } from '@/composables/usePreferences';
 
+const { defaultPageSize } = usePreferences();
 const router = useRouter();
 
 const activeTab = ref('hot');
@@ -258,8 +272,8 @@ const setSelectedIds = ref<number[]>([]);
 
 const filters = reactive({ keyword: '' });
 const setFilters = reactive({ keyword: '' });
-const pagination = reactive({ page: 1, pageSize: 20, total: 0 });
-const setPagination = reactive({ page: 1, pageSize: 20, total: 0 });
+const pagination = reactive({ page: 1, pageSize: defaultPageSize(), total: 0 });
+const setPagination = reactive({ page: 1, pageSize: defaultPageSize(), total: 0 });
 
 const statusMap: Record<string, string> = {
   PUBLISHED: '已发布', DRAFT: '草稿', OFFLINE: '已下架', PENDING: '待审核', REJECTED: '已驳回',

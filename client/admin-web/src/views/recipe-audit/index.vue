@@ -70,6 +70,8 @@
       </div>
 
       <!-- 菜谱列表 -->
+      <div class="mobile-hint"><el-icon><DArrowLeft /></el-icon><span>左右滑动查看更多</span><el-icon><DArrowRight /></el-icon></div>
+      <div class="hide-mobile">
       <el-table
         v-loading="loading"
         :data="tableData"
@@ -126,7 +128,7 @@
 
         <el-table-column label="提交时间" width="160">
           <template #default="{ row }">
-            {{ formatDate(row.createdAt) }}
+            {{ formatDateTime(row.createdAt) }}
           </template>
         </el-table-column>
 
@@ -158,6 +160,13 @@
           </template>
         </el-table-column>
       </el-table>
+      </div><!-- /hide-mobile -->
+
+      <div v-if="tableData.length === 0 && !loading" class="empty-state">
+        <div class="empty-icon"><el-icon><FolderOpened /></el-icon></div>
+        <div class="empty-title">暂无待审核菜谱</div>
+        <div class="empty-desc">目前没有需要审核的菜谱</div>
+      </div>
 
       <!-- 分页 -->
       <div class="pagination-container">
@@ -264,7 +273,7 @@
             <el-timeline-item
               v-for="(audit, idx) in currentRecipe.auditHistory"
               :key="idx"
-              :timestamp="formatDate(audit.createdAt)"
+              :timestamp="formatDateTime(audit.createdAt)"
               :type="audit.action === 'approve' ? 'success' : 'danger'"
             >
               <p>{{ audit.action === 'approve' ? '审核通过' : '审核拒绝' }}</p>
@@ -314,7 +323,9 @@ import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Refresh, Search, View, Star } from '@element-plus/icons-vue';
 import { recipeAuditApi, type UserRecipeItem } from '@/api/recipe-audit';
+import { usePreferences } from '@/composables/usePreferences';
 
+const { defaultPageSize, formatDateTime } = usePreferences();
 const loading = ref(false);
 const actionLoading = ref(false);
 const tableData = ref<UserRecipeItem[]>([]);
@@ -331,7 +342,7 @@ const filters = reactive({
 
 const pagination = reactive({
   page: 1,
-  pageSize: 20,
+  pageSize: 0,
   total: 0
 });
 
@@ -343,6 +354,7 @@ const stats = reactive({
 
 // 初始化
 onMounted(() => {
+  pagination.pageSize = defaultPageSize();
   fetchRecipes();
   fetchStats();
 });
@@ -536,16 +548,6 @@ function getDifficultyText(difficulty: string): string {
   return map[difficulty] || '中等';
 }
 
-function formatDate(timestamp: number): string {
-  if (!timestamp) return '-';
-  const date = new Date(timestamp);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hour = String(date.getHours()).padStart(2, '0');
-  const minute = String(date.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day} ${hour}:${minute}`;
-}
 </script>
 
 <style scoped>
@@ -624,6 +626,7 @@ function formatDate(timestamp: number): string {
   font-size: 28px;
   font-weight: 600;
   color: #303133;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-label {

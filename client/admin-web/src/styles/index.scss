@@ -139,6 +139,8 @@ h4 { font-size: 16px; }
   padding: 32px;
   background-color: var(--cursor-cream);
   min-height: calc(100vh - var(--header-height));
+  max-width: 1440px;
+  margin: 0 auto;
 }
 
 .page-header {
@@ -205,6 +207,7 @@ h4 { font-size: 16px; }
     letter-spacing: -0.75px;
     color: var(--cursor-dark);
     line-height: 1.2;
+    font-variant-numeric: tabular-nums;
   }
 
   .stat-label {
@@ -442,8 +445,8 @@ h4 { font-size: 16px; }
   .el-table__header th {
     font-weight: 500;
     font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    text-transform: none;
+    letter-spacing: 0;
   }
 
   .el-table__row {
@@ -777,6 +780,118 @@ h4 { font-size: 16px; }
 
 .animate-slide-up {
   animation: slideUp var(--transition-normal) ease;
+}
+
+/* ==============================
+   Page Subtitle
+   ============================== */
+.page-subtitle {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  color: rgba(38, 37, 30, 0.5);
+  margin-top: 4px;
+}
+
+/* ==============================
+   Empty State
+   ============================== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+
+  .empty-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-xl);
+    background: var(--surface-300);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    color: rgba(38, 37, 30, 0.3);
+    font-size: 28px;
+  }
+
+  .empty-title {
+    font-family: var(--font-display);
+    font-size: 16px;
+    color: rgba(38, 37, 30, 0.6);
+    margin-bottom: 6px;
+  }
+
+  .empty-desc {
+    font-family: var(--font-serif);
+    font-size: 13px;
+    color: rgba(38, 37, 30, 0.4);
+    margin-bottom: 20px;
+  }
+}
+
+/* ==============================
+   Mobile Utilities
+   ============================== */
+.hide-desktop {
+  display: none !important;
+  @media (max-width: 768px) {
+    display: flex !important;
+  }
+}
+
+.hide-mobile {
+  @media (max-width: 768px) {
+    display: none !important;
+  }
+}
+
+.mobile-hint {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--surface-300);
+  border-radius: var(--radius-md);
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: rgba(38, 37, 30, 0.5);
+  margin-bottom: 12px;
+
+  @media (max-width: 768px) {
+    display: flex;
+  }
+}
+
+/* ==============================
+   Active Press Feedback
+   ============================== */
+.stat-card {
+  &:active {
+    transform: translateY(0) scale(0.98);
+    box-shadow: var(--shadow-card);
+  }
+}
+
+.quick-action-btn {
+  &:active {
+    transform: translateY(0) scale(0.97);
+  }
+}
+
+.el-button {
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+.cursor-pill {
+  &:active {
+    transform: scale(0.96);
+    opacity: 0.8;
+  }
 }
 
 /* ==============================

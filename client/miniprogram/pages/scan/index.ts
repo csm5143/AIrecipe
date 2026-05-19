@@ -1,7 +1,7 @@
 // scan/index.ts
-import { recognizeImage, IngredientRecognitionResult } from '../../utils/ingredientRecognize'
-import { loadIngredientsJson } from '../../utils/dataLoader'
-import { getFallbackIngredients } from '../../utils/fallbackIngredients'
+import { uploadAndRecognize, IngredientRecognitionResult } from '../../utils/ingredientRecognize'
+import { getAppIngredientsList } from '../../utils/httpApi/ingredient'
+import { saveAiScan } from '../../utils/httpApi/aiScan'
 
 Component({
   data: {
@@ -23,9 +23,28 @@ Component({
     pendingMapping: [] as string[],
     // 图片模糊提示
     showBlurTip: false,
+    // 食材名称缓存
+    ingredientNames: [] as string[],
+    ingredientData: [] as { name: string; category: string }[],
+  },
+
+  privateData: {
+    ingredientsLoaded: false,
   },
 
   methods: {
+    // 初始化食材库（首次使用时加载）
+    async ensureIngredientsLoaded(): Promise<void> {
+      if ((this as any).privateData && (this as any).privateData.ingredientsLoaded) return;
+      if (!(this as any).privateData) (this as any).privateData = {};
+      (this as any).privateData.ingredientsLoaded = true;
+      const names = await this.getAllIngredientNames();
+      const data = await this.getAllIngredientData();
+      await new Promise<void>((resolve) => {
+        this.setData({ ingredientNames: names, ingredientData: data }, () => resolve());
+      });
+    },
+
     // 从相册选择多张图片（一次选完）
     onChooseImages() {
       wx.chooseMedia({
@@ -189,7 +208,10 @@ Component({
         return
       }
 
-      const allIngredients = this.getAllIngredientNames()
+      // 确保食材库已加载
+      this.ensureIngredientsLoaded()
+
+      const allIngredients = this.data.ingredientNames
       const inputLower = input.toLowerCase()
       const matched = allIngredients.filter(function(name: string) {
         return name.toLowerCase().includes(inputLower)
@@ -250,44 +272,35 @@ Component({
     },
 
     // 获取所有食材库名称列表
-    getAllIngredientNames(): string[] {
+    async getAllIngredientNames(): Promise<string[]> {
       try {
-        const jsonData = loadIngredientsJson()
-        if (jsonData && jsonData.length) {
-          return jsonData.map(function(item: any) {
-            return item.name || item.title || item.ingredient || ''
-          }).filter(function(name: string) {
-            return !!name
-          })
+        const res = await getAppIngredientsList({ pageSize: 1000 });
+        if (res.success && res.data && res.data.length > 0) {
+          return res.data.map(item => item.name).filter(Boolean);
         }
       } catch (e) {
-        console.error('加载食材库失败', e)
+        console.error('加载食材库失败', e);
       }
-      return getFallbackIngredients().map(function(item: any) {
-        return item.name
-      })
+      return [];
     },
 
     // 获取所有食材数据（含 category）
-    getAllIngredientData(): { name: string; category: string }[] {
+    async getAllIngredientData(): Promise<{ name: string; category: string }[]> {
       try {
-        const jsonData = loadIngredientsJson()
-        if (jsonData && jsonData.length) {
-          return jsonData.map(function(item: any) {
-            return { name: item.name || item.title || item.ingredient || '', category: item.category || '' }
-          }).filter(function(item: any) {
-            return !!item.name
-          })
+        const res = await getAppIngredientsList({ pageSize: 1000 });
+        if (res.success && res.data && res.data.length > 0) {
+          return res.data.map(item => ({ name: item.name, category: item.category || '' })).filter(i => !!i.name);
         }
       } catch (e) {
-        console.error('加载食材库失败', e)
+        console.error('加载食材库失败', e);
       }
-      return []
+      return [];
     },
 
     // 查找最匹配的食材名称
     findBestMatch(inputName: string): string | null {
-      const allIngredients = this.getAllIngredientNames()
+      const allIngredients = this.data.ingredientNames
+      if (!allIngredients.length) return null
       const input = inputName.trim().toLowerCase()
 
       // 精确匹配
@@ -396,14 +409,17 @@ Component({
       wx.showLoading({ title: '正在识别...' })
 
       try {
-        // 并行识别所有图片
+        // 先加载食材库，确保 normalizeIngredientName 能正常工作
+        await this.ensureIngredientsLoaded();
+
+        // 并行识别所有图片（同时获取上传后的 imageUrl，用于保存扫描记录）
         const promiseResults = await Promise.all(
           imagePaths.map((path, index) =>
-            recognizeImage(path)
-              .then(results => ({ index, results, success: true }))
+            uploadAndRecognize(path)
+              .then(res => res ? { index, results: res.ingredients, imageUrl: res.imageUrl, model: res.model, tokensUsed: res.tokensUsed, success: true } : { index, results: [], imageUrl: '', model: '', tokensUsed: 0, success: false })
               .catch(err => {
                 console.error(`第${index + 1}张图片识别失败`, err)
-                return { index, results: [], success: false }
+                return { index, results: [], imageUrl: '', success: false }
               })
           )
         )
@@ -412,8 +428,16 @@ Component({
         const allResults: IngredientRecognitionResult[] = []
         const allSelected: string[] = []
         const pendingMapping: string[] = []
+        let firstImageUrl = ''
+        let firstModel = ''
+        let firstTokensUsed = 0
 
         for (const result of promiseResults) {
+          if (!firstImageUrl && result.imageUrl) {
+            firstImageUrl = result.imageUrl
+            firstModel = (result as any).model || ''
+            firstTokensUsed = (result as any).tokensUsed || 0
+          }
           for (const item of result.results) {
             if (item.confidence >= 0.3) {
               const normalizedName = this.normalizeIngredientName(item.name)
@@ -449,9 +473,26 @@ Component({
           showBlurTip: isLikelyBlurry,
         })
 
+        // 保存扫描记录到数据库
+        if (firstImageUrl && allResults.length > 0) {
+          saveAiScan({
+            imageUrl: firstImageUrl,
+            result: {
+              ingredients: allResults.map(r => r.name),
+              model: firstModel,
+              tokensUsed: firstTokensUsed,
+            },
+          }).catch(err => {
+            console.error('[scan] 保存扫描记录失败', err);
+          });
+        }
+
         // 有待映射的食材，弹出选择面板
         if (pendingMapping.length > 0) {
-          this.processNextMapping(pendingMapping, allResults, allSelected)
+          // 先确保食材库已加载，再处理映射
+          this.ensureIngredientsLoaded().then(() => {
+            this.processNextMapping(pendingMapping, allResults, allSelected);
+          });
         } else if (allResults.length === 0) {
           wx.showToast({
             title: '未识别到食材，请重试或手动添加',
@@ -543,7 +584,8 @@ Component({
 
     // 规范化食材名称（直接映射）
     normalizeIngredientName(name: string): string | null {
-      const allIngredients = this.getAllIngredientNames()
+      const allIngredients = this.data.ingredientNames
+      if (!allIngredients.length) return null
       const normalized = name.trim().toLowerCase()
 
       // 1. 精确匹配
@@ -679,7 +721,7 @@ Component({
 
     // 查找候选映射食材
     findMappingCandidates(sourceName: string): { name: string; category: string }[] {
-      const allIngredients = this.getAllIngredientData()
+      const allIngredients = this.data.ingredientData || []
       const candidates: { name: string; category: string }[] = []
 
       // 提取关键词匹配候选

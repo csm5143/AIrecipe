@@ -3,6 +3,7 @@ import { asyncHandler } from '../../../utils/helper';
 import {
   uploadMiddleware,
   uploadFile,
+  uploadScanImage,
   uploadAdminAvatar,
   uploadUserAvatar,
   uploadIngredient,
@@ -15,6 +16,7 @@ import { authenticate } from '../../auth/middleware/auth.middleware';
 const router: ExpressRouter = Router();
 
 router.post('/', asyncHandler(authenticate), uploadMiddleware, asyncHandler(uploadFile));
+router.post('/scan', uploadMiddleware, asyncHandler(uploadScanImage));
 router.post('/admin-avatar', asyncHandler(authenticate), uploadMiddleware, asyncHandler(uploadAdminAvatar));
 router.post('/avatar', asyncHandler(authenticate), uploadMiddleware, asyncHandler(uploadUserAvatar));
 router.post('/ingredient', asyncHandler(authenticate), uploadMiddleware, asyncHandler(uploadIngredient));

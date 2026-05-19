@@ -58,6 +58,9 @@ function errorResponse(res: Response, status: number, message: string) {
   res.status(status).json({ code: status, message, timestamp: Date.now() });
 }
 
+// 仅允许小程序拍照识别写入 ai-scan 文件夹的白名单
+const ALLOWED_SCAN_FOLDERS = [COS_FOLDERS.AI_SCAN, COS_FOLDERS.TMP];
+
 // 获取当前登录管理员的 username，用于 COS 目录组织
 async function getCurrentAdminUsername(req: Request): Promise<string> {
   try {
@@ -91,6 +94,33 @@ export async function uploadFile(req: Request, res: Response) {
     }
   } catch (err: any) {
     console.error('[Upload] 上传失败:', err);
+    errorResponse(res, 500, err.message || '上传失败');
+  }
+}
+
+// 小程序拍照识别专用上传接口（无需管理员认证，但限制只能写入 ai-scan/）
+export async function uploadScanImage(req: Request, res: Response) {
+  if (!req.file) {
+    errorResponse(res, 400, '未检测到上传文件');
+    return;
+  }
+
+  const requestedFolder = (req.body.folder as string) || COS_FOLDERS.AI_SCAN;
+  // 安全校验：只允许写入白名单中的文件夹
+  if (!ALLOWED_SCAN_FOLDERS.includes(requestedFolder as any)) {
+    errorResponse(res, 403, '不允许写入该目录');
+    return;
+  }
+
+  try {
+    if (USE_COS) {
+      const result = await COSService.uploadFile(req.file.buffer, requestedFolder, req.file.originalname);
+      successResponse(res, result.url, result.key, req.file.originalname, req.file.size);
+    } else {
+      successResponse(res, `/uploads/${req.file.filename}`, `${requestedFolder}/${req.file.filename}`, req.file.filename, req.file.size);
+    }
+  } catch (err: any) {
+    console.error('[Upload/scan] 上传失败:', err);
     errorResponse(res, 500, err.message || '上传失败');
   }
 }

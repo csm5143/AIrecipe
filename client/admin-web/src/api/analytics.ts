@@ -32,6 +32,24 @@ export interface DashboardStats {
   }>;
 }
 
+export interface AiKeyTokenStat {
+  model: string;
+  name: string;
+  totalTokens: number;
+  usedTokens: number;
+  remaining: number;
+  isActive: boolean;
+}
+
+export interface AiTokenStatsResponse {
+  keys: AiKeyTokenStat[];
+  summary: {
+    total: number;
+    usedTokens: number;
+    remaining: number;
+  };
+}
+
 export interface DashboardStatsResponse {
   code: number;
   message: string;
@@ -45,4 +63,7 @@ export const analyticsApi = {
 
   getCategoryStats: () =>
     request.get<{ data: CategoryStatItem[] }>('/analytics/category-stats'),
+
+  getAiTokenStats: () =>
+    request.get<AiTokenStatsResponse>('/analytics/ai-token-stats'),
 };

@@ -6,7 +6,54 @@
 
 import * as recipeApi from '../httpApi/recipe';
 import { Recipe } from '../../types/index';
-const fallbackRecipes: any[] = require('../../data/recipes.js');
+
+function getFallbackRecipes(): Recipe[] {
+  try {
+    const data = require('../../data/recipes.js');
+    return Array.isArray(data) ? data as Recipe[] : [];
+  } catch {
+    return [];
+  }
+}
+
+// ============ API → App 数据格式转换 ============
+// 后端 API 返回 { title, ingredients: {name}[] }，前端使用 { name, ingredients: string[] }
+function transformApiRecipe(apiRecipe: recipeApi.Recipe): Recipe {
+  let ingredients: string[] = [];
+  if (apiRecipe.ingredients) {
+    if (Array.isArray(apiRecipe.ingredients)) {
+      ingredients = apiRecipe.ingredients.map((ing: any) =>
+        typeof ing === 'string' ? ing : (ing.name || '')
+      ).filter(Boolean);
+    }
+  }
+  const difficulty = (() => {
+    const d = apiRecipe.difficulty;
+    if (d === 'easy' || d === 'normal' || d === 'hard') return d as 'easy' | 'normal' | 'hard';
+    if (typeof d === 'number') {
+      if (d <= 2) return 'easy';
+      if (d <= 4) return 'normal';
+      return 'hard';
+    }
+    return 'normal' as const;
+  })();
+  return {
+    id: String(apiRecipe.id),
+    name: apiRecipe.title || '',
+    aliases: [],
+    coverImage: apiRecipe.coverImage || '',
+    description: apiRecipe.description || '',
+    ingredients,
+    mealTimes: apiRecipe.mealTimes || [],
+    dishTypes: apiRecipe.dishTypes || [],
+    timeCost: apiRecipe.cookingTime ?? null,
+    difficulty,
+  };
+}
+
+function transformApiRecipes(apiRecipes: recipeApi.Recipe[]): Recipe[] {
+  return apiRecipes.map(transformApiRecipe);
+}
 
 // ============ 本地缓存 ============
 const CACHE_KEY = 'local_recipes_cache';
@@ -48,7 +95,7 @@ export function getGlobalRecipes(): Recipe[] | null {
     _loaded = true;
     return cached;
   }
-  _globalRecipes = fallbackRecipes as Recipe[];
+  _globalRecipes = getFallbackRecipes();
   _loaded = true;
   return _globalRecipes;
 }
@@ -71,22 +118,42 @@ export function getGlobalRecipesAsync(): Promise<Recipe[]> {
         _loaded = true;
         return data;
       }
-      _globalRecipes = fallbackRecipes as Recipe[];
-      _loaded = true;
-      return _globalRecipes;
+      // API 失败或为空时，不锁死状态，下次调用可重试
+      _globalRecipes = null;
+      return [] as Recipe[];
     })
     .finally(() => { _globalPromise = null; });
   return _globalPromise;
 }
 
 async function loadFromServer(): Promise<Recipe[]> {
+  const PAGE_SIZE = 100;
+  let page = 1;
+  let allRecipes: Recipe[] = [];
+
   try {
-    const res = await recipeApi.getRecipeList({ pageSize: 100 });
-    if (res.success && res.data && res.data.length > 0) return res.data;
+    while (true) {
+      const res = await recipeApi.getRecipeList({ page, pageSize: PAGE_SIZE });
+      if (!res.success || !res.data || res.data.length === 0) break;
+
+      // 转换 API 数据格式后追加
+      const transformed = transformApiRecipes(res.data);
+      allRecipes = allRecipes.concat(transformed);
+
+      // 后端返回了总数量，则不继续翻页
+      if (res.total != null) {
+        break;
+      }
+      // 否则按 pageSize 判断是否还有下一页
+      if (res.data.length < PAGE_SIZE) break;
+      page++;
+    }
   } catch (e) {
     console.warn('[RecipeService] 从服务器加载菜谱失败', e);
   }
-  return [];
+
+  // 若 API 没有数据，返回空数组，让调用方自行走 fallback
+  return allRecipes;
 }
 
 /** 预加载（后台静默） */
@@ -96,19 +163,18 @@ export function preload(): void {
 }
 
 /** 按 ID 获取 */
-export function getById(id: number): Recipe | null {
+export function getById(id: number | string): Recipe | null {
   const recipes = getGlobalRecipes();
-  return recipes ? (recipes.find(r => r.id === id) || null) : null;
+  const idStr = String(id);
+  return recipes ? (recipes.find(r => r.id === idStr) || null) : null;
 }
 
-/** 搜索菜谱 */
+/** 搜索菜谱（仅本地过滤，无 API 搜索端点） */
 export async function search(keyword: string): Promise<Recipe[]> {
-  const res = await recipeApi.searchRecipes(keyword);
-  if (res.success && res.data) return res.data;
   const recipes = getGlobalRecipes() || [];
   const kw = keyword.toLowerCase();
   return recipes.filter(r =>
-    r.title?.toLowerCase().includes(kw) ||
+    (r.name || (r as any).title)?.toLowerCase().includes(kw) ||
     r.description?.toLowerCase().includes(kw)
   );
 }
@@ -116,15 +182,15 @@ export async function search(keyword: string): Promise<Recipe[]> {
 /** 推荐菜谱 */
 export async function getFeatured(): Promise<Recipe[]> {
   const res = await recipeApi.getFeaturedRecipes({ pageSize: 20 });
-  if (res.success && res.data) return res.data;
+  if (res.success && res.data) return transformApiRecipes(res.data);
   return (getGlobalRecipes() || []).filter(r => r.isFeatured).slice(0, 20);
 }
 
 /** 热门菜谱 */
 export async function getHot(): Promise<Recipe[]> {
-  const res = await recipeApi.getHotRecipes({ pageSize: 20 });
-  if (res.success && res.data) return res.data;
-  return (getGlobalRecipes() || []).filter(r => r.isHot).slice(0, 20);
+  const res = await recipeApi.getHotRecipes({ pageSize: 100 });
+  if (res.success && res.data) return transformApiRecipes(res.data);
+  return (getGlobalRecipes() || []).filter(r => r.isHot).slice(0, 100);
 }
 
 /** 清除缓存 */

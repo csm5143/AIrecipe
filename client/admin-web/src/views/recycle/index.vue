@@ -103,7 +103,9 @@ import { ref, reactive, onMounted } from 'vue';
 import { Search, Refresh, RefreshLeft, Delete } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { recycleApi, type RecycleItem } from '@/api/recycle';
+import { usePreferences } from '@/composables/usePreferences';
 
+const { defaultPageSize } = usePreferences();
 const loading = ref(false);
 
 const filters = reactive({
@@ -113,7 +115,7 @@ const filters = reactive({
 
 const pagination = reactive({
   page: 1,
-  pageSize: 20,
+  pageSize: defaultPageSize(),
   total: 0,
 });
 

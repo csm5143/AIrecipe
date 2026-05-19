@@ -18,6 +18,8 @@
             </el-button>
           </div>
 
+          <div class="mobile-hint"><el-icon><DArrowLeft /></el-icon><span>左右滑动查看更多</span><el-icon><DArrowRight /></el-icon></div>
+          <div class="hide-mobile">
           <el-table :data="banners" v-loading="loading" row-key="id">
             <el-table-column prop="id" label="ID" width="80" />
             <el-table-column label="Banner 图" width="180">
@@ -82,8 +84,15 @@
             </el-table-column>
           </el-table>
 
+          <div v-if="banners.length === 0 && !loading" class="empty-state">
+            <div class="empty-icon"><el-icon><Picture /></el-icon></div>
+            <div class="empty-title">暂无 Banner</div>
+            <div class="empty-desc">点击上方按钮添加第一条 Banner</div>
+            <el-button type="primary" @click="handleAddBanner">添加 Banner</el-button>
+          </div>
+
           <div class="table-footer">
-            <span class="total-info">共 {{ bannerPagination.total }} 条</span>
+            <span class="page-subtitle">共 {{ bannerPagination.total }} 条</span>
             <el-pagination
               v-model:current-page="bannerPagination.page"
               v-model:page-size="bannerPagination.pageSize"
@@ -95,6 +104,7 @@
               @current-change="handleBannerPageChange"
             />
           </div>
+          </div><!-- /hide-mobile -->
         </div>
       </el-tab-pane>
 
@@ -108,6 +118,8 @@
             </el-button>
           </div>
 
+          <div class="mobile-hint"><el-icon><DArrowLeft /></el-icon><span>左右滑动查看更多</span><el-icon><DArrowRight /></el-icon></div>
+          <div class="hide-mobile">
           <el-table :data="notices" v-loading="noticeLoading" row-key="id">
             <el-table-column prop="id" label="ID" width="80" />
             <el-table-column prop="title" label="标题" min-width="200" />
@@ -149,9 +161,17 @@
               </template>
             </el-table-column>
           </el-table>
+          </div><!-- /hide-mobile -->
+
+          <div v-if="notices.length === 0 && !noticeLoading" class="empty-state">
+            <div class="empty-icon"><el-icon><ChatDotRound /></el-icon></div>
+            <div class="empty-title">暂无公告</div>
+            <div class="empty-desc">点击上方按钮发布第一条公告</div>
+            <el-button type="primary" @click="handleAddNotice">发布公告</el-button>
+          </div>
 
           <div class="table-footer">
-            <span class="total-info">共 {{ noticePagination.total }} 条</span>
+            <span class="page-subtitle">共 {{ noticePagination.total }} 条</span>
             <el-pagination
               v-model:current-page="noticePagination.page"
               v-model:page-size="noticePagination.pageSize"
@@ -318,7 +338,9 @@ import {
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { contentApi } from '@/api/content';
 import { uploadBanner } from '@/api/upload';
+import { usePreferences } from '@/composables/usePreferences';
 
+const { defaultPageSize, formatDateTime } = usePreferences();
 const activeTab = ref('banners');
 const loading = ref(false);
 const noticeLoading = ref(false);
@@ -336,8 +358,8 @@ const bannerSaving = ref(false);
 const noticeSaving = ref(false);
 const bannerUploading = ref(false);
 
-const bannerPagination = reactive({ page: 1, pageSize: 20, total: 0 });
-const noticePagination = reactive({ page: 1, pageSize: 20, total: 0 });
+const bannerPagination = reactive({ page: 1, pageSize: defaultPageSize(), total: 0 });
+const noticePagination = reactive({ page: 1, pageSize: defaultPageSize(), total: 0 });
 
 const bannerForm = reactive({
   id: 0 as number,
@@ -372,9 +394,7 @@ const noticeRules = {
 };
 
 function formatTime(iso: string) {
-  if (!iso) return '-';
-  const d = new Date(iso);
-  return d.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  return formatDateTime(iso);
 }
 
 function getLinkTypeText(type: string) {

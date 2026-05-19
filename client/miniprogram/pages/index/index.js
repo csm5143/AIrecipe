@@ -43,7 +43,6 @@ Page({
 
     try {
       const res = await request('/v1/app/content/home', {
-        baseUrl: 'http://localhost:3000',
         method: 'GET',
       });
 

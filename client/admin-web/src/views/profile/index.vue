@@ -286,6 +286,7 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { useUserStore } from '@/store/modules/user';
 import { authApi } from '@/api';
 import { uploadAdminAvatar } from '@/api/upload';
+import { usePreferences } from '@/composables/usePreferences';
 import {
   User,
   Lock,
@@ -298,6 +299,7 @@ import {
 import { ElMessage, FormInstance, FormRules } from 'element-plus';
 
 const userStore = useUserStore();
+const { preferences, updatePreferences } = usePreferences();
 
 const activeSetting = ref('profile');
 const profileFormRef = ref<FormInstance>();
@@ -359,12 +361,6 @@ const passwordRules: FormRules = {
     },
   ],
 };
-
-const preferences = reactive({
-  collapseSidebar: false,
-  pageSize: 20,
-  dateFormat: 'YYYY-MM-DD',
-});
 
 const notifications = reactive({
   system: true,
@@ -491,7 +487,11 @@ async function handleChangePassword() {
 }
 
 function handleSavePreferences() {
-  localStorage.setItem('userPreferences', JSON.stringify(preferences));
+  updatePreferences({
+    collapseSidebar: preferences.collapseSidebar,
+    pageSize: preferences.pageSize,
+    dateFormat: preferences.dateFormat,
+  });
   ElMessage.success('偏好设置已保存');
 }
 
@@ -507,11 +507,6 @@ onMounted(async () => {
   profileForm.phone = (userStore.profile as any)?.phone || '';
   profileForm.avatar = userStore.profile?.avatar || '';
   avatarPreview.value = userStore.profile?.avatar || '';
-
-  const savedPrefs = localStorage.getItem('userPreferences');
-  if (savedPrefs) {
-    Object.assign(preferences, JSON.parse(savedPrefs));
-  }
 
   const savedNotif = localStorage.getItem('userNotifications');
   if (savedNotif) {
@@ -535,12 +530,6 @@ onMounted(async () => {
       letter-spacing: -0.55px;
       color: var(--cursor-dark);
       margin-bottom: 4px;
-    }
-
-    .page-subtitle {
-      font-family: var(--font-serif);
-      font-size: 13px;
-      color: rgba(38, 37, 30, 0.5);
     }
   }
 }

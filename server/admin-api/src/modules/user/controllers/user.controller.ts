@@ -5,6 +5,43 @@ import { getAdminId, getAdminName, createOperationLog, addToRecycleBin } from '.
 import { AccountStatus } from '@prisma/client';
 import { exportUsers } from '../../../services/export.service';
 
+// 小冰箱相关
+export async function addUserFridgeItem(req: Request, res: Response) {
+  const userId = parseInt(req.params.userId);
+  const { name, amount, unit, category } = req.body;
+
+  if (!name?.trim()) {
+    res.status(400).json(badRequest('食材名称不能为空'));
+    return;
+  }
+
+  const item = await prisma.fridgeItem.upsert({
+    where: { userId_name: { userId, name: name.trim() } },
+    update: { amount: amount || undefined, unit: unit || undefined },
+    create: { userId, name: name.trim(), amount: amount || null, unit: unit || null, category: category || null },
+  });
+
+  res.json(success(item, '食材已添加'));
+}
+
+export async function deleteUserFridgeItem(req: Request, res: Response) {
+  const id = parseInt(req.params.fridgeId);
+  await prisma.fridgeItem.delete({ where: { id } });
+  res.json(success(null, '食材已删除'));
+}
+
+export async function getUserShoppingLists(req: Request, res: Response) {
+  const userId = parseInt(req.params.userId);
+  const lists = await prisma.shoppingList.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    include: {
+      items: { orderBy: { createdAt: 'asc' } },
+    },
+  });
+  res.json(success(lists));
+}
+
 export async function getUsers(req: Request, res: Response) {
   const page = parseInt(req.query.page as string) || 1;
   const pageSize = parseInt(req.query.pageSize as string) || 20;
@@ -58,16 +95,35 @@ export async function getUserById(req: Request, res: Response) {
   const id = parseInt(req.params.id);
   const user = await prisma.user.findUnique({
     where: { id, deletedAt: null },
-    select: {
-      id: true,
-      nickname: true,
-      avatar: true,
-      phone: true,
-      gender: true,
-      status: true,
-      createdAt: true,
-      lastLoginAt: true,
-      _count: { select: { feedbacks: true, favorites: true } },
+    include: {
+      favorites: {
+        take: 20,
+        orderBy: { createdAt: 'desc' },
+        include: { recipe: { select: { id: true, title: true, coverImage: true } } },
+      },
+      collections: {
+        orderBy: { createdAt: 'desc' },
+        include: { _count: { select: { items: true } } },
+      },
+      fridgeItems: {
+        take: 50,
+        orderBy: { addedAt: 'desc' },
+      },
+      aiScans: {
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, imageUrl: true, status: true, createdAt: true },
+      },
+      browseHistory: {
+        take: 20,
+        orderBy: { createdAt: 'desc' },
+        include: { recipe: { select: { id: true, title: true, coverImage: true } } },
+      },
+      notifications: {
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+      },
+      _count: { select: { feedbacks: true, favorites: true, fridgeItems: true, aiScans: true } },
     },
   });
   if (!user) {
@@ -75,11 +131,63 @@ export async function getUserById(req: Request, res: Response) {
     return;
   }
   res.json(success({
-    ...user,
-    collectionCount: user._count.favorites,
-    feedbackCount: user._count.feedbacks,
+    id: user.id,
+    nickname: user.nickname,
+    avatar: user.avatar,
+    phone: user.phone,
+    gender: user.gender,
+    status: user.status,
+    bio: user.bio,
     createdAt: user.createdAt.toISOString().slice(0, 16).replace('T', ' '),
     lastLoginAt: user.lastLoginAt?.toISOString().slice(0, 16).replace('T', ' ') || '',
+    collectionCount: user._count.favorites,
+    feedbackCount: user._count.feedbacks,
+    fridgeCount: user._count.fridgeItems,
+    aiScanCount: user._count.aiScans,
+    favorites: user.favorites.map(f => ({
+      id: f.id,
+      recipeId: f.recipeId,
+      recipeTitle: f.recipe?.title || '',
+      recipeCover: f.recipe?.coverImage || '',
+      createdAt: f.createdAt.getTime(),
+    })),
+    collections: user.collections.map(c => ({
+      id: c.id,
+      name: c.name,
+      description: c.description,
+      coverImage: c.coverImage,
+      isPublic: c.isPublic,
+      itemCount: c._count.items,
+      createdAt: c.createdAt.toISOString().slice(0, 16).replace('T', ' '),
+    })),
+    fridgeItems: user.fridgeItems.map(fi => ({
+      id: fi.id,
+      name: fi.name,
+      amount: fi.amount,
+      unit: fi.unit,
+      category: fi.category,
+      addedAt: fi.addedAt.getTime(),
+    })),
+    aiScans: user.aiScans.map(s => ({
+      id: s.id,
+      imageUrl: s.imageUrl,
+      status: s.status,
+      createdAt: s.createdAt.toISOString().slice(0, 16).replace('T', ' '),
+    })),
+    browseHistory: user.browseHistory.map(bh => ({
+      id: bh.id,
+      recipeId: bh.recipeId,
+      recipeTitle: bh.recipe?.title || '',
+      recipeCover: bh.recipe?.coverImage || '',
+      createdAt: bh.createdAt.getTime(),
+    })),
+    notifications: user.notifications.map(n => ({
+      id: n.id,
+      title: n.title,
+      content: n.content,
+      isRead: n.isRead,
+      createdAt: n.createdAt.toISOString().slice(0, 16).replace('T', ' '),
+    })),
   }));
 }
 

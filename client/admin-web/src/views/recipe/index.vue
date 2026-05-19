@@ -121,17 +121,19 @@
       </div>
 
       <!-- 桌面端表格 -->
-      <div class="table-container hide-mobile">
-        <el-table
-            ref="tableRef"
-            v-loading="loading"
-            :data="tableData"
-            row-key="id"
-            :header-cell-style="{ background: 'var(--surface-300)', color: 'var(--cursor-dark)' }"
-            @selection-change="handleSelectionChange"
-        >
+      <div class="table-scroll-outer hide-mobile" ref="tableScrollOuterRef">
+        <div class="table-container">
+          <el-table
+              ref="tableRef"
+              v-loading="loading"
+              :data="tableData"
+              row-key="id"
+              style="width: 1200px"
+              :header-cell-style="{ background: 'var(--surface-300)', color: 'var(--cursor-dark)' }"
+              @selection-change="handleSelectionChange"
+          >
         <el-table-column type="selection" width="45" />
-        <el-table-column prop="id" label="ID" width="55" />
+        <el-table-column prop="id" label="ID" width="80" min-width="80" />
         <el-table-column label="菜谱信息" min-width="200">
           <template #default="{ row }">
             <div class="recipe-info">
@@ -148,7 +150,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="用餐" width="160" align="center">
+        <el-table-column label="用餐" min-width="160" align="center">
           <template #default="{ row }">
             <div class="meal-tags">
               <span
@@ -162,12 +164,12 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="timeCost" label="时长" width="70" align="center">
+        <el-table-column prop="timeCost" label="时长" width="80" min-width="80" align="center">
           <template #default="{ row }">
             <span class="text-mono">{{ row.timeCost }}分钟</span>
           </template>
         </el-table-column>
-        <el-table-column label="数据" width="100" align="center">
+        <el-table-column label="数据" width="100" min-width="100" align="center">
           <template #default="{ row }">
             <div class="data-stats">
               <span class="stat-item">
@@ -195,14 +197,14 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="80" align="center">
+        <el-table-column prop="status" label="状态" width="90" min-width="90" align="center">
           <template #default="{ row }">
             <span class="status-pill" :class="(row.status || 'PUBLISHED').toLowerCase()">
               {{ getStatusText(row.status) }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="精选/热门" width="110" align="center">
+        <el-table-column label="精选/热门" min-width="110" align="center">
           <template #default="{ row }">
             <div class="badge-list">
               <el-tag v-if="row.isFeatured" type="warning" size="small" class="badge-tag" title="精选菜谱">
@@ -217,7 +219,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="145" fixed="right" align="center">
+        <el-table-column label="操作" width="145" min-width="145" fixed="right" align="center">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button type="primary" link @click="router.push(`/recipes/${row.id}/edit`)">
@@ -250,6 +252,17 @@
           </template>
         </el-table-column>
         </el-table>
+        </div>
+      </div>
+
+      <!-- 自定义横向滚动条（VS Code 风格） -->
+      <div
+        class="custom-hscroll-bar"
+        :class="{ 'is-scrolling': isTableScrolling }"
+        ref="customScrollBarRef"
+        v-if="tableData.length > 0"
+      >
+        <div class="custom-hscroll-thumb" ref="customThumbRef"></div>
       </div>
 
       <!-- 表格分页 -->
@@ -380,10 +393,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { UploadFile } from 'element-plus';
+import { usePreferences } from '@/composables/usePreferences';
 import {
   Plus, Search, RefreshLeft, Picture, View, Star, Edit,
   MoreFilled, Check, Close, Delete, Upload, UploadFilled,
@@ -398,6 +412,7 @@ import { recipeApi } from '@/api/recipe';
 import { useExport, downloadFile } from '@/composables/useExport';
 
 const router = useRouter();
+const { defaultPageSize } = usePreferences();
 const loading = ref(false);
 const selectedRows = ref<any[]>([]);
 
@@ -407,6 +422,11 @@ const importFile = ref<UploadFile | null>(null);
 const importing = ref(false);
 const uploadRef = ref();
 const tableRef = ref();
+const tableScrollOuterRef = ref<HTMLElement>();
+const customScrollBarRef = ref<HTMLElement>();
+const customThumbRef = ref<HTMLElement>();
+const isTableScrolling = ref(false);
+let scrollTimer: ReturnType<typeof setTimeout>;
 
 const filters = reactive({
   keyword: '',
@@ -419,7 +439,7 @@ const filters = reactive({
 
 const pagination = reactive({
   page: 1,
-  pageSize: 20,
+  pageSize: defaultPageSize(),
   total: 0,
 });
 
@@ -448,6 +468,11 @@ async function fetchRecipes() {
     });
     tableData.value = res.data?.list || [];
     pagination.total = res.data?.total || 0;
+    nextTick(() => {
+      syncScrollBarPosition();
+      cleanupScrollListener?.();
+      cleanupScrollListener = initBodyScrollListener();
+    });
   } catch (error) {
     console.error('获取菜谱列表失败:', error);
   } finally {
@@ -557,8 +582,59 @@ async function confirmImport() {
 }
 
 onMounted(() => {
+  pagination.pageSize = defaultPageSize();
   fetchRecipes();
+  window.addEventListener('resize', syncScrollBarPosition);
 });
+
+onUnmounted(() => {
+  window.removeEventListener('resize', syncScrollBarPosition);
+  cleanupScrollListener?.();
+});
+
+function syncScrollBarPosition() {
+  const bar = customScrollBarRef.value;
+  const outer = tableScrollOuterRef.value;
+  if (!bar || !outer) return;
+  const rect = outer.getBoundingClientRect();
+  bar.style.width = `${outer.clientWidth}px`;
+  bar.style.left = `${rect.left}px`;
+  bar.style.bottom = `${window.innerHeight - rect.bottom}px`;
+}
+
+function initBodyScrollListener() {
+  const bodyWrapper = document.querySelector('.el-table__body-wrapper') as HTMLElement;
+  if (!bodyWrapper) return;
+  bodyWrapper.addEventListener('scroll', onBodyScroll);
+  return () => bodyWrapper.removeEventListener('scroll', onBodyScroll);
+}
+
+let cleanupScrollListener: (() => void) | undefined;
+
+function onBodyScroll(e: Event) {
+  const el = e.target as HTMLElement;
+  isTableScrolling.value = true;
+  clearTimeout(scrollTimer);
+  scrollTimer = setTimeout(() => {
+    isTableScrolling.value = false;
+  }, 600);
+  nextTick(() => {
+    const bar = customScrollBarRef.value;
+    const thumb = customThumbRef.value;
+    const outer = tableScrollOuterRef.value;
+    if (!bar || !thumb || !outer) return;
+    const rect = outer.getBoundingClientRect();
+    bar.style.width = `${outer.clientWidth}px`;
+    bar.style.left = `${rect.left}px`;
+    bar.style.bottom = `${window.innerHeight - rect.bottom}px`;
+    const maxScroll = outer.scrollWidth - outer.clientWidth;
+    const ratio = maxScroll > 0 ? el.scrollLeft / maxScroll : 0;
+    const trackWidth = outer.clientWidth;
+    const thumbWidth = Math.max((outer.clientWidth / outer.scrollWidth) * trackWidth, 40);
+    thumb.style.width = `${thumbWidth}px`;
+    thumb.style.left = `${ratio * (trackWidth - thumbWidth)}px`;
+  });
+}
 </script>
 
 <style scoped lang="scss">
@@ -576,12 +652,6 @@ onMounted(() => {
       letter-spacing: -0.55px;
       color: var(--cursor-dark);
       margin-bottom: 4px;
-    }
-
-    .page-subtitle {
-      font-family: var(--font-serif);
-      font-size: 13px;
-      color: rgba(38, 37, 30, 0.5);
     }
   }
 
@@ -749,9 +819,51 @@ onMounted(() => {
   }
 }
 
-/* 表格容器 */
-.table-container {
+/* 外层滚动容器——让 el-table 内部自己滚动，我们在外层监听 */
+.table-scroll-outer {
+  overflow-x: auto;
+  overflow-y: visible;
   position: relative;
+  /* 限制宽度让 table(1200px) 产生溢出，激活 fixed 列 */
+  width: 100%;
+  max-width: 1100px;
+}
+
+/* 内层容器 */
+.table-container {
+  /* table 本身已设 width: 1200px，这里让它占满外层宽度 */
+  width: 100%;
+}
+
+/* 自定义横向滚动条——VS Code 风格（滑动时出现，不滑动时渐隐） */
+.custom-hscroll-bar {
+  height: 8px;
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+
+  .custom-hscroll-thumb {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    min-width: 40px;
+    max-width: calc(100% - 8px);
+    background: rgba(0, 0, 0, 0.12);
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.25s ease, background 0.15s ease;
+  }
+
+  &:hover .custom-hscroll-thumb,
+  &.is-scrolling .custom-hscroll-thumb {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.22);
+  }
+
+  &.is-scrolling .custom-hscroll-thumb {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.30);
+  }
 }
 
 .table-footer {

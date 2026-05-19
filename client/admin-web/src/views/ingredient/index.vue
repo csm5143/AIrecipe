@@ -63,6 +63,8 @@
         </div>
       </div>
 
+      <div class="mobile-hint"><el-icon><DArrowLeft /></el-icon><span>左右滑动查看更多</span><el-icon><DArrowRight /></el-icon></div>
+      <div class="hide-mobile">
       <el-table
         v-loading="loading"
         :data="tableData"
@@ -121,9 +123,17 @@
           </template>
         </el-table-column>
       </el-table>
+      </div><!-- /hide-mobile -->
+
+      <div v-if="tableData.length === 0 && !loading" class="empty-state">
+        <div class="empty-icon"><el-icon><FolderOpened /></el-icon></div>
+        <div class="empty-title">暂无食材</div>
+        <div class="empty-desc">点击下方按钮添加第一个食材</div>
+        <el-button type="primary" @click="handleCreate">添加食材</el-button>
+      </div>
 
       <div class="table-footer">
-        <span class="total-info">共 {{ pagination.total }} 条</span>
+        <span class="page-subtitle">共 {{ pagination.total }} 条</span>
         <el-pagination
           v-model:current-page="pagination.page"
           v-model:page-size="pagination.pageSize"
@@ -390,6 +400,9 @@ import type { UploadFile, FormInstance, FormRules } from 'element-plus';
 import { ingredientApi, type IngredientRow, type IngredientFormData } from '@/api/ingredient';
 import { uploadIngredient } from '@/api/upload';
 import { useExport, downloadFile } from '@/composables/useExport';
+import { usePreferences } from '@/composables/usePreferences';
+
+const { defaultPageSize } = usePreferences();
 
 const { exportDialogVisible, exportFormat, exporting, showExportDialog, handleConfirm } = useExport();
 
@@ -429,7 +442,7 @@ const filters = reactive({
 
 const pagination = reactive({
   page: 1,
-  pageSize: 20,
+  pageSize: 0,
   total: 0,
 });
 
@@ -713,6 +726,7 @@ async function handleExport() {
 }
 
 onMounted(() => {
+  pagination.pageSize = defaultPageSize();
   fetchData();
 });
 </script>
@@ -840,12 +854,6 @@ onMounted(() => {
   margin-top: 20px;
   padding-top: 20px;
   border-top: 1px solid var(--border-primary);
-
-  .total-info {
-    font-family: var(--font-serif);
-    font-size: 13px;
-    color: rgba(38, 37, 30, 0.6);
-  }
 }
 
 // ============================================================
@@ -1041,6 +1049,7 @@ $radius: 8px;
     font-weight: 600;
     line-height: 1;
     color: $text;
+    font-variant-numeric: tabular-nums;
   }
 
   .stat-label {

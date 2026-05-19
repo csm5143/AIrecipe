@@ -1,5 +1,5 @@
 /**
- * 菜谱相关 API - 对接后端 /v1/recipes
+ * 菜谱相关 API - 对接后端 /v1/app/recipes
  */
 
 import { get, post } from './request';
@@ -56,7 +56,17 @@ export interface RecipeQuery {
 export async function getFeaturedRecipes(params: RecipeQuery = {}): Promise<{
   success: boolean; data?: Recipe[]; total?: number; hasMore?: boolean;
 }> {
-  const res = await get<Recipe[]>('/v1/recipes/featured', params);
+  const res = await get<Recipe[]>('/v1/app/recipes/featured', params);
+  return { success: res.success, data: res.data, total: res.total, hasMore: res.hasMore };
+}
+
+/**
+ * 获取热门菜谱
+ */
+export async function getHotRecipes(params: RecipeQuery = {}): Promise<{
+  success: boolean; data?: Recipe[]; total?: number; hasMore?: boolean;
+}> {
+  const res = await get<Recipe[]>('/v1/app/recipes', { ...params, isHot: true });
   return { success: res.success, data: res.data, total: res.total, hasMore: res.hasMore };
 }
 
@@ -66,7 +76,7 @@ export async function getFeaturedRecipes(params: RecipeQuery = {}): Promise<{
 export async function getRecipeList(params: RecipeQuery = {}): Promise<{
   success: boolean; data?: Recipe[]; total?: number; hasMore?: boolean;
 }> {
-  const res = await get<Recipe[]>('/v1/recipes', params);
+  const res = await get<Recipe[]>('/v1/app/recipes', params);
   return { success: res.success, data: res.data, total: res.total, hasMore: res.hasMore };
 }
 
@@ -76,7 +86,7 @@ export async function getRecipeList(params: RecipeQuery = {}): Promise<{
 export async function getRecipeDetail(id: number): Promise<{
   success: boolean; data?: Recipe;
 }> {
-  const res = await get<Recipe>(`/v1/recipes/${id}`);
+  const res = await get<Recipe>(`/v1/app/recipes/${id}`);
   return { success: res.success, data: res.data };
 }
 
@@ -101,7 +111,35 @@ export async function toggleFavorite(recipeId: number): Promise<{
  * 获取点赞状态
  */
 export async function checkFavoriteStatus(recipeId: number): Promise<boolean> {
-  // 后端 /v1/user-recipes/:id 本身返回完整菜谱数据，暂无独立状态查询端点
   const res = await get<Recipe>(`/v1/user-recipes/${recipeId}`);
   return res.success && !!(res.data);
+}
+
+// ============ 补充缺失端点 ============
+
+export interface RecipeCategory {
+  name: string;
+  count: number;
+}
+
+/**
+ * 获取菜谱分类列表
+ */
+export async function getRecipeCategories(): Promise<{
+  success: boolean; data?: RecipeCategory[];
+}> {
+  const res = await get<RecipeCategory[]>('/v1/app/recipes/categories');
+  return { success: res.success, data: res.data };
+}
+
+/**
+ * 按食材搜索菜谱
+ */
+export async function searchRecipesByIngredients(ingredients: string[]): Promise<{
+  success: boolean; data?: Recipe[]; total?: number;
+}> {
+  const res = await get<Recipe[]>('/v1/app/recipes/by-ingredients', {
+    ingredients: ingredients.join(','),
+  });
+  return { success: res.success, data: res.data, total: res.total };
 }

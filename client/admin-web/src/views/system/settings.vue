@@ -258,16 +258,171 @@
             </el-form>
           </div>
         </div>
+
+        <!-- AI Key 管理 -->
+        <div v-show="activeSetting === 'ai'" class="settings-panel">
+          <div class="panel-header ai-panel-header">
+            <div>
+              <h3>AI Key 管理</h3>
+              <p class="text-muted">管理 API Key，支持多 Key 切换，系统自动使用当前激活的 Key</p>
+            </div>
+            <el-button type="primary" :icon="Plus" @click="openAddDialog">添加 Key</el-button>
+          </div>
+
+          <!-- Key 卡片网格 -->
+          <div v-if="aiKeys.length > 0" class="ai-key-grid">
+            <div
+              v-for="key in aiKeys"
+              :key="key.id"
+              class="ai-key-card"
+              :class="{ 'is-active': key.isActive }"
+            >
+              <div class="key-card-header">
+                <div class="key-name-row">
+                  <span class="key-name">{{ key.name }}</span>
+                  <el-tag v-if="key.isActive" type="success" size="small" effect="dark">使用中</el-tag>
+                  <el-tag v-else type="info" size="small" effect="plain">未启用</el-tag>
+                </div>
+              </div>
+
+              <div class="key-model">{{ key.model }}</div>
+
+              <div class="key-url">{{ key.baseUrl }}</div>
+
+              <div class="key-progress">
+                <el-progress
+                  :percentage="key.totalTokens > 0 ? Math.min(100, Math.round((key.usedTokens / key.totalTokens) * 100)) : 0"
+                  :stroke-width="6"
+                  :color="getProgressColor(key)"
+                />
+              </div>
+
+              <div class="key-stats">
+                <div class="key-stat">
+                  <span class="key-stat-label">已用</span>
+                  <span class="key-stat-value used">{{ formatToken(key.usedTokens) }}</span>
+                </div>
+                <div class="key-stat">
+                  <span class="key-stat-label">剩余</span>
+                  <span class="key-stat-value remaining">{{ formatToken(key.remaining) }}</span>
+                </div>
+                <div class="key-stat">
+                  <span class="key-stat-label">总量</span>
+                  <span class="key-stat-value">{{ formatToken(key.totalTokens) }}</span>
+                </div>
+              </div>
+
+              <div class="key-actions">
+                <el-button
+                  size="small"
+                  :type="key.isActive ? 'default' : 'primary'"
+                  :disabled="key.isActive"
+                  @click="handleActivate(key)"
+                >
+                  {{ key.isActive ? '当前使用' : '设为使用' }}
+                </el-button>
+                <el-button size="small" type="primary" @click="openEditDialog(key)">编辑</el-button>
+                <el-button size="small" type="danger" plain @click="handleDelete(key)">删除</el-button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 空状态 -->
+          <div v-else class="ai-key-empty">
+            <el-icon class="empty-icon"><Cpu /></el-icon>
+            <p>暂无 AI Key</p>
+            <p class="text-muted">点击上方按钮添加 API Key</p>
+          </div>
+        </div>
       </div>
     </div>
+
+    <!-- 添加/编辑 Key 弹窗 -->
+    <el-dialog
+      v-model="showDialog"
+      :title="editingKey ? '编辑 AI Key' : '添加 AI Key'"
+      width="520px"
+      destroy-on-close
+    >
+      <el-form :model="keyForm" label-position="top" style="max-width: 100%">
+        <el-form-item label="Key 名称" required>
+          <el-input v-model="keyForm.name" placeholder="如：GPT-4o-mini 官方Key" />
+        </el-form-item>
+        <el-form-item label="API Key" required>
+          <el-input
+            v-model="keyForm.apiKey"
+            type="password"
+            placeholder="请输入 API Key"
+            show-password
+          />
+        </el-form-item>
+        <el-form-item label="Base URL" required>
+          <el-input v-model="keyForm.baseUrl" placeholder="如：https://api.openai.com/v1" />
+        </el-form-item>
+        <el-form-item label="模型名称" required>
+          <el-select
+            v-model="keyForm.model"
+            placeholder="请选择或输入模型名称"
+            style="width: 100%"
+            filterable
+            allow-create
+            default-first-option
+          >
+            <el-option label="gpt-4o-mini" value="gpt-4o-mini" />
+            <el-option label="gpt-4o" value="gpt-4o" />
+            <el-option label="gpt-4-turbo" value="gpt-4-turbo" />
+            <el-option label="gpt-3.5-turbo" value="gpt-3.5-turbo" />
+            <el-option label="doubao-pro-32k" value="doubao-pro-32k" />
+            <el-option label="doubao-pro-128k" value="doubao-pro-128k" />
+            <el-option label="doubao-vision-pro" value="doubao-vision-pro" />
+            <el-option label="glm-4-flash" value="glm-4-flash" />
+            <el-option label="glm-4-plus" value="glm-4-plus" />
+            <el-option label="glm-4v-plus" value="glm-4v-plus" />
+            <el-option label="qwen-vl-max" value="qwen-vl-max" />
+            <el-option label="qwen-vl-plus" value="qwen-vl-plus" />
+            <el-option label="custom..." value="" disabled style="display:none" />
+          </el-select>
+          <div class="input-hint">如未找到想要的模型，可直接输入自定义模型名称</div>
+        </el-form-item>
+        <el-form-item>
+          <el-button
+            :loading="testing"
+            :type="testResult && testResult.success ? 'success' : testResult && !testResult.success ? 'danger' : 'default'"
+            :icon="testResult && testResult.success ? 'CircleCheck' : testResult && !testResult.success ? 'CircleClose' : 'Connection'"
+            @click="handleTestConnection"
+            :disabled="!keyForm.apiKey || !keyForm.baseUrl || !keyForm.model"
+          >
+            {{ testing ? '测试中...' : testResult ? (testResult.success ? '连接成功' : '连接失败') : '测试连接' }}
+          </el-button>
+          <span v-if="testResult" class="test-result" :class="testResult.success ? 'test-success' : 'test-fail'">
+            <template v-if="testResult.success">
+              模型: {{ testResult.model }} · 响应: "{{ testResult.response }}" · {{ testResult.elapsed }}ms · {{ testResult.tokens }} tokens
+            </template>
+            <template v-else>
+              {{ testResult.error }}
+              <template v-if="testResult.elapsed"> · {{ testResult.elapsed }}ms</template>
+            </template>
+          </span>
+        </el-form-item>
+        <el-form-item label="总量 Token" required>
+          <el-input-number v-model="keyForm.totalTokens" :min="1" :step="10000" style="width: 100%;" />
+          <span class="input-hint">填入该 Key 的额度上限，用于计算剩余量</span>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showDialog = false">取消</el-button>
+        <el-button type="primary" :loading="savingKey" @click="handleSaveKey">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue';
-import { Setting, Link, Document, Lock, Message, Plus, Refresh } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
+import { Setting, Link, Document, Lock, Message, Plus, Refresh, Cpu } from '@element-plus/icons-vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { systemApi, type SiteSettings, type SeoSettings, type LegalSettings, type SecuritySettings, type EmailSettings } from '@/api/system';
+import { aiKeyApi, type AiKeyItem } from '@/api/ai-key';
 import { uploadSettings } from '@/api/upload';
 import { useSiteSettingsStore } from '@/store/modules/siteSettings';
 
@@ -331,12 +486,38 @@ const emailForm = reactive<EmailSettings>({
   password: '',
 });
 
+// ==================== AI Key 管理 ====================
+
+const aiKeys = ref<AiKeyItem[]>([]);
+const showDialog = ref(false);
+const editingKey = ref<AiKeyItem | null>(null);
+const savingKey = ref(false);
+const testing = ref(false);
+const testResult = ref<{
+  success: boolean;
+  status?: number;
+  error?: string;
+  model?: string;
+  response?: string;
+  tokens?: number;
+  elapsed?: number;
+} | null>(null);
+
+const keyForm = reactive({
+  name: '',
+  apiKey: '',
+  baseUrl: 'https://api.openai.com/v1',
+  model: 'gpt-4o-mini',
+  totalTokens: 1000000,
+});
+
 const settingItems = [
   { key: 'site', label: '网站信息', icon: Link },
   { key: 'seo', label: 'SEO 设置', icon: Document },
   { key: 'legal', label: '备案信息', icon: Setting },
   { key: 'security', label: '安全设置', icon: Lock },
   { key: 'email', label: '邮件设置', icon: Message },
+  { key: 'ai', label: 'AI Key 管理', icon: Cpu },
 ];
 
 const hasUnsavedSiteChanges = computed(() => JSON.stringify(siteForm) !== JSON.stringify(originalSiteForm.value));
@@ -367,10 +548,19 @@ async function loadSettings() {
 
     Object.assign(emailForm, data.email);
     originalEmailForm.value = { ...data.email };
-  } catch (e: any) {
+  } catch {
     ElMessage.error('加载设置失败');
   } finally {
     loading.value = false;
+  }
+}
+
+async function loadAiKeys() {
+  try {
+    const res = await aiKeyApi.getList();
+    aiKeys.value = res.data as AiKeyItem[];
+  } catch {
+    // ignore
   }
 }
 
@@ -522,8 +712,123 @@ function handleResetEmail() {
   Object.assign(emailForm, originalEmailForm.value);
 }
 
+// ==================== AI Key 管理函数 ====================
+
+function openAddDialog() {
+  editingKey.value = null;
+  keyForm.name = '';
+  keyForm.apiKey = '';
+  keyForm.baseUrl = 'https://api.openai.com/v1';
+  keyForm.model = 'gpt-4o-mini';
+  keyForm.totalTokens = 1000000;
+  testResult.value = null;
+  showDialog.value = true;
+}
+
+function openEditDialog(key: AiKeyItem) {
+  editingKey.value = key;
+  keyForm.name = key.name;
+  keyForm.apiKey = '';
+  keyForm.baseUrl = key.baseUrl;
+  keyForm.model = key.model;
+  keyForm.totalTokens = key.totalTokens;
+  testResult.value = null;
+  showDialog.value = true;
+}
+
+async function handleTestConnection() {
+  if (!keyForm.apiKey || !keyForm.baseUrl || !keyForm.model) {
+    ElMessage.warning('请先填写 API Key、Base URL 和模型名称');
+    return;
+  }
+  testing.value = true;
+  testResult.value = null;
+  try {
+    const res = await aiKeyApi.test({
+      apiKey: keyForm.apiKey,
+      baseUrl: keyForm.baseUrl,
+      model: keyForm.model,
+    });
+    testResult.value = res.data as any;
+  } catch (err: any) {
+    testResult.value = {
+      success: false,
+      error: err?.message || '测试请求失败，请检查网络',
+    };
+  } finally {
+    testing.value = false;
+  }
+}
+
+async function handleSaveKey() {
+  if (!keyForm.name || !keyForm.apiKey || !keyForm.baseUrl || !keyForm.model || !keyForm.totalTokens) {
+    ElMessage.warning('请填写完整信息');
+    return;
+  }
+  savingKey.value = true;
+  try {
+    if (editingKey.value) {
+      await aiKeyApi.update(editingKey.value.id, {
+        name: keyForm.name,
+        apiKey: keyForm.apiKey || undefined,
+        baseUrl: keyForm.baseUrl,
+        model: keyForm.model,
+        totalTokens: keyForm.totalTokens,
+      });
+    } else {
+      await aiKeyApi.create(keyForm);
+    }
+    showDialog.value = false;
+    await loadAiKeys();
+    ElMessage.success(editingKey.value ? 'AI Key 更新成功' : 'AI Key 添加成功');
+  } catch {
+    ElMessage.error('保存失败');
+  } finally {
+    savingKey.value = false;
+  }
+}
+
+async function handleActivate(key: AiKeyItem) {
+  try {
+    await aiKeyApi.activate(key.id);
+    await loadAiKeys();
+    ElMessage.success(`已切换为「${key.name}」`);
+  } catch {
+    ElMessage.error('切换失败');
+  }
+}
+
+async function handleDelete(key: AiKeyItem) {
+  try {
+    await ElMessageBox.confirm(`确定删除 AI Key「${key.name}」？`, '删除确认', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+    });
+    await aiKeyApi.delete(key.id);
+    await loadAiKeys();
+    ElMessage.success('删除成功');
+  } catch {
+    // cancelled
+  }
+}
+
+function getProgressColor(key: AiKeyItem): string {
+  const pct = key.totalTokens > 0 ? (key.usedTokens / key.totalTokens) : 0;
+  if (pct >= 0.9) return '#f85149';
+  if (pct >= 0.7) return '#f0883e';
+  return '#3fb950';
+}
+
+function formatToken(num: number): string {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  return num.toLocaleString();
+}
+
 onMounted(() => {
   loadSettings();
+  loadAiKeys();
 });
 </script>
 
@@ -608,6 +913,145 @@ onMounted(() => {
   border-radius: var(--radius-lg);
   padding: 24px;
 }
+
+// ==================== AI Key 卡片网格 ====================
+
+.ai-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.ai-key-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.ai-key-card {
+  background: var(--surface-200);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: var(--border-medium);
+    box-shadow: var(--shadow-card);
+  }
+
+  &.is-active {
+    border-color: #3fb950;
+    background: linear-gradient(135deg, rgba(63, 185, 80, 0.04) 0%, transparent 60%);
+  }
+
+  .key-card-header {
+    .key-name-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .key-name {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--cursor-dark);
+    }
+  }
+
+  .key-model {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: rgba(168, 85, 247, 0.9);
+    background: rgba(168, 85, 247, 0.08);
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+
+  .key-url {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: rgba(38, 37, 30, 0.4);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .key-progress {
+    margin: 4px 0;
+  }
+
+  .key-stats {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+
+    .key-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+
+      .key-stat-label {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: rgba(38, 37, 30, 0.45);
+        margin-bottom: 2px;
+      }
+
+      .key-stat-value {
+        font-family: var(--font-mono);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--cursor-dark);
+
+        &.used { color: rgba(38, 37, 30, 0.6); }
+        &.remaining { color: #3fb950; }
+      }
+    }
+  }
+
+  .key-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+}
+
+.ai-key-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: rgba(38, 37, 30, 0.5);
+  background: var(--surface-200);
+  border: 1px dashed var(--border-medium);
+  border-radius: var(--radius-lg);
+
+  .empty-icon {
+    font-size: 48px;
+    color: rgba(38, 37, 30, 0.2);
+    margin-bottom: 12px;
+  }
+
+  p {
+    font-family: var(--font-display);
+    font-size: 16px;
+    margin: 0;
+  }
+
+  p + p {
+    font-size: 13px;
+    margin-top: 6px;
+  }
+}
+
+// ==================== 通用 ====================
 
 .image-upload-row {
   display: flex;
@@ -733,5 +1177,19 @@ onMounted(() => {
   font-family: var(--font-serif);
   font-size: 13px;
   color: rgba(38, 37, 30, 0.5);
+}
+
+.test-result {
+  margin-left: 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+
+  &.test-success {
+    color: #3fb950;
+  }
+
+  &.test-fail {
+    color: #f56c6c;
+  }
 }
 </style>

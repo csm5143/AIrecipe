@@ -39,6 +39,8 @@
         </el-button>
       </div>
 
+      <div class="mobile-hint"><el-icon><DArrowLeft /></el-icon><span>左右滑动查看更多</span><el-icon><DArrowRight /></el-icon></div>
+      <div class="hide-mobile">
       <el-table
         v-loading="loading"
         :data="tableData"
@@ -115,9 +117,16 @@
           </template>
         </el-table-column>
       </el-table>
+      </div><!-- /hide-mobile -->
+
+      <div v-if="tableData.length === 0 && !loading" class="empty-state">
+        <div class="empty-icon"><el-icon><FolderOpened /></el-icon></div>
+        <div class="empty-title">暂无用户</div>
+        <div class="empty-desc">目前没有注册用户</div>
+      </div>
 
       <div class="table-footer">
-        <span class="total-info">共 {{ pagination.total }} 条</span>
+        <span class="page-subtitle">共 {{ pagination.total }} 条</span>
         <el-pagination
           v-model:current-page="pagination.page"
           v-model:page-size="pagination.pageSize"
@@ -161,54 +170,240 @@
       </template>
     </el-dialog>
 
-    <!-- 用户详情对话框 -->
-    <el-dialog v-model="detailVisible" title="用户详情" width="600px">
-      <div v-if="currentUser" class="user-detail-modal">
-        <div class="detail-header">
-          <el-upload
-            action="#"
-            :auto-upload="true"
-            :show-file-list="false"
-            accept="image/*"
-            :before-upload="(file: File) => { handleAvatarChange(file); return false; }"
-          >
-            <el-avatar :size="72" :src="currentUser.avatar" class="detail-avatar uploadable-avatar">
-              {{ currentUser.nickname?.charAt(0) }}
-            </el-avatar>
-            <div v-if="avatarUploading" class="avatar-upload-mask">
-              <el-icon class="is-loading"><Upload /></el-icon>
+    <!-- 用户详情抽屉 -->
+    <el-drawer v-model="detailVisible" :title="null" direction="rtl" size="880px" :show-close="false" class="user-detail-drawer">
+      <template #header>
+        <div class="drawer-header" v-if="currentUser">
+          <div class="drawer-user-info">
+            <el-upload
+              action="#"
+              :auto-upload="true"
+              :show-file-list="false"
+              accept="image/*"
+              :before-upload="(file: File) => { handleAvatarChange(file); return false; }"
+            >
+              <el-avatar :size="56" :src="currentUser.avatar" class="detail-avatar uploadable-avatar">
+                {{ currentUser.nickname?.charAt(0) }}
+              </el-avatar>
+              <div v-if="avatarUploading" class="avatar-upload-mask">
+                <el-icon class="is-loading"><Upload /></el-icon>
+              </div>
+            </el-upload>
+            <div>
+              <div class="drawer-user-name">{{ currentUser.nickname || '未设置昵称' }}</div>
+              <div class="drawer-user-sub">ID: {{ currentUser.id }} · {{ currentUser.phone || '未绑定手机' }}</div>
             </div>
-          </el-upload>
-          <div class="detail-info">
-            <h3>{{ currentUser.nickname || '未设置昵称' }}</h3>
-            <p class="text-muted">ID: {{ currentUser.id }}</p>
+          </div>
+          <el-button @click="detailVisible = false"><el-icon><Close /></el-icon></el-button>
+        </div>
+      </template>
+
+      <div v-if="currentUser" class="drawer-body">
+        <!-- 快速统计 -->
+        <div class="quick-stats">
+          <div class="quick-stat-item">
+            <span class="qs-value">{{ currentUser.collectionCount }}</span>
+            <span class="qs-label">收藏</span>
+          </div>
+          <div class="quick-stat-item">
+            <span class="qs-value">{{ currentUser.feedbackCount }}</span>
+            <span class="qs-label">反馈</span>
+          </div>
+          <div class="quick-stat-item">
+            <span class="qs-value">{{ currentUser.fridgeCount || 0 }}</span>
+            <span class="qs-label">冰箱</span>
+          </div>
+          <div class="quick-stat-item">
+            <span class="qs-value">{{ currentUser.aiScanCount || 0 }}</span>
+            <span class="qs-label">AI扫描</span>
           </div>
         </div>
 
-        <el-descriptions :column="2" border class="detail-descriptions">
-          <el-descriptions-item label="手机号">{{ currentUser.phone || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="性别">{{ currentUser.gender === 'male' ? '男' : currentUser.gender === 'female' ? '女' : '-' }}</el-descriptions-item>
-          <el-descriptions-item label="注册时间">{{ currentUser.createdAt }}</el-descriptions-item>
-          <el-descriptions-item label="最后登录">{{ currentUser.lastLoginAt || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="收藏数">{{ currentUser.collectionCount }}</el-descriptions-item>
-          <el-descriptions-item label="反馈数">{{ currentUser.feedbackCount }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
-            <el-tag :type="currentUser.status === 'ACTIVE' ? 'success' : 'danger'" size="small">
-              {{ currentUser.status === 'ACTIVE' ? '正常' : '禁用' }}
-            </el-tag>
-          </el-descriptions-item>
-        </el-descriptions>
+        <el-tabs v-model="activeDetailTab" class="user-detail-tabs">
+          <!-- 基本信息 -->
+          <el-tab-pane label="基本信息" name="info">
+            <el-descriptions :column="2" border>
+              <el-descriptions-item label="性别">{{ currentUser.gender === 'male' ? '男' : currentUser.gender === 'female' ? '女' : '-' }}</el-descriptions-item>
+              <el-descriptions-item label="状态">
+                <el-tag :type="currentUser.status === 'ACTIVE' ? 'success' : 'danger'" size="small">
+                  {{ currentUser.status === 'ACTIVE' ? '正常' : '禁用' }}
+                </el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="注册时间">{{ currentUser.createdAt }}</el-descriptions-item>
+              <el-descriptions-item label="最后登录">{{ currentUser.lastLoginAt || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="个人简介" :span="2">{{ currentUser.bio || '未设置' }}</el-descriptions-item>
+            </el-descriptions>
+            <div class="tab-actions">
+              <el-button type="primary" @click="handleEditUser">编辑用户</el-button>
+              <el-button @click="handleStatusToggle">
+                {{ currentUser.status === 'ACTIVE' ? '禁用账号' : '启用账号' }}
+              </el-button>
+            </div>
+          </el-tab-pane>
 
-        <div class="detail-section">
-          <h4>个人简介</h4>
-          <p class="text-muted">{{ currentUser.bio || '未设置' }}</p>
-        </div>
+          <!-- 收藏夹 -->
+          <el-tab-pane label="收藏夹" name="collections">
+            <div v-if="userDetailData.collections?.length" class="list-items">
+              <div v-for="col in userDetailData.collections" :key="col.id" class="list-item-card">
+                <div class="item-cover" v-if="col.coverImage">
+                  <img :src="getFullImageUrl(col.coverImage)" />
+                </div>
+                <div class="item-cover item-cover-placeholder" v-else>
+                  <el-icon><Folder /></el-icon>
+                </div>
+                <div class="item-info">
+                  <div class="item-title">{{ col.name }}</div>
+                  <div class="item-meta">{{ col.itemCount }} 个菜谱 · {{ col.isPublic ? '公开' : '私密' }}</div>
+                  <div class="item-meta">创建于 {{ col.createdAt }}</div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="empty-tab">
+              <el-icon><Folder /></el-icon>
+              <span>暂无收藏夹</span>
+            </div>
+          </el-tab-pane>
+
+          <!-- 收藏菜谱 -->
+          <el-tab-pane label="收藏菜谱" name="favorites">
+            <div v-if="userDetailData.favorites?.length" class="list-items">
+              <div v-for="fav in userDetailData.favorites" :key="fav.id" class="list-item-card">
+                <div class="item-cover" v-if="fav.recipeCover">
+                  <img :src="getFullImageUrl(fav.recipeCover)" />
+                </div>
+                <div class="item-cover item-cover-placeholder" v-else>
+                  <el-icon><Food /></el-icon>
+                </div>
+                <div class="item-info">
+                  <div class="item-title">{{ fav.recipeTitle || '未知菜谱' }}</div>
+                  <div class="item-meta">收藏于 {{ formatTime(fav.createdAt) }}</div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="empty-tab">
+              <el-icon><Collection /></el-icon>
+              <span>暂无收藏</span>
+            </div>
+          </el-tab-pane>
+
+          <!-- 小菜篮 -->
+          <el-tab-pane label="小菜篮" name="shopping">
+            <div v-if="shoppingLoading" class="empty-tab"><el-icon class="is-loading"><Loading /></el-icon><span>加载中...</span></div>
+            <div v-else-if="userDetailData.shoppingLists?.length" class="list-items">
+              <div v-for="list in userDetailData.shoppingLists" :key="list.id" class="shopping-list-block">
+                <div class="shopping-list-header">{{ list.name || '默认清单' }} ({{ list.items?.length || 0 }}项)</div>
+                <div class="shopping-items">
+                  <div v-for="item in list.items" :key="item.id" class="shopping-item">
+                    <span>{{ item.name }}</span>
+                    <span v-if="item.amount" class="item-amount">{{ item.amount }}{{ item.unit }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="empty-tab">
+              <el-icon><ShoppingCart /></el-icon>
+              <span>暂无购物清单</span>
+            </div>
+          </el-tab-pane>
+
+          <!-- 小冰箱 -->
+          <el-tab-pane label="小冰箱" name="fridge">
+            <div class="fridge-toolbar">
+              <el-input v-model="newFridgeItem.name" placeholder="添加食材名称" style="width: 200px" />
+              <el-input v-model="newFridgeItem.amount" placeholder="数量" style="width: 100px" />
+              <el-input v-model="newFridgeItem.unit" placeholder="单位（如：个）" style="width: 100px" />
+              <el-button type="primary" @click="handleAddFridgeItem" :loading="fridgeSaving">添加</el-button>
+            </div>
+            <div v-if="userDetailData.fridgeItems?.length" class="fridge-list">
+              <div v-for="item in userDetailData.fridgeItems" :key="item.id" class="fridge-item">
+                <div class="fridge-item-info">
+                  <span class="fridge-name">{{ item.name }}</span>
+                  <span class="fridge-amount">{{ item.amount || '' }}{{ item.unit || '' }}</span>
+                </div>
+                <span class="fridge-category" v-if="item.category">{{ item.category }}</span>
+                <el-button type="danger" link @click="handleDeleteFridgeItem(item.id)">
+                  <el-icon><Delete /></el-icon>
+                </el-button>
+              </div>
+            </div>
+            <div v-else class="empty-tab">
+              <el-icon><Goods /></el-icon>
+              <span>冰箱是空的</span>
+            </div>
+          </el-tab-pane>
+
+          <!-- AI 扫描 -->
+          <el-tab-pane label="AI 扫描" name="aiscans">
+            <div v-if="userDetailData.aiScans?.length" class="list-items">
+              <div v-for="scan in userDetailData.aiScans" :key="scan.id" class="list-item-card compact">
+                <div class="item-cover" v-if="scan.imageUrl">
+                  <img :src="getFullImageUrl(scan.imageUrl)" />
+                </div>
+                <div class="item-cover item-cover-placeholder" v-else>
+                  <el-icon><Cpu /></el-icon>
+                </div>
+                <div class="item-info">
+                  <div class="item-title">扫描记录 #{{ scan.id }}</div>
+                  <div class="item-meta">
+                    <el-tag size="small" :type="scan.status === 'SUCCESS' ? 'success' : scan.status === 'FAILED' ? 'danger' : 'warning'">
+                      {{ scan.status === 'SUCCESS' ? '成功' : scan.status === 'FAILED' ? '失败' : '处理中' }}
+                    </el-tag>
+                    · {{ scan.createdAt }}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="empty-tab">
+              <el-icon><Cpu /></el-icon>
+              <span>暂无扫描记录</span>
+            </div>
+          </el-tab-pane>
+
+          <!-- 浏览历史 -->
+          <el-tab-pane label="浏览历史" name="history">
+            <div v-if="userDetailData.browseHistory?.length" class="list-items">
+              <div v-for="bh in userDetailData.browseHistory" :key="bh.id" class="list-item-card">
+                <div class="item-cover" v-if="bh.recipeCover">
+                  <img :src="getFullImageUrl(bh.recipeCover)" />
+                </div>
+                <div class="item-cover item-cover-placeholder" v-else>
+                  <el-icon><Food /></el-icon>
+                </div>
+                <div class="item-info">
+                  <div class="item-title">{{ bh.recipeTitle || '未知菜谱' }}</div>
+                  <div class="item-meta">浏览于 {{ formatTime(bh.createdAt) }}</div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="empty-tab">
+              <el-icon><Clock /></el-icon>
+              <span>暂无浏览记录</span>
+            </div>
+          </el-tab-pane>
+
+          <!-- 通知记录 -->
+          <el-tab-pane label="通知记录" name="notifications">
+            <div v-if="userDetailData.notifications?.length" class="notification-list">
+              <div v-for="n in userDetailData.notifications" :key="n.id" class="notification-item">
+                <div class="notif-content">
+                  <div class="notif-title">{{ n.title }}</div>
+                  <div class="notif-body">{{ n.content }}</div>
+                </div>
+                <div class="notif-meta">
+                  <el-tag v-if="n.isRead" size="small" type="info">已读</el-tag>
+                  <el-tag v-else size="small" type="warning">未读</el-tag>
+                  <span class="notif-time">{{ n.createdAt }}</span>
+                </div>
+              </div>
+            </div>
+            <div v-else class="empty-tab">
+              <el-icon><Bell /></el-icon>
+              <span>暂无通知</span>
+            </div>
+          </el-tab-pane>
+        </el-tabs>
       </div>
-      <template #footer>
-        <el-button @click="detailVisible = false">关闭</el-button>
-        <el-button type="primary" @click="handleEditUser">编辑用户</el-button>
-      </template>
-    </el-dialog>
+    </el-drawer>
 
     <!-- 导出弹窗 -->
     <el-dialog v-model="exportDialogVisible" title="导出用户" width="480px" :close-on-click-modal="false">
@@ -274,24 +469,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
 import {
-  Search,
-  Refresh,
-  Download,
-  View,
-  Delete,
-  Collection,
-  ChatDotRound,
-  Plus,
-  Upload,
-  Check,
+  Search, Refresh, Download, View, Delete, Collection, ChatDotRound,
+  Plus, Upload, Check, Folder, Food, ShoppingCart, Goods, Cpu, Clock, Bell,
+  Close, Loading,
 } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { userApi, type UserRow } from '@/api/user';
 import { uploadAvatar } from '@/api/upload';
 import { useExport, downloadFile } from '@/composables/useExport';
+import { usePreferences } from '@/composables/usePreferences';
 
+const { defaultPageSize } = usePreferences();
 const loading = ref(false);
 const detailVisible = ref(false);
 const showCreateDialog = ref(false);
@@ -300,6 +490,13 @@ const currentUser = ref<UserRow | null>(null);
 const selectedRows = ref<any[]>([]);
 const avatarUploading = ref(false);
 const { exportDialogVisible, exportFormat, exporting, showExportDialog, handleConfirm } = useExport();
+
+// 抽屉状态
+const activeDetailTab = ref('info');
+const userDetailData = ref<any>({});
+const shoppingLoading = ref(false);
+const fridgeSaving = ref(false);
+const newFridgeItem = reactive({ name: '', amount: '', unit: '' });
 
 const createForm = reactive({
   nickname: '',
@@ -326,7 +523,7 @@ const filters = reactive({
 
 const pagination = reactive({
   page: 1,
-  pageSize: 20,
+  pageSize: defaultPageSize(),
   total: 0,
 });
 
@@ -375,7 +572,101 @@ async function handleAvatarChange(file: File) {
 
 function handleDetail(row: any) {
   currentUser.value = row;
+  activeDetailTab.value = 'info';
+  userDetailData.value = {};
   detailVisible.value = true;
+  fetchUserDetail(row.id);
+}
+
+async function fetchUserDetail(userId: number) {
+  try {
+    const res = await userApi.detail(userId);
+    const data = res.data as any;
+    if (data) {
+      currentUser.value = { ...currentUser.value, ...data };
+      userDetailData.value = {
+        favorites: data.favorites || [],
+        collections: data.collections || [],
+        fridgeItems: data.fridgeItems || [],
+        aiScans: data.aiScans || [],
+        browseHistory: data.browseHistory || [],
+        notifications: data.notifications || [],
+      };
+    }
+  } catch (e) {
+    console.error('获取用户详情失败', e);
+  }
+}
+
+async function fetchUserShoppingLists(userId: number) {
+  if (userDetailData.value.shoppingLists) return;
+  shoppingLoading.value = true;
+  try {
+    const res = await (userApi as any).getShoppingLists(userId);
+    userDetailData.value.shoppingLists = (res.data as any[]) || [];
+  } catch (e) {
+    console.error('获取购物清单失败', e);
+  } finally {
+    shoppingLoading.value = false;
+  }
+}
+
+function handleStatusToggle() {
+  if (!currentUser.value) return;
+  const newStatus = currentUser.value.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
+  const action = newStatus === 'ACTIVE' ? '启用' : '禁用';
+  ElMessageBox.confirm(`确定要${action}该用户账号？`, '确认', { type: 'warning' })
+    .then(async () => {
+      await userApi.updateStatus(currentUser.value!.id, newStatus);
+      currentUser.value.status = newStatus;
+      const row = tableData.value.find(r => r.id === currentUser.value!.id);
+      if (row) row.status = newStatus;
+      ElMessage.success(`用户已${action}`);
+    })
+    .catch(() => {});
+}
+
+async function handleAddFridgeItem() {
+  if (!newFridgeItem.name.trim() || !currentUser.value) return;
+  fridgeSaving.value = true;
+  try {
+    await (userApi as any).addFridgeItem(currentUser.value.id, {
+      name: newFridgeItem.name.trim(),
+      amount: newFridgeItem.amount || undefined,
+      unit: newFridgeItem.unit || undefined,
+    });
+    ElMessage.success('食材已添加');
+    newFridgeItem.name = '';
+    newFridgeItem.amount = '';
+    newFridgeItem.unit = '';
+    fetchUserDetail(currentUser.value!.id);
+  } catch {
+    ElMessage.error('添加失败');
+  } finally {
+    fridgeSaving.value = false;
+  }
+}
+
+async function handleDeleteFridgeItem(fridgeId: number) {
+  if (!currentUser.value) return;
+  try {
+    await userApi.deleteFridgeItem(currentUser.value.id, fridgeId);
+    ElMessage.success('已删除');
+    userDetailData.value.fridgeItems = userDetailData.value.fridgeItems.filter((f: any) => f.id !== fridgeId);
+  } catch {
+    ElMessage.error('删除失败');
+  }
+}
+
+function formatTime(timestamp: number) {
+  if (!timestamp) return '-';
+  return new Date(timestamp).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+function getFullImageUrl(path: string) {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  return `https://dish-1367781796.cos.ap-guangzhou.myqcloud.com${path.startsWith('/') ? '' : '/'}${path}`;
 }
 
 function handleEditUser() {
@@ -447,7 +738,14 @@ async function handleCreate() {
   }
 }
 
+watch(() => activeDetailTab.value, (tab) => {
+  if (tab === 'shopping' && currentUser.value) {
+    fetchUserShoppingLists(currentUser.value.id);
+  }
+});
+
 onMounted(() => {
+  pagination.pageSize = defaultPageSize();
   fetchUsers();
 });
 </script>
@@ -554,12 +852,6 @@ onMounted(() => {
   margin-top: 20px;
   padding-top: 20px;
   border-top: 1px solid var(--border-primary);
-
-  .total-info {
-    font-family: var(--font-serif);
-    font-size: 13px;
-    color: rgba(38, 37, 30, 0.6);
-  }
 }
 
 .user-detail-modal {
@@ -727,5 +1019,342 @@ onMounted(() => {
   color: var(--cursor-orange);
   font-size: 18px;
   flex-shrink: 0;
+}
+
+// 用户详情抽屉
+.user-detail-drawer {
+  :deep(.el-drawer__header) {
+    margin-bottom: 0;
+    padding: 0;
+    border-bottom: 1px solid var(--border-primary);
+  }
+
+  :deep(.el-drawer__body) {
+    padding: 0;
+  }
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+}
+
+.drawer-user-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  .detail-avatar {
+    background: var(--surface-400);
+    color: var(--cursor-dark);
+    cursor: pointer;
+    flex-shrink: 0;
+    position: relative;
+
+    &.uploadable-avatar:hover { opacity: 0.85; }
+  }
+
+  .avatar-upload-mask {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  }
+
+  .drawer-user-name {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--cursor-dark);
+  }
+
+  .drawer-user-sub {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: rgba(38, 37, 30, 0.5);
+    margin-top: 2px;
+  }
+}
+
+.drawer-body {
+  padding: 0;
+}
+
+.quick-stats {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border-primary);
+  background: var(--surface-200);
+
+  .quick-stat-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 8px;
+    border-right: 1px solid var(--border-primary);
+    cursor: default;
+
+    &:last-child { border-right: none; }
+
+    .qs-value {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--cursor-dark);
+    }
+
+    .qs-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: rgba(38, 37, 30, 0.5);
+      margin-top: 2px;
+    }
+  }
+}
+
+.user-detail-tabs {
+  :deep(.el-tabs__header) {
+    margin: 0;
+    background: var(--surface-100);
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border-primary);
+  }
+
+  :deep(.el-tabs__nav-wrap::after) {
+    display: none;
+  }
+
+  :deep(.el-tabs__content) {
+    padding: 20px 24px;
+  }
+}
+
+.tab-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list-item-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--surface-100);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s;
+
+  &:hover { border-color: rgba(245, 78, 0, 0.3); }
+
+  &.compact { padding: 8px 12px; }
+}
+
+.item-cover {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &.item-cover-placeholder {
+    background: var(--surface-300);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(38, 37, 30, 0.3);
+    font-size: 20px;
+  }
+}
+
+.item-info {
+  flex: 1;
+  min-width: 0;
+
+  .item-title {
+    font-family: var(--font-display);
+    font-size: 14px;
+    color: var(--cursor-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .item-meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(38, 37, 30, 0.5);
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+}
+
+.empty-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 0;
+  color: rgba(38, 37, 30, 0.3);
+  font-family: var(--font-display);
+  font-size: 14px;
+
+  .el-icon { font-size: 32px; }
+}
+
+// 购物清单
+.shopping-list-block {
+  background: var(--surface-100);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 8px;
+
+  .shopping-list-header {
+    padding: 8px 12px;
+    background: var(--surface-200);
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--cursor-dark);
+    border-bottom: 1px solid var(--border-primary);
+  }
+
+  .shopping-items { padding: 4px 0; }
+
+  .shopping-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    font-size: 13px;
+
+    .item-amount {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: rgba(38, 37, 30, 0.5);
+    }
+  }
+}
+
+// 小冰箱
+.fridge-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.fridge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fridge-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface-100);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+
+  .fridge-item-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .fridge-name {
+    font-family: var(--font-display);
+    font-size: 14px;
+    color: var(--cursor-dark);
+  }
+
+  .fridge-amount {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: rgba(38, 37, 30, 0.5);
+  }
+
+  .fridge-category {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 2px 6px;
+    background: var(--surface-300);
+    border-radius: 4px;
+    color: rgba(38, 37, 30, 0.5);
+  }
+}
+
+// 通知
+.notification-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notification-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: var(--surface-100);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+
+  .notif-content { flex: 1; }
+
+  .notif-title {
+    font-family: var(--font-display);
+    font-size: 14px;
+    color: var(--cursor-dark);
+    margin-bottom: 4px;
+  }
+
+  .notif-body {
+    font-family: var(--font-serif);
+    font-size: 13px;
+    color: rgba(38, 37, 30, 0.6);
+  }
+
+  .notif-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .notif-time {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(38, 37, 30, 0.4);
+    white-space: nowrap;
+  }
 }
 </style>

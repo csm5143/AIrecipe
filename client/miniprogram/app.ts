@@ -1,7 +1,7 @@
-// app.ts - 云开发已移除，纯本地存储版本
+// app.ts - 前后端分离架构，数据全部来自 API
 
-import { preloadGlobalRecipes } from './utils/dataLoader';
-import { ensureDefaultCollection } from './utils/collections';
+import { preload } from './utils/httpServices/recipeService';
+import { restoreSession } from './utils/httpApi/auth';
 
 App<IAppOption>({
   globalData: {
@@ -11,7 +11,6 @@ App<IAppOption>({
   },
 
   onLaunch() {
-    // 展示本地存储日志
     const logs = wx.getStorageSync('logs') || [];
     logs.unshift(Date.now());
     wx.setStorageSync('logs', logs.slice(0, 100));
@@ -19,28 +18,21 @@ App<IAppOption>({
     // 预登录（非阻塞）
     wx.login({});
 
-    // 初始化本地收藏夹
-    this.initLocalData();
+    // 后台静默恢复会话
+    restoreSession().catch(() => {});
+
+    // 预加载菜谱（后台静默，失败不阻塞）
+    this.preloadRecipes();
   },
 
   onShow() {
     // nothing to do
   },
 
-  // 初始化本地数据
-  initLocalData() {
-    try {
-      ensureDefaultCollection();
-      this.preloadRecipes();
-    } catch (e) {
-      console.warn('[App] 初始化本地数据失败', e);
-    }
-  },
-
-  // 预加载菜谱数据
+  // 预加载菜谱数据（后台静默，失败不阻塞）
   preloadRecipes() {
     try {
-      preloadGlobalRecipes(() => []);
+      preload();
     } catch (e) {
       console.warn('[App] 预加载菜谱失败', e);
     }

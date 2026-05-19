@@ -26,7 +26,7 @@ export interface RequestOptions {
   withToken?: boolean;
 }
 
-const DEFAULT_BASE_URL = 'http://localhost:3000';
+const DEFAULT_BASE_URL = (wx as any).__env__?.APP_ENV?.API_BASE_URL || 'https://airecipe.natapp1.cc';
 
 /** 全局错误处理回调 */
 type ErrorHandler = (code: number, message: string) => void;
@@ -53,9 +53,12 @@ export function request<T = any>(
   } = options;
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...header,
   };
+  // 仅在有请求体时设置 Content-Type（POST/PUT/DELETE/PATCH）
+  if (method !== 'GET' && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (withOpenid) {
     const openid = getOpenid();
@@ -72,17 +75,40 @@ export function request<T = any>(
   }
 
   return new Promise((resolve) => {
+    const fullUrl = `${baseUrl}${endpoint}`;
+    console.log(`[API Request] ${method} ${fullUrl}`, data);
     wx.request({
-      url: `${baseUrl}${endpoint}`,
+      url: fullUrl,
       method,
       data,
       header: headers,
-      timeout: 30000,
+      timeout: 60000,
       success: (res) => {
+        console.log(`[API Response] ${res.statusCode} ${endpoint}`, Array.isArray(res.data) ? `(${res.data.length} items)` : '');
         const statusCode = res.statusCode;
+        const raw = res.data as any;
 
         if (statusCode >= 200 && statusCode < 300) {
-          resolve(res.data as ApiResult<T>);
+          // 适配后端 paginated 响应格式: { code, message, data: { list, total, page, pageSize } }
+          // 适配多种响应格式：
+        // 1. { list: [...], total: N }          ← 分页格式
+        // 2. [...]                               ← 直接数组
+        // 3. { ... }                            ← 单对象
+        const rawData = raw?.data;
+        let listData: T | null = null;
+        if (Array.isArray(rawData)) {
+          listData = rawData;
+        } else if (rawData && typeof rawData === 'object') {
+          listData = (rawData as any).list ?? rawData;
+        }
+        resolve({
+          success: raw?.code === 200,
+          data: listData,
+          total: (rawData as any)?.total,
+          hasMore: (rawData as any) ? ((rawData as any).page * (rawData as any).pageSize < (rawData as any).total) : false,
+          message: raw?.message,
+          code: raw?.code,
+        });
         } else if (statusCode === 401) {
           // 未登录，清除 token
           if (_globalErrorHandler) {
@@ -105,11 +131,10 @@ export function request<T = any>(
             });
           }
         } else {
-          const body = res.data as ApiResult<T>;
           resolve({
             success: false,
             code: statusCode,
-            message: body?.message || `请求失败 (${statusCode})`,
+            message: raw?.message || `请求失败 (${statusCode})`,
           });
         }
       },
@@ -143,4 +168,66 @@ export function put<T = any>(endpoint: string, data?: any, options?: Omit<Reques
 /** DELETE 便捷方法 */
 export function del<T = any>(endpoint: string, data?: any, options?: Omit<RequestOptions, 'method' | 'data'>): Promise<ApiResult<T>> {
   return request<T>(endpoint, { ...options, method: 'DELETE', data });
+}
+
+// ============ 文件上传（需单独实现 wx.uploadFile）============
+
+const UPLOAD_BASE_URL = (wx as any).__env__?.APP_ENV?.API_BASE_URL || 'https://airecipe.natapp1.cc';
+
+export interface UploadResult {
+  success: boolean;
+  data?: { url: string };
+  message?: string;
+}
+
+/**
+ * 上传文件到后端 COS
+ * @param endpoint 完整路径（不含 baseUrl）
+ * @param filePath 微信临时文件路径
+ * @param name formData 的 file 字段名
+ * @param formData 附加表单数据
+ */
+export function upload(
+  endpoint: string,
+  filePath: string,
+  name: string = 'file',
+  formData?: Record<string, string>
+): Promise<UploadResult> {
+  return new Promise((resolve) => {
+    const token = getWxToken();
+    const headers: Record<string, string> = {
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    wx.uploadFile({
+      url: `${UPLOAD_BASE_URL}${endpoint}`,
+      filePath,
+      name,
+      formData,
+      header: headers,
+      timeout: 60000,
+      success: (res) => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            const raw = JSON.parse(res.data);
+            resolve({
+              success: raw?.code === 200,
+              data: raw?.data,
+              message: raw?.message,
+            });
+          } catch {
+            resolve({ success: false, message: '解析响应失败' });
+          }
+        } else {
+          resolve({ success: false, message: `上传失败 (${res.statusCode})` });
+        }
+      },
+      fail: (err) => {
+        console.error('[Upload] 上传失败:', err);
+        resolve({ success: false, message: err.errMsg || '上传失败' });
+      },
+    });
+  });
 }

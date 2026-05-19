@@ -118,6 +118,14 @@ function buildWhereClause(query: any): any {
     status: 'PUBLISHED',
   };
 
+  if (query.isHot === '1' || query.isHot === 'true') {
+    where.isHot = true;
+  }
+
+  if (query.isFeatured === '1' || query.isFeatured === 'true') {
+    where.isFeatured = true;
+  }
+
   if (query.category) {
     where.category = query.category;
   }

@@ -1,7 +1,19 @@
-// 定制页面：小菜篮 + 横向菜单卡片流 + 健身减脂餐 + 儿童营养餐 + 一日菜谱规划
+// 定制页面：小菜篮 + 精选菜谱 + 横向菜单卡片流 + 健身减脂餐 + 儿童营养餐
 
 import { getTotalIngredientCount, getRecipeCount } from '../../utils/shoppingList';
-import { isFormalUser, guideToLogin } from '../../utils/userAuth';
+import { authService } from '../../utils/services/authService';
+import { recipeApi } from '../../utils/httpApi';
+
+interface FeaturedRecipe {
+  id: number;
+  title: string;
+  coverImage: string;
+  description: string;
+  difficulty: string;
+  cookingTime: number;
+  tags: string[];
+  mealTimes: string[];
+}
 
 interface MenuCard {
   id: string;
@@ -10,7 +22,7 @@ interface MenuCard {
   labelExtra: string;
   showCalendarBadge: boolean;
   description: string;
-  navType: 'list' | 'meal' | 'dish' | 'search' | 'discover' | 'daily';
+  navType: 'list' | 'meal' | 'dish' | 'search' | 'discover' | 'daily' | 'hot' | 'featured';
   navValue: string;
 }
 
@@ -23,12 +35,15 @@ Page({
   data: {
     basketCount: 0,
     basketRecipeCount: 0,
-    menuCards: [] as MenuCard[]
+    menuCards: [] as MenuCard[],
+    featuredRecipes: [] as FeaturedRecipe[],
+    isLoadingFeatured: false,
   },
 
   onLoad() {
     this.refreshBasket();
     this.initMenuCards();
+    this.loadFeaturedRecipes();
   },
 
   onShow() {
@@ -49,24 +64,14 @@ Page({
     const today = formatTodayMd();
     const menuCards: MenuCard[] = [
       {
-        id: 'm1',
-        cover: 'https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/%E8%8F%9C%E5%93%81/%E8%A5%BF%E7%BA%A2%E6%9F%BF%E7%82%92%E9%B8%A1%E8%9B%8B.png',
-        labelTitle: '每日推荐',
-        labelExtra: today,
-        showCalendarBadge: true,
-        description: '今日限定菜品推荐',
-        navType: 'daily',
-        navValue: ''
-      },
-      {
         id: 'm2',
         cover: 'https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/%E8%8F%9C%E5%93%81/%E5%AE%AB%E4%BF%9D%E9%B8%A1%E4%B8%81.png',
         labelTitle: '本周热门',
         labelExtra: '',
         showCalendarBadge: false,
         description: '热门爆款 · 跟做不踩雷',
-        navType: 'discover',
-        navValue: 'internet'
+        navType: 'hot',
+        navValue: ''
       },
       {
         id: 'm3',
@@ -102,55 +107,82 @@ Page({
     this.setData({ menuCards });
   },
 
+  async loadFeaturedRecipes() {
+    this.setData({ isLoadingFeatured: true });
+    try {
+      const res = await recipeApi.getFeaturedRecipes({ pageSize: 6 });
+      if (res.success && res.data && res.data.length > 0) {
+        this.setData({ featuredRecipes: res.data as FeaturedRecipe[] });
+      }
+    } catch (e) {
+      console.warn('[Custom] 加载精选菜谱失败', e);
+    } finally {
+      this.setData({ isLoadingFeatured: false });
+    }
+  },
+
   onGoToBasket() {
-    if (!isFormalUser()) {
-      guideToLogin();
+    if (!authService.isLoggedIn()) {
+      authService.requireAuth(() => {
+        wx.navigateTo({ url: '/pages/basket/index' });
+      });
       return;
     }
     wx.navigateTo({ url: '/pages/basket/index' });
   },
 
   onGoToFitness() {
-    if (!isFormalUser()) {
-      guideToLogin();
+    if (!authService.isLoggedIn()) {
+      authService.requireAuth(() => {
+        this.navigateToFitness();
+      });
       return;
     }
+    this.navigateToFitness();
+  },
+
+  navigateToFitness() {
     try {
       const goal = wx.getStorageSync('fitnessGoal');
       if (goal && typeof goal === 'object' && String((goal as { goal?: string }).goal || '').trim()) {
         wx.navigateTo({ url: '/subpackages/lowfreq/fitness-menu/index' });
         return;
       }
-    } catch (_e) {
-      // 读缓存失败则走向导
-    }
+    } catch (_e) {}
     wx.navigateTo({ url: '/subpackages/lowfreq/fitness/index' });
   },
 
   onGoToKids() {
-    if (!isFormalUser()) {
-      guideToLogin();
+    if (!authService.isLoggedIn()) {
+      authService.requireAuth(() => {
+        this.navigateToKids();
+      });
       return;
     }
+    this.navigateToKids();
+  },
+
+  navigateToKids() {
     try {
       const stage = wx.getStorageSync('childrenStage');
       if (stage && typeof stage === 'object' && String((stage as { stage?: string }).stage || '').trim()) {
         wx.navigateTo({ url: '/subpackages/lowfreq/kids-menu/index' });
         return;
       }
-    } catch (_e) {
-      // 读缓存失败则走向导
-    }
+    } catch (_e) {}
     wx.navigateTo({ url: '/subpackages/lowfreq/kids/index' });
   },
 
-  // 【已注释】一日菜谱规划相关方法
-  // onGoToDailyPlan() {
-  //   wx.navigateTo({ url: '/pages/custom/daily/index' });
-  // },
-  // onGoToDailyCustom() {
-  //   wx.navigateTo({ url: '/pages/custom/daily/index?mode=custom' });
-  // },
+  onGoToFeaturedDetail(e: WechatMiniprogram.BaseEvent) {
+    const id = e.currentTarget.dataset.id;
+    if (id) {
+      wx.navigateTo({ url: `/pages/recipes/detail?id=${id}` });
+    }
+  },
+
+  onGoToAllFeatured() {
+    wx.navigateTo({ url: '/pages/recipes/list?isFeatured=1' });
+  },
 
   onMenuCardTap(e: any) {
     const index = Number(e.currentTarget.dataset.index);
@@ -182,6 +214,14 @@ Page({
       wx.navigateTo({
         url: '/pages/recipes/list?q=' + encodeURIComponent(navValue)
       });
+      return;
+    }
+    if (navType === 'hot') {
+      wx.navigateTo({ url: '/pages/recipes/list?isHot=1' });
+      return;
+    }
+    if (navType === 'featured') {
+      wx.navigateTo({ url: '/pages/recipes/list?isFeatured=1' });
       return;
     }
     if (navType === 'discover') {

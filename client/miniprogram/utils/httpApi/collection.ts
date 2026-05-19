@@ -41,7 +41,7 @@ export async function getMyCollections(): Promise<{
 
 /**
  * 创建收藏夹
- * 对应后端 POST /v1/wx/app/collections
+ * 对应后端 POST /wx/app/collections
  */
 export async function createCollection(params: {
   name: string;
@@ -58,7 +58,7 @@ export async function createCollection(params: {
 
 /**
  * 更新收藏夹
- * 对应后端 PUT /v1/wx/app/collections/:id
+ * 对应后端 PUT /wx/app/collections/:id
  */
 export async function updateCollection(id: number, params: {
   name?: string;

@@ -44,6 +44,8 @@
         </el-button>
       </div>
 
+      <div class="mobile-hint"><el-icon><DArrowLeft /></el-icon><span>左右滑动查看更多</span><el-icon><DArrowRight /></el-icon></div>
+      <div class="hide-mobile">
       <el-table :data="tableData" v-loading="loading" size="small">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column label="管理员" width="150">
@@ -89,9 +91,16 @@
           </template>
         </el-table-column>
       </el-table>
+      </div><!-- /hide-mobile -->
+
+      <div v-if="tableData.length === 0 && !loading" class="empty-state">
+        <div class="empty-icon"><el-icon><FolderOpened /></el-icon></div>
+        <div class="empty-title">暂无日志</div>
+        <div class="empty-desc">目前没有操作日志记录</div>
+      </div>
 
       <div class="table-footer">
-        <span class="total-info">共 {{ pagination.total }} 条记录</span>
+        <span class="page-subtitle">共 {{ pagination.total }} 条记录</span>
         <el-pagination
           v-model:current-page="pagination.page"
           v-model:page-size="pagination.pageSize"
@@ -112,7 +121,9 @@ import { ref, reactive, onMounted, watch } from 'vue';
 import { Search, Refresh, Download } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { logsApi } from '@/api/logs';
+import { usePreferences } from '@/composables/usePreferences';
 
+const { defaultPageSize } = usePreferences();
 const loading = ref(false);
 
 const filters = reactive({
@@ -123,7 +134,7 @@ const filters = reactive({
 
 const pagination = reactive({
   page: 1,
-  pageSize: 20,
+  pageSize: defaultPageSize(),
   total: 0,
 });
 
@@ -198,9 +209,7 @@ function handleExport() {
   ElMessage.success('导出功能开发中');
 }
 
-onMounted(() => {
-  fetchLogs();
-});
+onMounted(() => fetchLogs());
 </script>
 
 <style scoped lang="scss">
@@ -309,11 +318,5 @@ onMounted(() => {
   margin-top: 20px;
   padding-top: 20px;
   border-top: 1px solid var(--border-primary);
-
-  .total-info {
-    font-family: var(--font-serif);
-    font-size: 13px;
-    color: rgba(38, 37, 30, 0.6);
-  }
 }
 </style>

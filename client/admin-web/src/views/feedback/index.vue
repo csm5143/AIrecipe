@@ -95,6 +95,8 @@
       </div>
 
       <!-- 反馈列表 -->
+      <div class="mobile-hint"><el-icon><DArrowLeft /></el-icon><span>左右滑动查看更多</span><el-icon><DArrowRight /></el-icon></div>
+      <div class="hide-mobile">
       <el-table
         v-loading="loading"
         :data="tableData"
@@ -202,10 +204,17 @@
           </template>
         </el-table-column>
       </el-table>
+      </div><!-- /hide-mobile -->
+
+      <div v-if="tableData.length === 0 && !loading" class="empty-state">
+        <div class="empty-icon"><el-icon><FolderOpened /></el-icon></div>
+        <div class="empty-title">暂无反馈</div>
+        <div class="empty-desc">目前没有用户反馈内容</div>
+      </div>
 
       <!-- 分页 -->
       <div class="table-footer">
-        <span class="total-text">共 {{ pagination.total }} 条反馈</span>
+        <span class="page-subtitle">共 {{ pagination.total }} 条反馈</span>
         <el-pagination
           v-model:current-page="pagination.page"
           v-model:page-size="pagination.pageSize"
@@ -410,7 +419,9 @@ import {
   FEEDBACK_STATUS_MAP,
   feedbackApi,
 } from '@/api/feedback';
+import { usePreferences } from '@/composables/usePreferences';
 
+const { defaultPageSize, formatDate, formatDateTime } = usePreferences();
 const loading = ref(false);
 const submitting = ref(false);
 const detailVisible = ref(false);
@@ -428,7 +439,7 @@ const filters = reactive({
 
 const pagination = reactive({
   page: 1,
-  pageSize: 20,
+  pageSize: defaultPageSize(),
   total: 0,
 });
 
@@ -486,24 +497,6 @@ function getUserTypeText(userType: string) {
   return map[userType] || userType;
 }
 
-function formatDate(timestamp: number) {
-  if (!timestamp) return '-';
-  const date = new Date(timestamp);
-  return `${date.getMonth() + 1}月${date.getDate()}日`;
-}
-
-function formatTime(timestamp: number) {
-  if (!timestamp) return '';
-  const date = new Date(timestamp);
-  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-}
-
-function formatDateTime(timestamp: number) {
-  if (!timestamp) return '-';
-  const date = new Date(timestamp);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-}
-
 async function fetchFeedbacks() {
   loading.value = true;
   try {
@@ -523,6 +516,12 @@ async function fetchFeedbacks() {
   } finally {
     loading.value = false;
   }
+}
+
+function formatTime(timestamp: number) {
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
 function handleSearch() {
@@ -632,14 +631,10 @@ async function handleDelete(row: FeedbackItem) {
 
 watch(
   () => [pagination.page, pagination.pageSize],
-  () => {
-    fetchFeedbacks();
-  }
+  () => fetchFeedbacks()
 );
 
-onMounted(() => {
-  fetchFeedbacks();
-});
+onMounted(() => fetchFeedbacks());
 </script>
 
 <style scoped lang="scss">
@@ -718,6 +713,7 @@ onMounted(() => {
       letter-spacing: -0.5px;
       color: var(--cursor-dark);
       line-height: 1.2;
+      font-variant-numeric: tabular-nums;
     }
 
     .stat-label {
@@ -936,12 +932,6 @@ onMounted(() => {
   margin-top: 20px;
   padding-top: 20px;
   border-top: 1px solid var(--border-primary);
-
-  .total-text {
-    font-family: var(--font-serif);
-    font-size: 13px;
-    color: rgba(38, 37, 30, 0.6);
-  }
 }
 
 .detail-content {

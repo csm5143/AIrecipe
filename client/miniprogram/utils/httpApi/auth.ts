@@ -69,12 +69,13 @@ export async function getUserProfile(): Promise<{ success: boolean; data?: UserP
 
 /**
  * 更新用户昵称/头像
+ * @deprecated Use updateUserInfo instead — 对应后端 PUT /v1/wx/userinfo
  */
 export async function updateUserProfile(params: {
   nickname?: string;
   avatar?: string;
 }): Promise<{ success: boolean; message: string }> {
-  const res = await post('/v1/wx/profile', params);
+  const res = await put('/v1/wx/userinfo', params);
   return { success: res.success, message: res.message || '' };
 }
 
