@@ -56,7 +56,13 @@ export async function getUsers(req: Request, res: Response) {
       { phone: { contains: keyword } },
     ];
   }
-  if (gender) where.gender = gender;
+  // 兼容前端传的 lowercase 值（male/female）和数据库 uppercase 值（MALE/FEMALE）
+  if (gender) {
+    const normalized = gender.toUpperCase();
+    if (normalized === 'MALE' || normalized === 'FEMALE' || normalized === 'UNKNOWN') {
+      where.gender = normalized;
+    }
+  }
   if (status) where.status = status;
 
   const [users, total] = await Promise.all([
@@ -72,6 +78,7 @@ export async function getUsers(req: Request, res: Response) {
         phone: true,
         gender: true,
         status: true,
+        bio: true,
         createdAt: true,
         lastLoginAt: true,
         _count: { select: { feedbacks: true, favorites: true } },
@@ -197,6 +204,46 @@ export async function updateUserStatus(req: Request, res: Response) {
   await prisma.user.update({ where: { id, deletedAt: null }, data: { status } });
   await createOperationLog(getAdminId(req), getAdminName(req), 'update', 'user', String(id), `更新用户「${id}」状态为 ${status}`, req.ip || undefined);
   res.json(success(null, '状态更新成功'));
+}
+
+interface UpdateUserBody {
+  nickname?: string;
+  phone?: string;
+  gender?: string;
+  avatar?: string;
+  bio?: string;
+}
+
+export async function updateUser(req: Request, res: Response) {
+  const id = parseInt(req.params.id);
+  const { nickname, phone, gender, avatar, bio } = req.body as UpdateUserBody;
+
+  const existing = await prisma.user.findUnique({ where: { id, deletedAt: null } });
+  if (!existing) {
+    res.status(404).json(notFound('用户不存在'));
+    return;
+  }
+
+  const data: any = {};
+  if (nickname !== undefined) data.nickname = nickname;
+  if (avatar !== undefined) data.avatar = avatar;
+  if (bio !== undefined) data.bio = bio;
+  if (gender !== undefined) {
+    const upper = gender.toUpperCase();
+    data.gender = ['MALE', 'FEMALE', 'UNKNOWN'].includes(upper) ? upper : 'UNKNOWN';
+  }
+  if (phone !== undefined) data.phone = phone;
+
+  const updated = await prisma.user.update({ where: { id }, data });
+  await createOperationLog(getAdminId(req), getAdminName(req), 'update', 'user', String(id), `管理员更新用户「${existing.nickname || id}」资料`, req.ip || undefined);
+  res.json(success({
+    id: updated.id,
+    nickname: updated.nickname,
+    avatar: updated.avatar,
+    phone: updated.phone,
+    gender: updated.gender,
+    bio: updated.bio,
+  }, '更新成功'));
 }
 
 export async function deleteUser(req: Request, res: Response) {

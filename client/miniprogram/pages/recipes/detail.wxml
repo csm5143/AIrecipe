@@ -137,9 +137,10 @@
 
   <!-- 底部收藏分享 -->
   <view class="bottom-bar safe-bottom">
-    <button
+    <view
       class="action-btn"
-      bindtap="onToggleFavorite"
+      hover-class="action-btn-hover"
+      catchtap="onToggleFavorite"
       bindlongpress="onFavoriteLongPress"
     >
       <image
@@ -148,11 +149,11 @@
         mode="aspectFit"
       />
       <text class="action-btn-text">{{isFavorited ? '已收藏' : '收藏'}}</text>
-    </button>
-    <button class="action-btn" bindtap="onShare">
+    </view>
+    <view class="action-btn" hover-class="action-btn-hover" catchtap="onShare">
       <image class="action-btn-icon-img" src="/assets/分享.png" mode="aspectFit" />
       <text class="action-btn-text">分享</text>
-    </button>
+    </view>
   </view>
 
   <!-- 轻量级提示组件 -->

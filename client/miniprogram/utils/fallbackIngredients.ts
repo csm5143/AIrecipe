@@ -3,7 +3,7 @@
  * 提供离线状态下可用的食材列表
  */
 
-import { loadIngredientsJson } from './dataLoader';
+import { getGlobalRecipes } from './httpServices/recipeService.js';
 
 /** 获取所有食材名称列表 */
 export function getFallbackIngredients(): Array<{ name: string; category: string }> {

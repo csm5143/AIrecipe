@@ -19,7 +19,7 @@ import {
   INGREDIENT_PREFERENCES,
   CUISINE_PREFERENCES,
   type UserPreferences
-} from '../../utils/preferenceStore';
+} from '../../utils/preferenceStore.js';
 
 Page({
   data: {

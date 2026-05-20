@@ -47,3 +47,17 @@ export async function mergeCloudDataToLocal(): Promise<boolean> {
 export function clearUserDataCache(): void {
   console.warn('[cloudUserData] 云开发已移除，无缓存可清除');
 }
+
+/** 获取用户类型
+ * @returns 'none' | 'normal' - 'none' 表示未登录，其他表示已登录
+ */
+export function getUserType(): 'none' | 'normal' {
+  try {
+    const raw = wx.getStorageSync('userInfo');
+    if (!raw) return 'none';
+    const info = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return info && info.loginState === true ? 'normal' : 'none';
+  } catch {
+    return 'none';
+  }
+}

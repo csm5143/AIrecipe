@@ -3,9 +3,9 @@
  * 支持提交反馈到云数据库，同时保存到本地
  */
 
-import { getUserType } from '../../../utils/cloudUserData';
-import { submitFeedbackToCloud, FEEDBACK_TYPE_MAP, type FeedbackType } from '../../../utils/cloudFeedback';
-import { getUserInfo, isFormalUser } from '../../../utils/userAuth';
+import { getUserType } from '../../../utils/cloudUserData.js';
+import { submitFeedbackToCloud, FEEDBACK_TYPE_MAP, type FeedbackType } from '../../../utils/cloudFeedback.js';
+import { getUserInfo, isFormalUser } from '../../../utils/userAuth.js';
 
 interface FeedbackItem {
   id: string;

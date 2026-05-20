@@ -2,7 +2,8 @@
  * 首页热门菜品数据
  * 基于日期轮换，每天展示不同的热门菜品
  */
-import { getHot } from '../../utils/httpServices/recipeService';
+import { getHot } from '../../utils/httpServices/recipeService.js';
+import { getGlobalRecipes } from '../../utils/httpServices/recipeService.js';
 
 interface HotRecipe {
   id: string;
@@ -126,7 +127,7 @@ Page({
 
       const hotDishes: HotDish[] = shuffled.slice(0, HOT_RECIPES_PER_DAY).map(r => ({
         id: String(r.id),
-        name: r.title || r.name || '',
+        name: (r as any).title || r.name || '',
         coverUrl: r.coverImage || '',
         category: (r.mealTimes && r.mealTimes[0]) || (r.dishTypes && r.dishTypes[0]) || 'lunch',
       }));
@@ -282,7 +283,7 @@ Page({
     // 兜底：通过名字匹配菜谱 id
     let matchedId = '';
     try {
-      const rawList = loadRecipesJson();
+      const rawList = getGlobalRecipes() || [];
       if (rawList && Array.isArray(rawList)) {
         const found = rawList.find(
           (r: any) => (r.name as string) === name.trim()

@@ -1,6 +1,6 @@
 /**
  * 首页 - 调用 /v1/app/content/home
- * 包含轮播图、精选菜谱、分类入口
+ * 包含轮播图、最新菜谱、分类入口
  */
 
 const { request } = require('../../utils/httpApi/request');
@@ -8,7 +8,7 @@ const { request } = require('../../utils/httpApi/request');
 Page({
   data: {
     banners: [],
-    featuredRecipes: [],
+    latestRecipes: [],
     categories: [],
     loading: true,
     error: '',
@@ -47,10 +47,10 @@ Page({
       });
 
       if (res.success && res.data) {
-        const { banners, featuredRecipes, categories } = res.data;
-        wx.setStorageSync('home_cache_v2', { banners, featuredRecipes, categories });
+        const { banners, latestRecipes, categories } = res.data;
+        wx.setStorageSync('home_cache_v2', { banners, latestRecipes, categories });
         wx.setStorageSync('home_cache_time', Date.now());
-        this.setData({ banners, featuredRecipes, categories, loading: false, error: '' });
+        this.setData({ banners, latestRecipes, categories, loading: false, error: '' });
       } else {
         this._loadFallback(cached);
       }
@@ -64,7 +64,7 @@ Page({
   },
 
   _loadFallback(cached) {
-    if (cached && cached.banners && cached.featuredRecipes) {
+    if (cached && cached.banners && cached.latestRecipes) {
       this.setData({ ...cached, loading: false, error: '' });
     } else {
       this.setData({ loading: false, error: '加载失败，请下拉刷新' });
@@ -80,7 +80,7 @@ Page({
     }
   },
 
-  // 点击精选菜谱
+  // 点击菜谱
   onRecipeTap(e) {
     const { id } = e.currentTarget.dataset;
     wx.navigateTo({ url: `/pages/recipes/detail/index?id=${id}` });

@@ -3,7 +3,7 @@
  * 替换 wx.cloud.callFunction，使用本地后端服务
  */
 
-import { getOpenid, getWxToken } from './authStorage';
+import { getOpenid, getWxToken } from './authStorage.js';
 
 export interface ApiResult<T = any> {
   success: boolean;
@@ -34,6 +34,15 @@ let _globalErrorHandler: ErrorHandler | null = null;
 
 export function setGlobalErrorHandler(handler: ErrorHandler) {
   _globalErrorHandler = handler;
+}
+
+function buildUrl(baseUrl: string, endpoint: string, data?: any): string {
+  const url = `${baseUrl.replace(/\/$/, '')}${endpoint}`;
+  if (!data || typeof data !== 'object') return url;
+  const pairs = Object.keys(data)
+    .filter((key) => data[key] !== undefined && data[key] !== null && data[key] !== '')
+    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(String(data[key]))}`);
+  return pairs.length ? `${url}?${pairs.join('&')}` : url;
 }
 
 /**
@@ -75,40 +84,37 @@ export function request<T = any>(
   }
 
   return new Promise((resolve) => {
-    const fullUrl = `${baseUrl}${endpoint}`;
-    console.log(`[API Request] ${method} ${fullUrl}`, data);
+    const fullUrl = method === 'GET'
+      ? buildUrl(baseUrl, endpoint, data)
+      : `${baseUrl.replace(/\/$/, '')}${endpoint}`;
     wx.request({
       url: fullUrl,
       method,
-      data,
+      data: method === 'GET' ? undefined : data,
       header: headers,
       timeout: 60000,
       success: (res) => {
-        console.log(`[API Response] ${res.statusCode} ${endpoint}`, Array.isArray(res.data) ? `(${res.data.length} items)` : '');
         const statusCode = res.statusCode;
         const raw = res.data as any;
 
         if (statusCode >= 200 && statusCode < 300) {
           // 适配后端 paginated 响应格式: { code, message, data: { list, total, page, pageSize } }
-          // 适配多种响应格式：
-        // 1. { list: [...], total: N }          ← 分页格式
-        // 2. [...]                               ← 直接数组
-        // 3. { ... }                            ← 单对象
-        const rawData = raw?.data;
-        let listData: T | null = null;
-        if (Array.isArray(rawData)) {
-          listData = rawData;
-        } else if (rawData && typeof rawData === 'object') {
-          listData = (rawData as any).list ?? rawData;
-        }
-        resolve({
-          success: raw?.code === 200,
-          data: listData,
-          total: (rawData as any)?.total,
-          hasMore: (rawData as any) ? ((rawData as any).page * (rawData as any).pageSize < (rawData as any).total) : false,
-          message: raw?.message,
-          code: raw?.code,
-        });
+          const rawData = raw?.data;
+          let listData: T | null = null;
+          if (Array.isArray(rawData)) {
+            listData = rawData as unknown as T;
+          } else if (rawData && typeof rawData === 'object') {
+            listData = (rawData as any).list ?? rawData;
+          }
+          const ok = raw?.code === 200 || raw?.success === true || raw?.code === undefined;
+          resolve({
+            success: ok,
+            data: listData,
+            total: (rawData as any)?.total,
+            hasMore: (rawData as any) ? ((rawData as any).page * (rawData as any).pageSize < (rawData as any).total) : false,
+            message: raw?.message,
+            code: raw?.code,
+          });
         } else if (statusCode === 401) {
           // 未登录，清除 token
           if (_globalErrorHandler) {

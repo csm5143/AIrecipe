@@ -8,6 +8,7 @@ import { asyncHandler } from '../../../utils/helper';
 import { wxAuthenticate } from '../middleware/wxAuth.middleware';
 import { prisma } from '../../../lib/prisma';
 import { paginated, success, badRequest } from '../../../types/response';
+import { normalizeCollectionName, canDeleteCollection } from '../utils/collectionRules';
 
 const router: ExpressRouter = Router();
 
@@ -30,17 +31,14 @@ router.get('/my-collections', asyncHandler(async (req, res) => {
 router.post('/collections', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const { name, description, isPublic } = req.body;
-  if (!name?.trim()) {
-    res.status(400).json(badRequest('收藏夹名称不能为空'));
-    return;
-  }
+  const trimmedName = normalizeCollectionName(name);
   const count = await prisma.collection.count({ where: { userId } });
   if (count >= 10) {
     res.status(400).json(badRequest('最多创建10个收藏夹'));
     return;
   }
   const existing = await prisma.collection.findFirst({
-    where: { userId, name: name.trim() },
+    where: { userId, name: trimmedName },
   });
   if (existing) {
     res.status(400).json(badRequest('收藏夹名称已存在'));
@@ -49,7 +47,7 @@ router.post('/collections', asyncHandler(async (req, res) => {
   const collection = await prisma.collection.create({
     data: {
       userId,
-      name: name.trim(),
+      name: trimmedName,
       description: description || '',
       isPublic: isPublic || false,
     },
@@ -67,13 +65,9 @@ router.put('/collections/:id', asyncHandler(async (req, res) => {
     res.status(404).json({ code: 404, message: '收藏夹不存在', timestamp: Date.now() });
     return;
   }
-  // 默认收藏夹（id=1）不允许改名
-  if (existing.id === 1 && name && name !== existing.name) {
-    res.status(400).json(badRequest('默认收藏夹不能改名'));
-    return;
-  }
+  if (name !== undefined) normalizeCollectionName(name);
   const data: any = {};
-  if (name !== undefined) data.name = name.trim();
+  if (name !== undefined) data.name = (name as string).trim();
   if (description !== undefined) data.description = description;
   if (coverImage !== undefined) data.coverImage = coverImage;
   const updated = await prisma.collection.update({ where: { id }, data });
@@ -89,12 +83,9 @@ router.delete('/collections/:id', asyncHandler(async (req, res) => {
     res.status(404).json({ code: 404, message: '收藏夹不存在', timestamp: Date.now() });
     return;
   }
-  if (existing.id === 1) {
-    res.status(400).json(badRequest('默认收藏夹不能删除'));
-    return;
-  }
-  if ((existing.itemCount || 0) > 0) {
-    res.status(400).json(badRequest('请先移除收藏夹中的菜品'));
+  const deleteCheck = canDeleteCollection(existing);
+  if (!deleteCheck.ok) {
+    res.status(400).json(badRequest(deleteCheck.message));
     return;
   }
   await prisma.collection.delete({ where: { id } });
@@ -113,7 +104,7 @@ router.get('/collections/:id', asyncHandler(async (req, res) => {
           recipe: {
             select: {
               id: true, title: true, coverImage: true,
-              cookingTime: true, difficulty: true, favoriteCount: true,
+              cookingTime: true, difficulty: true, collectCount: true,
             },
           },
         },
@@ -125,7 +116,11 @@ router.get('/collections/:id', asyncHandler(async (req, res) => {
     res.status(404).json({ code: 404, message: '收藏夹不存在', timestamp: Date.now() });
     return;
   }
-  res.json(success(collection));
+  const mapped = {
+    ...collection,
+    recipes: collection.items.map(item => item.recipe).filter(Boolean),
+  };
+  res.json(success(mapped));
 }));
 
 /** 添加收藏 */
@@ -149,20 +144,20 @@ router.post('/collections/:id/items', asyncHandler(async (req, res) => {
     res.status(404).json({ code: 404, message: '菜谱不存在', timestamp: Date.now() });
     return;
   }
+
+  const existingItem = await prisma.collectionItem.findUnique({
+    where: { collectionId_recipeId: { collectionId, recipeId } },
+  });
+
+  if (existingItem) {
+    res.json(success(null, '已添加'));
+    return;
+  }
+
   await prisma.$transaction([
-    prisma.collectionItem.upsert({
-      where: { collectionId_recipeId: { collectionId, recipeId } },
-      update: {},
-      create: { collectionId, recipeId },
-    }),
-    prisma.collection.update({
-      where: { id: collectionId },
-      data: { itemCount: { increment: 1 }, updatedAt: new Date() },
-    }),
-    prisma.recipe.update({
-      where: { id: recipeId },
-      data: { collectCount: { increment: 1 } },
-    }),
+    prisma.collectionItem.create({ data: { collectionId, recipeId } }),
+    prisma.collection.update({ where: { id: collectionId }, data: { itemCount: { increment: 1 }, updatedAt: new Date() } }),
+    prisma.recipe.update({ where: { id: recipeId }, data: { collectCount: { increment: 1 } } }),
   ]);
   res.json(success(null, '已添加'));
 }));

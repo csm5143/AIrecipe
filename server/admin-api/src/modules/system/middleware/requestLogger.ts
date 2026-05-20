@@ -3,23 +3,34 @@ import morgan from 'morgan';
 import path from 'path';
 import fs from 'fs';
 
+const LOG_PATH = path.join(process.cwd(), 'logs', 'access.log');
+const LOG_DIR = path.dirname(LOG_PATH);
+
+function ensureLogDir() {
+  if (!fs.existsSync(LOG_DIR)) {
+    fs.mkdirSync(LOG_DIR, { recursive: true });
+  }
+}
+ensureLogDir();
+
 const stream = {
   write: (message: string) => {
-    const logPath = path.join(process.cwd(), 'logs', 'access.log');
-    const logDir = path.dirname(logPath);
-    if (!fs.existsSync(logDir)) {
-      fs.mkdirSync(logDir, { recursive: true });
-    }
-    fs.appendFileSync(logPath, message);
+    // 异步写入，不阻塞事件循环
+    fs.appendFile(LOG_PATH, message, (err) => {
+      if (err) {
+        // 只在写入失败时输出到 stderr
+        process.stderr.write(`[access.log] write error: ${err.message}\n`);
+      }
+    });
   },
 };
 
 const skip = () => {
-  const env = process.env.NODE_ENV || 'development';
-  return env !== 'development';
+  // 生产环境不输出到 stdout（morgan combined 在 index.ts 中处理）
+  return process.env.NODE_ENV === 'production';
 };
 
 export const requestLogger = morgan(
-  ':method :url :status :res[content-length] - :response-time ms :remote-addr :user-agent',
+  ':method :url :status :res[content-length] - :response-time ms',
   { stream, skip }
 );

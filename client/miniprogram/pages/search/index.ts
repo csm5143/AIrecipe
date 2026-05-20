@@ -1,14 +1,12 @@
-import { Recipe } from '../../types/index';
-import { loadRecipesJson, loadRecipesAsync } from '../../utils/dataLoader';
-import { getFallbackRecipes } from '../../utils/fallbackRecipes';
+import { Recipe } from '../../types/index.js';
+import { getGlobalRecipesAsync, getGlobalRecipes } from '../../utils/httpServices/recipeService.js';
 import {
   loadRecipeSearchHistory,
   saveRecipeSearchHistory,
   clearRecipeSearchHistory
-} from '../../utils/recipeSearchStorage';
-import { handleWarning } from '../../utils/errorHandler';
-import { matchKeyword } from '../../utils/pinyin';
-import { DISH_TYPE_LABELS, MEAL_TIME_LABELS } from '../../utils/labels';
+} from '../../utils/recipeSearchStorage.js';
+import { matchKeyword } from '../../utils/pinyin.js';
+import { DISH_TYPE_LABELS, MEAL_TIME_LABELS } from '../../utils/labels.js';
 
 const SUGGEST_LIMIT = 50;
 
@@ -45,21 +43,15 @@ type SlimRecipe = { id: string; name: string };
 
 let slimRecipeCache: SlimRecipe[] = [];
 
-/** 加载所有菜谱（本地优先，自动缓存兜底） */
+/** 从后端 API 加载菜谱 */
 async function loadAllRecipesAsync(): Promise<Recipe[]> {
-  let recipes: Recipe[] = [];
   try {
-    recipes = await loadRecipesAsync();
+    const recipes = await getGlobalRecipesAsync();
+    if (recipes && recipes.length > 0) return recipes;
   } catch (e) {
-    console.warn('[搜索页] 加载失败', e);
+    console.warn('[搜索页] API加载失败', e);
   }
-  if (!recipes.length) {
-    recipes = loadRecipesJson();
-  }
-  if (!recipes.length) {
-    recipes = getFallbackRecipes();
-  }
-  return recipes;
+  return getGlobalRecipes() || [];
 }
 
 Page({

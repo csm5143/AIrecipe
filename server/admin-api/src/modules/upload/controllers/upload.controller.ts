@@ -65,11 +65,8 @@ const ALLOWED_SCAN_FOLDERS = [COS_FOLDERS.AI_SCAN, COS_FOLDERS.TMP];
 async function getCurrentAdminUsername(req: Request): Promise<string> {
   try {
     const adminId = (req as any).admin?.id;
-    const username = (req as any).admin?.username;
-    console.log(`[Upload] getCurrentAdminUsername - adminId=${adminId}, username=${username}`);
     if (adminId) {
       const admin = await prisma.admin.findUnique({ where: { id: adminId, isDeleted: false } });
-      console.log(`[Upload] DB lookup adminId=${adminId}, found username=${admin?.username ?? 'NOT_FOUND'}`);
       if (admin) return admin.username;
     }
   } catch (err) {

@@ -64,10 +64,10 @@ export function getOpenid(): string | null {
   return getSavedOpenid() || null;
 }
 
-/** 是否已登录 */
+/** 是否已登录（以 token 是否存在为依据，nickname 为空可在登录后补充） */
 export function isLoggedIn(): boolean {
   const info = getUserInfo();
-  return !!(info && info.loginState && info.nickname);
+  return !!(info && info.loginState);
 }
 
 /** 退出登录 */

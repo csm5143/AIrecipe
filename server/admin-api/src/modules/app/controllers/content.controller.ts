@@ -70,7 +70,7 @@ export async function getHomeData(req: Request, res: Response) {
   try {
     const now = new Date();
 
-    const [banners, featuredRecipes, latestRecipes, categories] = await Promise.all([
+    const [banners, latestRecipes, categories] = await Promise.all([
       prisma.banner.findMany({
         where: {
           status: 'ACTIVE',
@@ -82,16 +82,6 @@ export async function getHomeData(req: Request, res: Response) {
         orderBy: { sortOrder: 'asc' },
         take: 5,
       }),
-      prisma.recipe.findMany({
-        where: {
-          isDeleted: false,
-          status: 'PUBLISHED',
-          isFeatured: true,
-        },
-        take: 10,
-        orderBy: { publishedAt: 'desc' },
-      }),
-      // 精选菜谱不足时兜底：取最新发布的菜谱
       prisma.recipe.findMany({
         where: {
           isDeleted: false,
@@ -123,7 +113,7 @@ export async function getHomeData(req: Request, res: Response) {
       linkValue: banner.linkValue,
     }));
 
-    const recipeList = (featuredRecipes.length >= 3 ? featuredRecipes : latestRecipes).map(recipe => ({
+    const recipeList = latestRecipes.map(recipe => ({
       id: recipe.id,
       name: recipe.title,
       coverImage: recipe.coverImage,
@@ -145,14 +135,14 @@ export async function getHomeData(req: Request, res: Response) {
 
     res.json(success({
       banners: bannerList,
-      featuredRecipes: recipeList,
+      latestRecipes: recipeList,
       categories: categoryList,
     }));
   } catch (error) {
     console.error('[Content] 获取首页数据失败:', error);
     res.json(success({
       banners: [],
-      featuredRecipes: [],
+      latestRecipes: [],
       categories: [],
     }));
   }

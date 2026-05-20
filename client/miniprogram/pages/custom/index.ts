@@ -1,19 +1,7 @@
-// 定制页面：小菜篮 + 精选菜谱 + 横向菜单卡片流 + 健身减脂餐 + 儿童营养餐
+// 定制页面：小菜篮 + 横向菜单卡片流 + 健身减脂餐 + 儿童营养餐
 
-import { getTotalIngredientCount, getRecipeCount } from '../../utils/shoppingList';
-import { authService } from '../../utils/services/authService';
-import { recipeApi } from '../../utils/httpApi';
-
-interface FeaturedRecipe {
-  id: number;
-  title: string;
-  coverImage: string;
-  description: string;
-  difficulty: string;
-  cookingTime: number;
-  tags: string[];
-  mealTimes: string[];
-}
+import { getTotalIngredientCount, getRecipeCount } from '../../utils/shoppingList.js';
+import { authService } from '../../utils/services/authService.js';
 
 interface MenuCard {
   id: string;
@@ -22,13 +10,8 @@ interface MenuCard {
   labelExtra: string;
   showCalendarBadge: boolean;
   description: string;
-  navType: 'list' | 'meal' | 'dish' | 'search' | 'discover' | 'daily' | 'hot' | 'featured';
+  navType: 'list' | 'meal' | 'dish' | 'search' | 'discover' | 'daily' | 'hot';
   navValue: string;
-}
-
-function formatTodayMd(): string {
-  const d = new Date();
-  return (d.getMonth() + 1) + '.' + d.getDate();
 }
 
 Page({
@@ -36,14 +19,11 @@ Page({
     basketCount: 0,
     basketRecipeCount: 0,
     menuCards: [] as MenuCard[],
-    featuredRecipes: [] as FeaturedRecipe[],
-    isLoadingFeatured: false,
   },
 
   onLoad() {
     this.refreshBasket();
     this.initMenuCards();
-    this.loadFeaturedRecipes();
   },
 
   onShow() {
@@ -61,7 +41,6 @@ Page({
   },
 
   initMenuCards() {
-    const today = formatTodayMd();
     const menuCards: MenuCard[] = [
       {
         id: 'm2',
@@ -105,20 +84,6 @@ Page({
       }
     ];
     this.setData({ menuCards });
-  },
-
-  async loadFeaturedRecipes() {
-    this.setData({ isLoadingFeatured: true });
-    try {
-      const res = await recipeApi.getFeaturedRecipes({ pageSize: 6 });
-      if (res.success && res.data && res.data.length > 0) {
-        this.setData({ featuredRecipes: res.data as FeaturedRecipe[] });
-      }
-    } catch (e) {
-      console.warn('[Custom] 加载精选菜谱失败', e);
-    } finally {
-      this.setData({ isLoadingFeatured: false });
-    }
   },
 
   onGoToBasket() {
@@ -173,17 +138,6 @@ Page({
     wx.navigateTo({ url: '/subpackages/lowfreq/kids/index' });
   },
 
-  onGoToFeaturedDetail(e: WechatMiniprogram.BaseEvent) {
-    const id = e.currentTarget.dataset.id;
-    if (id) {
-      wx.navigateTo({ url: `/pages/recipes/detail?id=${id}` });
-    }
-  },
-
-  onGoToAllFeatured() {
-    wx.navigateTo({ url: '/pages/recipes/list?isFeatured=1' });
-  },
-
   onMenuCardTap(e: any) {
     const index = Number(e.currentTarget.dataset.index);
     const cards = this.data.menuCards as MenuCard[];
@@ -218,10 +172,6 @@ Page({
     }
     if (navType === 'hot') {
       wx.navigateTo({ url: '/pages/recipes/list?isHot=1' });
-      return;
-    }
-    if (navType === 'featured') {
-      wx.navigateTo({ url: '/pages/recipes/list?isFeatured=1' });
       return;
     }
     if (navType === 'discover') {

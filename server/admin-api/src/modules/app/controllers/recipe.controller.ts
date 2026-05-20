@@ -1,118 +1,12 @@
 import { Request, Response } from 'express';
-import { Prisma } from '@prisma/client';
 import { prisma } from '../../../lib/prisma';
 import { success, paginated, notFound, badRequest } from '../../../types/response';
+import { mapRecipeToAppFormat } from '../utils/recipeMapper';
+import { stableQueryKey } from '../utils/appQuery';
+import { cache } from '../../../lib/cache';
+import { cacheKeys } from '../../../lib/cacheKeys';
 
-interface AppRecipe {
-  id: number;
-  name: string;
-  coverImage: string;
-  description: string;
-  ingredients: string[];
-  usage: Record<string, string>;
-  steps: string[];
-  difficulty: 'easy' | 'normal' | 'hard';
-  timeCost: number | null;
-  calories: number | null;
-  nutrition: {
-    calories?: number;
-    protein?: number;
-    carbs?: number;
-    fat?: number;
-    fiber?: number;
-  } | null;
-  cuisine: string | null;
-  category: string | null;
-  mealTimes: string[];
-  dishTypes: string[];
-  fitnessMeal: boolean;
-  fitnessCategory: string | null;
-  goal: string | null;
-  childrenMeal: boolean;
-  ageBand: string | null;
-  tags: string[];
-  isFeatured: boolean;
-  viewCount: number;
-  collectCount: number;
-}
-
-function mapRecipeToAppFormat(recipe: any): AppRecipe {
-  const rawIngredients: any[] = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
-  const rawSteps: any[] = Array.isArray(recipe.steps) ? recipe.steps : [];
-  const rawUsage: Record<string, string> = {};
-
-  rawIngredients.forEach((ing: any) => {
-    if (typeof ing === 'string') {
-      rawUsage[ing] = '';
-    } else if (ing.name) {
-      rawUsage[ing.name] = ing.amount || '';
-    }
-  });
-
-  const ingredientsList = rawIngredients.map((ing: any) =>
-    typeof ing === 'string' ? ing : ing.name || ''
-  ).filter(Boolean);
-
-  const mealTimeSet = new Set<string>();
-  const dishTypeSet = new Set<string>();
-  const tagsSet = new Set<string>();
-
-  if (recipe.tags && Array.isArray(recipe.tags)) {
-    recipe.tags.forEach((tag: string) => {
-      if (['breakfast', 'lunch', 'dinner', 'late_night'].includes(tag)) {
-        mealTimeSet.add(tag);
-      } else {
-        dishTypeSet.add(tag);
-        tagsSet.add(tag);
-      }
-    });
-  }
-
-  const isFitness = tagsSet.has('diet') || recipe.fitnessMeal;
-  const isChildren = tagsSet.has('children') || recipe.childrenMeal;
-
-  return {
-    id: recipe.id,
-    name: recipe.title || recipe.name,
-    coverImage: recipe.coverImage || '',
-    description: recipe.description || '',
-    ingredients: ingredientsList,
-    usage: rawUsage,
-    steps: rawSteps.map((s: any, i: number) =>
-      typeof s === 'string' ? s : s.content || ''
-    ).filter(Boolean),
-    difficulty: mapDifficulty(recipe.difficulty),
-    timeCost: recipe.cookingTime || recipe.timeCost || null,
-    calories: recipe.calories || null,
-    nutrition: recipe.nutrition || null,
-    cuisine: recipe.cuisine || null,
-    category: recipe.category || null,
-    mealTimes: Array.from(mealTimeSet),
-    dishTypes: Array.from(dishTypeSet),
-    fitnessMeal: isFitness,
-    fitnessCategory: recipe.fitnessCategory || null,
-    goal: recipe.goal || null,
-    childrenMeal: isChildren,
-    ageBand: recipe.ageBand || null,
-    tags: Array.from(tagsSet),
-    isFeatured: recipe.isFeatured || false,
-    viewCount: recipe.viewCount || 0,
-    collectCount: recipe.collectCount || 0,
-  };
-}
-
-function mapDifficulty(difficulty: string): 'easy' | 'normal' | 'hard' {
-  switch (difficulty?.toUpperCase()) {
-    case 'EASY':
-      return 'easy';
-    case 'HARD':
-      return 'hard';
-    default:
-      return 'normal';
-  }
-}
-
-function buildWhereClause(query: any): any {
+export function buildWhereClause(query: any): any {
   const where: any = {
     isDeleted: false,
     status: 'PUBLISHED',
@@ -120,10 +14,6 @@ function buildWhereClause(query: any): any {
 
   if (query.isHot === '1' || query.isHot === 'true') {
     where.isHot = true;
-  }
-
-  if (query.isFeatured === '1' || query.isFeatured === 'true') {
-    where.isFeatured = true;
   }
 
   if (query.category) {
@@ -181,23 +71,28 @@ export async function getAppRecipes(req: Request, res: Response) {
   const page = parseInt(req.query.page as string) || 1;
   const pageSize = Math.min(parseInt(req.query.pageSize as string) || 20, 100);
   const orderBy = req.query.sort as string || 'createdAt';
+  const queryKey = stableQueryKey(req.query as Record<string, unknown>);
 
   try {
-    const where = buildWhereClause(req.query);
+    const result = await cache.getOrSet(
+      cacheKeys.appRecipesList(queryKey),
+      60,
+      async () => {
+        const where = buildWhereClause(req.query);
+        const [total, list] = await Promise.all([
+          prisma.recipe.count({ where }),
+          prisma.recipe.findMany({
+            where,
+            skip: (page - 1) * pageSize,
+            take: pageSize,
+            orderBy: { [orderBy]: 'desc' },
+          }),
+        ]);
+        return { total, recipes: list.map(mapRecipeToAppFormat) };
+      }
+    );
 
-    const [total, list] = await Promise.all([
-      prisma.recipe.count({ where }),
-      prisma.recipe.findMany({
-        where,
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        orderBy: { [orderBy]: 'desc' },
-      }),
-    ]);
-
-    const recipes = list.map(mapRecipeToAppFormat);
-
-    res.json(paginated(recipes, { page, pageSize, total }));
+    res.json(paginated(result.recipes, { page, pageSize, total: result.total }));
   } catch (error) {
     console.error('[AppRecipe] 查询食谱列表失败:', error);
     res.status(500).json(badRequest('查询失败'));
@@ -213,68 +108,57 @@ export async function getAppRecipeById(req: Request, res: Response) {
   }
 
   try {
-    const recipe = await prisma.recipe.findUnique({
-      where: { id, isDeleted: false, status: 'PUBLISHED' },
-    });
+    const mapped = await cache.getOrSet(
+      cacheKeys.appRecipeDetail(id),
+      120,
+      async () => {
+        const recipe = await prisma.recipe.findUnique({
+          where: { id, isDeleted: false, status: 'PUBLISHED' },
+        });
+        if (!recipe) return null;
+        return mapRecipeToAppFormat(recipe);
+      }
+    );
 
-    if (!recipe) {
-      res.status(404).json(notFound('食谱不存在'));
+    if (!mapped) {
+      res.status(404).json(notFound('菜谱不存在'));
       return;
     }
 
-    await prisma.recipe.update({
-      where: { id },
-      data: { viewCount: { increment: 1 } },
-    });
-
-    res.json(success(mapRecipeToAppFormat(recipe)));
+    await prisma.recipe.update({ where: { id }, data: { viewCount: { increment: 1 } } });
+    res.json(success(mapped));
   } catch (error) {
     console.error('[AppRecipe] 查询食谱详情失败:', error);
     res.status(500).json(badRequest('查询失败'));
   }
 }
 
-export async function getFeaturedRecipes(req: Request, res: Response) {
-  const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
-
-  try {
-    const recipes = await prisma.recipe.findMany({
-      where: {
-        isDeleted: false,
-        status: 'PUBLISHED',
-        isFeatured: true,
-      },
-      take: limit,
-      orderBy: { publishedAt: 'desc' },
-    });
-
-    res.json(success(recipes.map(mapRecipeToAppFormat)));
-  } catch (error) {
-    console.error('[AppRecipe] 查询推荐食谱失败:', error);
-    res.status(500).json(badRequest('查询失败'));
-  }
-}
-
 export async function getCategories(req: Request, res: Response) {
   try {
-    const recipes = await prisma.recipe.findMany({
-      where: {
-        isDeleted: false,
-        status: 'PUBLISHED',
-        category: { not: null },
-      },
-      select: { category: true },
-      distinct: ['category'],
-    });
+    const categories = await cache.getOrSet(
+      cacheKeys.appRecipesCategories(),
+      300,
+      async () => {
+        const recipes = await prisma.recipe.findMany({
+          where: {
+            isDeleted: false,
+            status: 'PUBLISHED',
+            category: { not: null },
+          },
+          select: { category: true },
+          distinct: ['category'],
+        });
 
-    const categories = recipes
-      .map(r => r.category)
-      .filter(Boolean)
-      .map(name => ({
-        id: name,
-        name,
-        icon: getCategoryIcon(name as string),
-      }));
+        return recipes
+          .map(r => r.category)
+          .filter(Boolean)
+          .map(name => ({
+            id: name,
+            name,
+            icon: getCategoryIcon(name as string),
+          }));
+      }
+    );
 
     res.json(success(categories));
   } catch (error) {
@@ -314,32 +198,40 @@ export async function getRecipesByIngredients(req: Request, res: Response) {
     return;
   }
 
-  try {
-    const recipes = await prisma.recipe.findMany({
-      where: {
-        isDeleted: false,
-        status: 'PUBLISHED',
-      },
-      include: {
-        recipeIngredients: true,
-      },
-    });
+  const queryKey = stableQueryKey(req.query as Record<string, unknown>);
 
-    const matchedRecipes = recipes
-      .map(recipe => {
-        const recipeIngredients = recipe.recipeIngredients.map(ri => ri.name.toLowerCase());
-        const matched = ingredientList.filter(ing =>
-          recipeIngredients.some(ri => ri.includes(ing.toLowerCase()))
-        );
-        return {
-          recipe: mapRecipeToAppFormat(recipe),
-          matchedCount: matched.length,
-          matchedIngredients: matched,
-        };
-      })
-      .filter(item => item.matchedCount > 0)
-      .sort((a, b) => b.matchedCount - a.matchedCount)
-      .slice(0, 20);
+  try {
+    const matchedRecipes = await cache.getOrSet(
+      cacheKeys.appRecipesByIngredients(queryKey),
+      60,
+      async () => {
+        const recipes = await prisma.recipe.findMany({
+          where: {
+            isDeleted: false,
+            status: 'PUBLISHED',
+          },
+          include: {
+            recipeIngredients: true,
+          },
+        });
+
+        return recipes
+          .map(recipe => {
+            const recipeIngredients = recipe.recipeIngredients.map(ri => ri.name.toLowerCase());
+            const matched = ingredientList.filter(ing =>
+              recipeIngredients.some(ri => ri.includes(ing.toLowerCase()))
+            );
+            return {
+              recipe: mapRecipeToAppFormat(recipe),
+              matchedCount: matched.length,
+              matchedIngredients: matched,
+            };
+          })
+          .filter(item => item.matchedCount > 0)
+          .sort((a, b) => b.matchedCount - a.matchedCount)
+          .slice(0, 20);
+      }
+    );
 
     res.json(success(matchedRecipes));
   } catch (error) {

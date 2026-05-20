@@ -7,8 +7,8 @@ import {
   STATUS_COLOR,
   UserRecipe,
   RecipeStatus
-} from '../../../utils/cloudUserRecipe';
-import { isLoggedIn } from '../../../utils/userAuth';
+} from '../../../utils/cloudUserRecipe.js';
+import { isLoggedIn } from '../../../utils/userAuth.js';
 
 interface TabItem {
   key: string;

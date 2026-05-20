@@ -1,16 +1,16 @@
 // pages/custom/kids-menu/index.ts
 // 儿童营养餐专属菜单（与健身餐方案页结构一致）
 
-import { ChildMeal, Recipe } from '../../../types/index';
-import { loadRecipesJson, loadRecipesAsync } from '../../../utils/dataLoader';
-import { getFavorites, toggleFavorite } from '../../../utils/favorites';
-import { CHILDREN_NUTRITION_DB, ChildNutritionTip } from '../../../utils/childrenNutritionTips';
+import { ChildMeal, Recipe } from '../../../types/index.js';
+import { getGlobalRecipesAsync, getGlobalRecipes } from '../../../utils/httpServices/recipeService.js';
+import { getFavorites, toggleFavorite } from '../../../utils/favorites.js';
+import { CHILDREN_NUTRITION_DB, ChildNutritionTip } from '../../../utils/childrenNutritionTips.js';
 import {
   childStageBadgeText,
   childStageMatchesRecipe,
   recipeAppliesToMealSlot,
   recipeMatchesSelectedMealTimes
-} from '../../../utils/childrenStage';
+} from '../../../utils/childrenStage.js';
 
 interface DisplayMeal {
   id: string;
@@ -247,12 +247,12 @@ Page({
     // 本地加载菜谱，自动带缓存兜底
     let rawMeals: Recipe[] = [];
     try {
-      rawMeals = await loadRecipesAsync();
+      rawMeals = await getGlobalRecipesAsync();
     } catch (e) {
       console.warn('[儿童菜单] 加载失败', e);
     }
     if (!rawMeals.length) {
-      rawMeals = loadRecipesJson() as Recipe[];
+      rawMeals = getGlobalRecipes() || [] as Recipe[];
     }
 
     const filteredMeals = rawMeals.filter((r: Recipe) => {

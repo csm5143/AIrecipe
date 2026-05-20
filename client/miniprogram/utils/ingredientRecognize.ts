@@ -3,7 +3,7 @@
  * 调用后端 /v1/app/recognize 端点，
  * 使用后台激活的 AI Key（多模态模型）进行图片识别食材
  */
-import { upload, post } from './httpApi/request';
+import { upload, post } from './httpApi/request.js';
 
 export interface IngredientRecognitionResult {
   name: string;

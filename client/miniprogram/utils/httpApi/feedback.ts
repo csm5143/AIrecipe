@@ -2,7 +2,7 @@
  * 反馈 API - 对接后端 /v1/wx/app/*
  */
 
-import { get, post } from './request';
+import { get, post } from './request.js';
 
 export interface FeedbackItem {
   id: number;

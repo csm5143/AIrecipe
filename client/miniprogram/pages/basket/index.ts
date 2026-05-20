@@ -10,9 +10,9 @@ import {
   formatMergedCopyText,
   type BasketRecipeEntry,
   type BasketIngredient
-} from '../../utils/shoppingList';
-import { authService } from '../../utils/services/authService';
-import { fridgeService } from '../../utils/services/fridgeService';
+} from '../../utils/shoppingList.js';
+import { authService } from '../../utils/services/authService.js';
+import { fridgeService } from '../../utils/services/fridgeService.js';
 
 Page({
   data: {
@@ -28,6 +28,7 @@ Page({
   },
 
   async onLoad() {
+    console.log('[Basket] 页面加载, isLoggedIn=', authService.isLoggedIn());
     if (!authService.isLoggedIn()) {
       authService.requireAuth(() => {
         this.refresh();
@@ -179,6 +180,7 @@ Page({
           mergedCoreList: coreWithOwned,
           mergedSeasoningList: seasoningWithOwned,
           mergedTotalCount
+        });
       });
     } else {
       this.setData({

@@ -1,7 +1,8 @@
 // scan/index.ts
-import { uploadAndRecognize, IngredientRecognitionResult } from '../../utils/ingredientRecognize'
-import { getAppIngredientsList } from '../../utils/httpApi/ingredient'
-import { saveAiScan } from '../../utils/httpApi/aiScan'
+import { uploadAndRecognize, IngredientRecognitionResult } from '../../utils/ingredientRecognize.js'
+import { getAppIngredientsList } from '../../utils/httpApi/ingredient.js'
+import { saveAiScan } from '../../utils/httpApi/aiScan.js'
+import { authService } from '../../utils/services/authService.js'
 
 Component({
   data: {
@@ -408,6 +409,12 @@ Component({
 
       wx.showLoading({ title: '正在识别...' })
 
+      if (!authService.isLoggedIn()) {
+        wx.hideLoading();
+        authService.requireAuth();
+        return;
+      }
+
       try {
         // 先加载食材库，确保 normalizeIngredientName 能正常工作
         await this.ensureIngredientsLoaded();
@@ -473,8 +480,8 @@ Component({
           showBlurTip: isLikelyBlurry,
         })
 
-        // 保存扫描记录到数据库
-        if (firstImageUrl && allResults.length > 0) {
+        // 保存扫描记录到数据库（即使识别结果为空也保存失败记录）
+        if (firstImageUrl) {
           saveAiScan({
             imageUrl: firstImageUrl,
             result: {
@@ -482,6 +489,8 @@ Component({
               model: firstModel,
               tokensUsed: firstTokensUsed,
             },
+            recipes: [],
+            status: allResults.length > 0 ? 'SUCCESS' : 'FAILED',
           }).catch(err => {
             console.error('[scan] 保存扫描记录失败', err);
           });

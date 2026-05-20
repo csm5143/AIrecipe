@@ -1,8 +1,8 @@
 
 import { Recipe } from '../../../types/index';
-import { loadRecipesJson, loadRecipesAsync } from '../../../utils/dataLoader';
+import { getGlobalRecipesAsync, getGlobalRecipes } from '../../../utils/httpServices/recipeService';
 import { extractCalories } from '../../../utils/recipeUtils';
-import { getDifficultyLabel } from '../../../utils/labels';
+import { getDifficultyLabel } from '../../../utils/labels.js';
 
 interface RecipeItem {
   id: string;
@@ -57,15 +57,15 @@ Page({
     // 根据日期生成稳定的随机种子
     const todaySeed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
 
-    // 云端优先加载菜谱，自动带 24h 缓存兜底
+    // 从后端 API 加载菜谱
     let allRecipes: Recipe[] = [];
     try {
-      allRecipes = await loadRecipesAsync();
+      allRecipes = await getGlobalRecipesAsync();
     } catch (e) {
-      console.warn('[每日推荐] 云端加载失败', e);
+      console.warn('[每日推荐] API加载失败', e);
     }
     if (!allRecipes || !allRecipes.length) {
-      allRecipes = loadRecipesJson() as Recipe[];
+      allRecipes = getGlobalRecipes() || [];
     }
     if (!allRecipes || !allRecipes.length) {
       this.setData({ dateStr, recipeCount: 0, coverImage: '', recipes: [] });

@@ -11,6 +11,7 @@
     "pages/mine/index",
     "pages/collections/index",
     "pages/collection-detail/index",
+    "pages/collection-edit/index",
     "pages/fridge/index"
   ],
   "subpackages": [
@@ -70,6 +71,5 @@
     ]
   },
   "style": "v2",
-  "lazyCodeLoading": "requiredComponents",
-  "cloud": true
+  "lazyCodeLoading": "requiredComponents"
 }

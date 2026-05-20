@@ -21,12 +21,14 @@ router.use('/ingredients', ingredientRoutes);
 
 router.post('/ai-scans', wxAuthenticate, asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
-  const { imageUrl, result, recipes, model, tokensUsed } = req.body as {
+  const { imageUrl, result, recipes, model, tokensUsed, status, errorMsg } = req.body as {
     imageUrl?: string;
     result?: { ingredients?: string[]; model?: string; tokensUsed?: number };
     recipes?: any[];
     model?: string;
     tokensUsed?: number;
+    status?: string;
+    errorMsg?: string;
   };
 
   if (!imageUrl) {
@@ -34,13 +36,15 @@ router.post('/ai-scans', wxAuthenticate, asyncHandler(async (req, res) => {
     return;
   }
 
+  const scanStatus = status || (result ? 'SUCCESS' : 'PROCESSING');
   const scan = await prisma.aiScan.create({
     data: {
       userId,
       imageUrl,
       result: result || {},
       recipes: recipes || null,
-      status: result ? 'SUCCESS' : 'PROCESSING',
+      status: scanStatus as any,
+      errorMsg: errorMsg || null,
       model: model || result?.model || undefined,
       tokensUsed: tokensUsed ?? result?.tokensUsed ?? undefined,
     },
@@ -151,6 +155,7 @@ router.post('/recognize', wxAuthenticate, asyncHandler(async (req, res) => {
       model: activeKey.model,
       tokensUsed: totalUsed,
       usage: usage || null,
+      apiKeyName: activeKey.name,
     }));
   } catch (err: any) {
     console.error('[Recognize] Error:', err);

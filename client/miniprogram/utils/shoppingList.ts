@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 小菜篮：按菜品分组的采购食材清单（本地持久化）
  * 数据结构：每道菜一个 entry，内含该菜所需的食材列表
  */
@@ -7,8 +7,8 @@ import {
   mergeIngredients,
   formatMergedAmount,
   type MergedIngredient
-} from './ingredientMerge';
-import { SEASONING_INGREDIENTS } from './constants';
+} from './ingredientMerge.js';
+import { SEASONING_INGREDIENTS } from './constants.js';
 
 /** 与菜谱列表一致的调料判定，并补充常见写法（蒜末、代糖等） */
 const EXTRA_SEASONING_NAMES: string[] = [

@@ -135,3 +135,13 @@ export function clearPrefix(prefix: string): void {
     }
   } catch {}
 }
+
+/** 统一缓存服务对象（用于模块化导入） */
+export const cacheService = {
+  getOrFetch,
+  getSync,
+  refresh,
+  set,
+  remove,
+  clearPrefix,
+};

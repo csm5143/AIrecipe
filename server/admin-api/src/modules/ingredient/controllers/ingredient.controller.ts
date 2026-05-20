@@ -372,8 +372,6 @@ export async function getAppIngredients(req: Request, res: Response) {
     const requestedTake = parseInt(req.query.pageSize as string) || 1000;
     const take = Math.min(requestedTake, 1000);
 
-    console.log(`[getAppIngredients] req.query:`, req.query, `| take: ${take}`);
-
     const where: any = {};
     if (keyword) {
       where.OR = [
@@ -384,9 +382,6 @@ export async function getAppIngredients(req: Request, res: Response) {
     if (category) {
       where.category = category;
     }
-
-    const countAll = await prisma.ingredient.count({ where });
-    console.log(`[getAppIngredients] countAll=${countAll}, take=${take}`);
 
     const ingredients = await prisma.ingredient.findMany({
       where,
@@ -401,8 +396,6 @@ export async function getAppIngredients(req: Request, res: Response) {
       orderBy: { name: 'asc' },
       take,
     });
-
-    console.log(`[getAppIngredients] returning ${ingredients.length} items`);
 
     const result = ingredients.map(ing => ({
       id: ing.id,

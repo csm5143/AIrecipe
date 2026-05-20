@@ -3,7 +3,7 @@
  * 实现懒加载 + 本地缓存，避免一次性加载整个 recipes.json
  */
 
-import { Recipe } from '../types/index';
+import { Recipe } from '../types/index.js';
 
 const CACHE_KEY_PREFIX = 'recipe_cache_';
 const FULL_LIST_CACHE_KEY = 'recipe_full_list';

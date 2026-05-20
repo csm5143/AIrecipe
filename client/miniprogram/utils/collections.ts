@@ -1,6 +1,7 @@
 // 收藏夹本地存储工具
 // 管理用户的收藏夹、收藏记录等本地数据
 
+import { getGlobalRecipes } from './httpServices/recipeService.js';
 import {
   Collection,
   Favorite,
@@ -8,7 +9,7 @@ import {
   CollectionUpdateParams,
   LocalCollectionsData,
   FavoriteContext
-} from '../types/index';
+} from '../types/index.js';
 
 // 本地存储Key
 const STORAGE_KEY = 'user_collections_v2';
@@ -333,7 +334,7 @@ export function addRecipeToCollection(
   if (!collection.coverImage || collection.coverImage.trim() === '') {
     // 从本地 recipes.json 中查找菜品封面
     try {
-      const recipes = loadRecipesJson();
+      const recipes = getGlobalRecipes() || [];
       const recipe = recipes.find(r => String(r.id) === String(recipeId));
       if (recipe && recipe.coverImage) {
         collection.coverImage = String(recipe.coverImage).trim();

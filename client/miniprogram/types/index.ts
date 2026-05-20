@@ -32,6 +32,10 @@ export interface Recipe {
   childrenMeal?: boolean;
   ageBand?: string;
   macros?: { protein: number; carb: number; fat: number };
+  /** 热门标记 */
+  isHot?: boolean;
+  /** 新品标记 */
+  isNew?: boolean;
 }
 
 export interface IngredientDetail {

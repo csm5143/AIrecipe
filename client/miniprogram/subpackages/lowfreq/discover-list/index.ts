@@ -1,7 +1,7 @@
-import { Recipe } from '../../../types/index';
-import { loadRecipesJson, loadRecipesAsync } from '../../../utils/dataLoader';
-import { extractCalories } from '../../../utils/recipeUtils';
-import { getDifficultyLabel, getPrimaryCategoryLabel } from '../../../utils/labels';
+import { Recipe } from '../../../types/index.js';
+import { getGlobalRecipesAsync, getGlobalRecipes } from '../../../utils/httpServices/recipeService.js';
+import { extractCalories } from '../../../utils/recipeUtils.js';
+import { getDifficultyLabel, getPrimaryCategoryLabel } from '../../../utils/labels.js';
 
 type DiscoverType = 'internet' | 'new' | 'home' | 'solo' | 'cuisine';
 
@@ -144,12 +144,12 @@ Page({
     // 本地加载菜谱，自动带缓存兜底
     let all: Recipe[] = [];
     try {
-      all = await loadRecipesAsync();
+      all = await getGlobalRecipesAsync();
     } catch (e) {
       console.warn('[发现列表] 加载失败', e);
     }
     if (!all || !all.length) {
-      all = loadRecipesJson();
+      all = getGlobalRecipes() || [];
     }
     if (!all.length) {
       this.setData({ recipes: [], leftColRecipes: [], rightColRecipes: [] });

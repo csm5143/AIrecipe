@@ -12,17 +12,17 @@ import {
   type BasketData,
   type FitnessGoal,
   type ChildrenStage
-} from './cloudUserData';
+} from './cloudUserData.js';
 
 // 旧版收藏接口（保留兼容）
-import { getFavorites, saveFavorites } from './favorites';
+import { getFavorites, saveFavorites } from './favorites.js';
 
 // 新版收藏夹系统
-import { syncCollectionsToCloud, pullCollectionsFromCloud } from './cloudCollections';
-import { getUnsyncedCollections } from './collections';
+import { syncCollectionsToCloud, pullCollectionsFromCloud } from './cloudCollections.js';
+import { getUnsyncedCollections } from './collections.js';
 
-import { getBasket } from './shoppingList';
-import { isFormalUser, getUserInfo } from './userAuth';
+import { getBasket } from './shoppingList.js';
+import { isFormalUser, getUserInfo } from './userAuth.js';
 
 // 同步状态
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';

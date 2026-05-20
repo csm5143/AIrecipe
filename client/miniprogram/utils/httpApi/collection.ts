@@ -3,7 +3,7 @@
  * 小程序用户的收藏夹由 /v1/wx/app/ 路由提供
  */
 
-import { get, post, del } from './request';
+import { get, post, put, del } from './request.js';
 
 // ============ 类型定义 ============
 
@@ -35,7 +35,7 @@ export interface CollectionItem {
 export async function getMyCollections(): Promise<{
   success: boolean; data?: Collection[];
 }> {
-  const res = await get<Collection[]>('/v1/wx/app/my-collections');
+  const res = await get<Collection[]>('/v1/wx/app/my-collections', undefined, { withToken: true });
   return { success: res.success, data: res.data };
 }
 
@@ -48,7 +48,7 @@ export async function createCollection(params: {
   description?: string;
   isPublic?: boolean;
 }): Promise<{ success: boolean; message: string; collectionId?: number }> {
-  const res = await post<{ id: number }>('/v1/wx/app/collections', params);
+  const res = await post<{ id: number }>('/v1/wx/app/collections', params, { withToken: true });
   return {
     success: res.success,
     message: res.message || '',
@@ -65,7 +65,7 @@ export async function updateCollection(id: number, params: {
   description?: string;
   coverImage?: string;
 }): Promise<{ success: boolean; message: string }> {
-  const res = await post(`/v1/wx/app/collections/${id}`, params);
+  const res = await put(`/v1/wx/app/collections/${id}`, params, { withToken: true });
   return { success: res.success, message: res.message || '' };
 }
 
@@ -74,7 +74,7 @@ export async function updateCollection(id: number, params: {
  * 对应后端 DELETE /v1/wx/app/collections/:id
  */
 export async function deleteCollection(id: number): Promise<{ success: boolean; message: string }> {
-  const res = await del(`/v1/wx/app/collections/${id}`);
+  const res = await del(`/v1/wx/app/collections/${id}`, undefined, { withToken: true });
   return { success: res.success, message: res.message || '' };
 }
 
@@ -85,7 +85,7 @@ export async function deleteCollection(id: number): Promise<{ success: boolean; 
 export async function getCollectionDetail(id: number): Promise<{
   success: boolean; data?: Collection & { recipes: any[] };
 }> {
-  const res = await get(`/v1/wx/app/collections/${id}`);
+  const res = await get(`/v1/wx/app/collections/${id}`, undefined, { withToken: true });
   return { success: res.success, data: res.data };
 }
 
@@ -96,7 +96,7 @@ export async function getCollectionDetail(id: number): Promise<{
 export async function addFavorite(collectionId: number, recipeId: number): Promise<{
   success: boolean; message: string;
 }> {
-  const res = await post(`/v1/wx/app/collections/${collectionId}/items`, { recipeId });
+  const res = await post(`/v1/wx/app/collections/${collectionId}/items`, { recipeId }, { withToken: true });
   return { success: res.success, message: res.message || '' };
 }
 
@@ -107,6 +107,6 @@ export async function addFavorite(collectionId: number, recipeId: number): Promi
 export async function removeFavorite(collectionId: number, recipeId: number): Promise<{
   success: boolean; message: string;
 }> {
-  const res = await del(`/v1/wx/app/collections/${collectionId}/items/${recipeId}`);
+  const res = await del(`/v1/wx/app/collections/${collectionId}/items/${recipeId}`, undefined, { withToken: true });
   return { success: res.success, message: res.message || '' };
 }

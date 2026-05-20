@@ -2,7 +2,7 @@
  * AI 扫描 API - 对接后端 /v1/app/ai-scans
  * 小程序拍照识别食材的扫描记录管理
  */
-import { get, post } from './request';
+import { get, post } from './request.js';
 
 // ============ 类型定义 ============
 
@@ -33,6 +33,7 @@ export async function saveAiScan(params: {
     tokensUsed?: number;
   };
   recipes?: any[];
+  status?: string;
 }): Promise<{ success: boolean; message: string; scanId?: number }> {
   const res = await post<{ id: number }>('/v1/app/ai-scans', params, { withToken: true });
   return {

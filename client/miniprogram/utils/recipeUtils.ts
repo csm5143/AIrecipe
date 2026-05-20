@@ -1,5 +1,7 @@
 /**
  * 食材名与 usage 里常见键名不一致时的别名（如清单写「食用油」、用量里只有「油」） */
+import { Recipe } from '../types/index.js';
+
 const USAGE_NAME_ALIASES: Record<string, readonly string[]> = {
   食用油: ['油', '植物油'],
   植物油: ['油'],

@@ -67,11 +67,16 @@
             <span class="text-mono">{{ row.phone || '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="gender" label="性别" width="70" align="center">
+        <el-table-column prop="gender" label="性别" width="60" align="center">
           <template #default="{ row }">
-            <span class="cursor-pill" :class="row.gender === 'male' ? 'info' : row.gender === 'female' ? 'success' : ''">
-              {{ row.gender === 'male' ? '男' : row.gender === 'female' ? '女' : '-' }}
+            <span class="cursor-pill" :class="row.gender === 'MALE' ? 'info' : row.gender === 'FEMALE' ? 'success' : ''">
+              {{ row.gender === 'MALE' ? '男' : row.gender === 'FEMALE' ? '女' : '-' }}
             </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="简介" min-width="160">
+          <template #default="{ row }">
+            <span class="text-ellipsis" :title="row.bio || ''">{{ row.bio || '-' }}</span>
           </template>
         </el-table-column>
         <el-table-column label="数据统计" width="180" align="center">
@@ -177,7 +182,7 @@
           <div class="drawer-user-info">
             <el-upload
               action="#"
-              :auto-upload="true"
+              :auto-upload="false"
               :show-file-list="false"
               accept="image/*"
               :before-upload="(file: File) => { handleAvatarChange(file); return false; }"
@@ -223,7 +228,7 @@
           <!-- 基本信息 -->
           <el-tab-pane label="基本信息" name="info">
             <el-descriptions :column="2" border>
-              <el-descriptions-item label="性别">{{ currentUser.gender === 'male' ? '男' : currentUser.gender === 'female' ? '女' : '-' }}</el-descriptions-item>
+              <el-descriptions-item label="性别">{{ currentUser.gender === 'MALE' ? '男' : currentUser.gender === 'FEMALE' ? '女' : '-' }}</el-descriptions-item>
               <el-descriptions-item label="状态">
                 <el-tag :type="currentUser.status === 'ACTIVE' ? 'success' : 'danger'" size="small">
                   {{ currentUser.status === 'ACTIVE' ? '正常' : '禁用' }}
@@ -465,6 +470,32 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 编辑用户对话框 -->
+    <el-dialog v-model="editVisible" title="编辑用户资料" width="520px" destroy-on-close>
+      <el-form :model="editForm" :rules="editRules" ref="editFormRef" label-width="80px">
+        <el-form-item label="昵称" prop="nickname">
+          <el-input v-model="editForm.nickname" placeholder="请输入用户昵称" maxlength="30" show-word-limit />
+        </el-form-item>
+        <el-form-item label="手机号" prop="phone">
+          <el-input v-model="editForm.phone" placeholder="请输入手机号（选填）" maxlength="11" />
+        </el-form-item>
+        <el-form-item label="性别" prop="gender">
+          <el-select v-model="editForm.gender" placeholder="请选择性别" style="width: 100%">
+            <el-option label="未设置" value="" />
+            <el-option label="男" value="male" />
+            <el-option label="女" value="female" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="个人简介" prop="bio">
+          <el-input v-model="editForm.bio" type="textarea" placeholder="请输入个人简介（选填）" :rows="3" maxlength="200" show-word-limit />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editVisible = false">取消</el-button>
+        <el-button type="primary" :loading="editSaving" @click="handleSaveEdit">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -489,6 +520,21 @@ const creating = ref(false);
 const currentUser = ref<UserRow | null>(null);
 const selectedRows = ref<any[]>([]);
 const avatarUploading = ref(false);
+const editVisible = ref(false);
+const editSaving = ref(false);
+const editFormRef = ref<any>(null);
+const editForm = reactive({
+  nickname: '',
+  phone: '',
+  gender: '' as '' | 'male' | 'female',
+  bio: '',
+  avatar: '',
+});
+const editRules = {
+  phone: [
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' },
+  ],
+};
 const { exportDialogVisible, exportFormat, exporting, showExportDialog, handleConfirm } = useExport();
 
 // 抽屉状态
@@ -670,7 +716,42 @@ function getFullImageUrl(path: string) {
 }
 
 function handleEditUser() {
-  ElMessage.info('编辑用户功能开发中');
+  if (!currentUser.value) return;
+  editFormRef.value?.resetFields();
+  Object.assign(editForm, {
+    nickname: currentUser.value.nickname || '',
+    phone: currentUser.value.phone || '',
+    gender: (currentUser.value.gender || '').toLowerCase() as '' | 'male' | 'female',
+    bio: currentUser.value.bio || '',
+    avatar: currentUser.value.avatar || '',
+  });
+  editVisible.value = true;
+}
+
+async function handleSaveEdit() {
+  if (!editFormRef.value) return;
+  try {
+    await editFormRef.value.validate();
+  } catch {
+    return;
+  }
+  editSaving.value = true;
+  try {
+    const payload: any = {};
+    if (editForm.nickname) payload.nickname = editForm.nickname;
+    if (editForm.gender) payload.gender = editForm.gender.toUpperCase();
+    if (editForm.avatar) payload.avatar = editForm.avatar;
+    if (editForm.bio !== undefined) payload.bio = editForm.bio;
+    await userApi.update(currentUser.value!.id, payload);
+    ElMessage.success('用户信息已更新');
+    editVisible.value = false;
+    fetchUserDetail(currentUser.value!.id);
+    fetchUsers();
+  } catch (e: any) {
+    ElMessage.error(e?.message || '保存失败');
+  } finally {
+    editSaving.value = false;
+  }
 }
 
 async function handleStatusChange(row: UserRow) {

@@ -2,7 +2,7 @@
  * 菜谱相关 API - 对接后端 /v1/app/recipes
  */
 
-import { get, post } from './request';
+import { get, post } from './request.js';
 
 // ============ 类型定义 ============
 
@@ -49,16 +49,6 @@ export interface RecipeQuery {
 }
 
 // ============ 公开菜谱 API（无需登录）============
-
-/**
- * 获取推荐菜谱
- */
-export async function getFeaturedRecipes(params: RecipeQuery = {}): Promise<{
-  success: boolean; data?: Recipe[]; total?: number; hasMore?: boolean;
-}> {
-  const res = await get<Recipe[]>('/v1/app/recipes/featured', params);
-  return { success: res.success, data: res.data, total: res.total, hasMore: res.hasMore };
-}
 
 /**
  * 获取热门菜谱

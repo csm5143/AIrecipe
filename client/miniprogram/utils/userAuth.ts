@@ -2,7 +2,7 @@
  * 用户认证模块（云开发已移除）
  * 统一提供用户状态查询接口
  */
-import { getUserInfo as storageGetUserInfo, isLoggedIn } from './httpApi/authStorage';
+import { getUserInfo as storageGetUserInfo, isLoggedIn } from './httpApi/authStorage.js';
 
 export interface UserInfo {
   loginState: boolean;

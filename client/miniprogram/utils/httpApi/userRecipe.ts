@@ -1,8 +1,8 @@
 /**
  * 用户投稿菜谱 API - 对接后端 /v1/user-recipes
  */
-import { get, post, del } from './request';
-import { Recipe } from './recipe';
+import { get, post, del } from './request.js';
+import { Recipe } from './recipe.js';
 
 // ============ 类型定义 ============
 

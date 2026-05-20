@@ -28,6 +28,12 @@
       </view>
     </view>
 
+    <!-- 菜谱数据加载中（后端有数据但本地匹配为空） -->
+    <view wx:elif="{{recipesNotFound}}" class="loading-state">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">菜谱数据加载中...</text>
+    </view>
+
     <!-- 菜谱列表（双列网格） -->
     <view wx:else class="recipes-section">
       <view class="recipes-grid">
@@ -71,9 +77,12 @@
     </view>
   </scroll-view>
 
-  <!-- 编辑收藏夹弹窗（居中悬浮） -->
+  <!-- 编辑收藏夹弹窗 -->
   <view wx:if="{{showEditModal}}" class="edit-modal-mask" bindtap="onCloseEditModal">
     <view class="edit-modal-content" catchtap="onEditModalContentTap">
+      <!-- 拖拽指示条 -->
+      <view class="edit-modal-handle"></view>
+
       <view class="edit-modal-header">
         <text class="edit-modal-title">编辑收藏夹</text>
         <view class="edit-modal-close" bindtap="onCloseEditModal">
@@ -81,56 +90,62 @@
         </view>
       </view>
 
-      <scroll-view class="edit-modal-body" scroll-y>
-        <!-- 封面设置 -->
-        <view class="edit-item">
+      <scroll-view class="edit-modal-body" scroll-y enhanced show-scrollbar="{{false}}">
+        <!-- 封面 -->
+        <view class="edit-cover-row">
           <text class="edit-label">封面图片</text>
-          <view class="edit-cover-area">
-            <view wx:if="{{editCoverImage}}" class="edit-cover-preview">
+          <view class="edit-cover-card">
+            <view wx:if="{{editCoverImage}}" class="edit-cover-wrap">
               <image class="edit-cover-img" src="{{editCoverImage}}" mode="aspectFill" />
-              <view class="edit-cover-replace" bindtap="onChooseCover">
-                <text class="edit-cover-replace-text">更换</text>
-              </view>
             </view>
-            <view wx:else class="edit-cover-placeholder" bindtap="onChooseCover">
-              <text class="edit-cover-placeholder-text">选择封面</text>
+            <view wx:else class="edit-cover-empty">
+              <text class="edit-cover-empty-icon">🖼️</text>
+            </view>
+            <view class="edit-cover-action" bindtap="onChooseCover">
+              <text>{{editCoverImage ? '更换封面' : '选择封面'}}</text>
             </view>
           </view>
         </view>
 
-        <!-- 名称输入 -->
-        <view class="edit-item">
+        <!-- 名称 -->
+        <view class="edit-field">
           <text class="edit-label">收藏夹名称</text>
-          <input
-            class="edit-input"
-            value="{{editName}}"
-            placeholder="请输入名称"
-            maxlength="20"
-            bindinput="onEditNameInput"
-            adjust-position="{{false}}"
-          />
+          <view class="edit-input-wrap">
+            <input
+              class="edit-input"
+              value="{{editName}}"
+              placeholder="请输入名称"
+              maxlength="20"
+              bindinput="onEditNameInput"
+              adjust-position="{{false}}"
+            />
+          </view>
+          <text class="edit-hint">{{editName.length || 0}}/20</text>
         </view>
 
-        <!-- 简介输入 -->
-        <view class="edit-item">
-          <text class="edit-label">简介（可选）</text>
-          <textarea
-            class="edit-textarea"
-            value="{{editDesc}}"
-            placeholder="添加一句话描述"
-            maxlength="100"
-            auto-height
-            bindinput="onEditDescInput"
-            adjust-position="{{false}}"
-          />
+        <!-- 简介 -->
+        <view class="edit-field">
+          <text class="edit-label">简介</text>
+          <view class="edit-textarea-wrap">
+            <textarea
+              class="edit-textarea"
+              value="{{editDesc}}"
+              placeholder="添加一句话描述..."
+              maxlength="100"
+              auto-height
+              bindinput="onEditDescInput"
+              adjust-position="{{false}}"
+            />
+          </view>
+          <text class="edit-hint">{{editDesc.length || 0}}/100</text>
         </view>
       </scroll-view>
 
       <view class="edit-modal-footer">
-        <view class="edit-btn edit-btn-cancel" bindtap="onCloseEditModal">
+        <view class="edit-btn-cancel" bindtap="onCloseEditModal">
           <text>取消</text>
         </view>
-        <view class="edit-btn edit-btn-confirm" bindtap="onSaveEdit">
+        <view class="edit-btn-confirm" bindtap="onSaveEdit">
           <text>保存</text>
         </view>
       </view>

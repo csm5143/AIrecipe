@@ -123,8 +123,6 @@ export async function updateProfile(req: Request, res: Response) {
   }
 
   const { nickname, phone } = req.body as UpdateProfileDto;
-  console.log(`[Auth] updateProfile - adminId=${adminId}, nickname=${nickname}, phone=${phone}`);
-
   if (!nickname && !phone) {
     throw new BadRequestException('至少需要提供昵称或手机号其中一项');
   }

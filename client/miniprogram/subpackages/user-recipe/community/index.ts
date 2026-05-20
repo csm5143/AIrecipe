@@ -4,7 +4,7 @@ import {
   getCommunityRecipes, 
   increaseViewCount,
   UserRecipe
-} from '../../../utils/cloudUserRecipe';
+} from '../../../utils/cloudUserRecipe.js';
 
 interface MealTimeOption {
   value: string;

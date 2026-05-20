@@ -2,7 +2,7 @@
  * 认证服务 - 统一的登录、会话恢复、登出逻辑
  * 整合 authStorage + wxLogin API，作为小程序唯一的认证层
  */
-import { wxLogin as wxLoginApi, restoreSession as restoreSessionApi, getUserProfile } from '../httpApi/auth';
+import { wxLogin as wxLoginApi, restoreSession as restoreSessionApi, getUserProfile, updateUserProfile, changePassword as changePasswordApi, bindPhone as bindPhoneApi } from '../httpApi/auth.js';
 import {
   saveWxToken,
   saveOpenid,
@@ -14,7 +14,7 @@ import {
   isLoggedIn as storageIsLoggedIn,
   getWxToken,
   getSavedOpenid,
-} from '../httpApi/authStorage';
+} from '../httpApi/authStorage.js';
 
 /** 登录结果 */
 export interface LoginResult {
@@ -83,7 +83,7 @@ export async function login(wxUserInfo?: {
     });
   });
 
-  // 2. 调用后端登录接口
+  // 2. 调用后端登录接口（传入昵称，后端会保存）
   const res = await wxLoginApi(loginResult.code, wxUserInfo);
   if (!res.success || !res.data) {
     return { success: false, error: res.message || '登录失败' };
@@ -98,21 +98,30 @@ export async function login(wxUserInfo?: {
   // 4. 从数据库获取最新用户信息（包含注册时保存的昵称和头像）
   let finalNickname = wxUserInfo?.nickName || '';
   let finalAvatar = wxUserInfo?.avatarUrl || '';
+  let phone = '';
+  let gender = '';
+  let bio = '';
   try {
     const profile = await getUserProfile();
     if (profile.success && profile.data) {
       finalNickname = profile.data.nickname || finalNickname;
       finalAvatar = profile.data.avatar || finalAvatar;
+      phone = profile.data.phone || '';
+      gender = profile.data.gender || '';
+      bio = profile.data.bio || '';
     }
   } catch (e) {
     console.warn('[AuthService] 获取用户资料失败，使用本地信息', e);
   }
 
-  // 5. 保存用户信息
+  // 5. 保存用户信息到本地（包含完整资料字段）
   saveUserInfo({
     openid,
     nickname: finalNickname,
     avatar: finalAvatar,
+    phone,
+    gender,
+    bio,
     loginState: true,
     loginTime: Date.now(),
   });
@@ -135,17 +144,63 @@ export function logout(): void {
 }
 
 /**
- * 更新本地昵称/头像
+ * 更新用户资料（昵称/头像/性别/简介）— 本地 + 同步到后端
+ * @returns true 同步成功，false 同步失败（本地仍保存）
  */
-export function updateProfile(nickname: string, avatar: string): void {
+export async function updateProfile(params: {
+  nickname?: string;
+  avatar?: string;
+  gender?: string;
+  bio?: string;
+  phone?: string;
+}): Promise<boolean> {
   const current = getUserInfo() || {};
   saveUserInfo({
     ...current,
-    nickname,
-    avatar,
+    nickname: params.nickname ?? current.nickname,
+    avatar: params.avatar ?? current.avatar,
+    gender: params.gender ?? current.gender,
+    bio: params.bio ?? current.bio,
+    phone: params.phone ?? current.phone,
     loginState: true,
     loginTime: Date.now(),
   });
+  try {
+    await updateUserProfile({
+      nickname: params.nickname,
+      avatar: params.avatar,
+      gender: params.gender,
+      bio: params.bio,
+      phone: params.phone,
+    });
+    return true;
+  } catch (e) {
+    console.warn('[AuthService] 同步用户资料到后端失败', e);
+    return false;
+  }
+}
+
+/**
+ * 修改登录密码
+ */
+export async function changePassword(oldPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+  return changePasswordApi(oldPassword, newPassword);
+}
+
+/**
+ * 绑定手机号
+ */
+export async function bindPhone(phone: string): Promise<boolean> {
+  try {
+    const res = await bindPhoneApi(phone);
+    if (res.success) {
+      const current = getUserInfo() || {};
+      saveUserInfo({ ...current, phone, loginState: true, loginTime: Date.now() });
+    }
+    return res.success;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -164,4 +219,6 @@ export const authService = {
   logout,
   updateProfile,
   getCurrentUser,
+  changePassword,
+  bindPhone,
 };

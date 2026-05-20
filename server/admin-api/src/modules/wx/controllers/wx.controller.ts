@@ -77,16 +77,48 @@ export async function wxLogin(req: Request, res: Response) {
           gender: userInfo?.gender !== undefined
             ? (userInfo.gender === 1 ? 'MALE' : userInfo.gender === 2 ? 'FEMALE' : 'UNKNOWN')
             : 'UNKNOWN',
+          lastLoginAt: new Date(),
         }
       });
-    } else if (userInfo) {
+
+      // 为新用户自动创建默认收藏夹
+      await prisma.collection.create({
+        data: {
+          userId: user.id,
+          name: '我的收藏',
+          description: '默认收藏夹',
+          isPublic: false,
+          itemCount: 0,
+        },
+      });
+    } else {
+      const updateData: any = {
+        lastLoginAt: new Date(),
+      };
+      if (userInfo) {
+        if (userInfo.nickName) updateData.nickname = userInfo.nickName;
+        if (userInfo.avatarUrl) updateData.avatar = userInfo.avatarUrl;
+      }
       user = await prisma.user.update({
         where: { id: user.id },
-        data: {
-          nickname: userInfo.nickName || user.nickname,
-          avatar: userInfo.avatarUrl || user.avatar,
-        }
+        data: updateData,
       });
+
+      // 为老用户补建默认收藏夹（如果还没有的话）
+      const existingDefault = await prisma.collection.findFirst({
+        where: { userId: user.id, name: '我的收藏' },
+      });
+      if (!existingDefault) {
+        await prisma.collection.create({
+          data: {
+            userId: user.id,
+            name: '我的收藏',
+            description: '默认收藏夹',
+            isPublic: false,
+            itemCount: 0,
+          },
+        });
+      }
     }
 
     const token = generateToken(user);
@@ -146,7 +178,9 @@ export async function getWxUserInfo(req: Request, res: Response) {
         avatar: true,
         phone: true,
         gender: true,
+        bio: true,
         createdAt: true,
+        lastLoginAt: true,
       }
     });
 
@@ -157,12 +191,7 @@ export async function getWxUserInfo(req: Request, res: Response) {
 
     res.json(success({
       ...user,
-      id: user.id,
-      openid: user.openid,
-      nickname: user.nickname,
-      avatar: user.avatar,
-      phone: user.phone,
-      gender: user.gender,
+      lastLoginAt: user.lastLoginAt?.toISOString() || null,
       createdAt: user.createdAt.toISOString(),
     }));
   } catch (error) {
@@ -172,21 +201,76 @@ export async function getWxUserInfo(req: Request, res: Response) {
 
 export async function updateWxUserInfo(req: Request, res: Response) {
   const userId = (req as any).userId;
-  const { nickname, avatar } = req.body;
+  const { nickname, avatar, gender, bio, phone } = req.body;
 
   try {
+    const data: any = {};
+    if (nickname !== undefined) data.nickname = nickname;
+    if (avatar !== undefined) data.avatar = avatar;
+    if (gender !== undefined) {
+      const validGenders = ['MALE', 'FEMALE', 'UNKNOWN'];
+      data.gender = validGenders.includes(gender) ? gender : 'UNKNOWN';
+    }
+    if (bio !== undefined) data.bio = bio;
+    if (phone !== undefined) data.phone = phone;
+
     const user = await prisma.user.update({
       where: { id: userId },
-      data: {
-        ...(nickname !== undefined && { nickname }),
-        ...(avatar !== undefined && { avatar }),
-      }
+      data,
     });
 
     res.json(success({
       nickname: user.nickname,
       avatar: user.avatar,
+      gender: user.gender,
+      bio: user.bio,
+      phone: user.phone,
     }, '更新成功'));
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function changePassword(req: Request, res: Response) {
+  const userId = (req as any).userId;
+  const { oldPassword, newPassword } = req.body;
+
+  if (!newPassword || newPassword.length < 6) {
+    res.status(400).json(badRequest('新密码不能少于6位'));
+    return;
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { password: true },
+    });
+
+    if (!user) {
+      res.status(404).json(badRequest('用户不存在'));
+      return;
+    }
+
+    if (user.password) {
+      if (!oldPassword) {
+        res.status(400).json(badRequest('请输入原密码'));
+        return;
+      }
+      const bcrypt = await import('bcryptjs');
+      const isMatch = bcrypt.compareSync(oldPassword, user.password);
+      if (!isMatch) {
+        res.status(400).json(badRequest('原密码错误'));
+        return;
+      }
+    }
+
+    const hashed = await (await import('bcryptjs')).default.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashed },
+    });
+
+    res.json(success(null, '密码修改成功'));
   } catch (error) {
     throw error;
   }

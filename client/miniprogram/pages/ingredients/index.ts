@@ -1,8 +1,8 @@
 // 食材选择页
 // 优先从后端 API 加载，Storage 缓存兜底
 
-import { getAppIngredientsList } from '../../utils/httpApi/ingredient';
-import { handleWarning, handleInfo } from '../../utils/errorHandler';
+import { getAppIngredientsList } from '../../utils/httpApi/ingredient.js';
+import { handleWarning, handleInfo } from '../../utils/errorHandler.js';
 
 // 常用食材优先级配置（数字越小越靠前）
 // 基于中餐高频使用场景：肉类 > 蛋奶 > 基础蔬菜 > 常见主料

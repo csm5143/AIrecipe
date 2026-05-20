@@ -1,17 +1,8 @@
 // 我的页面：用户信息、功能菜单
 
-import { getCurrentUser, authService } from '../../utils/services/authService';
-import { getPreferenceStats } from '../../utils/preferenceStore';
-
-// 获取收藏数量
-function getFavoriteCount(): number {
-  try {
-    const favorites = wx.getStorageSync('favorites') || [];
-    return Array.isArray(favorites) ? favorites.length : 0;
-  } catch (e) {
-    return 0;
-  }
-}
+import { getCurrentUser, authService } from '../../utils/services/authService.js';
+import { collectionService } from '../../utils/services/collectionService.js';
+import { getPreferenceStats } from '../../utils/preferenceStore.js';
 
 // 获取冰箱食材数量
 function getFridgeItemCount(): number {
@@ -49,12 +40,22 @@ Page({
   },
 
   // 加载用户信息
-  loadUserInfo() {
+  async loadUserInfo() {
     const hasLogin = authService.isLoggedIn();
     const info = getCurrentUser();
-    const favoriteCount = getFavoriteCount();
     const fridgeItemCount = getFridgeItemCount();
     const stats = getPreferenceStats();
+
+    let favoriteCount = 0;
+    if (hasLogin) {
+      try {
+        const collections = await collectionService?.getCollectionsWithCache?.();
+        favoriteCount = collections?.reduce?.((sum: number, item: any) => sum + (item.itemCount || item.recipeCount || 0), 0) || 0;
+      } catch (e) {
+        console.warn('[Mine] 获取收藏数量失败', e);
+      }
+    }
+
     this.setData({
       hasLogin,
       userInfo: {

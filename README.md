@@ -59,11 +59,11 @@ airecipe/
 | 层级 | 技术选型 |
 |------|---------|
 | 微信小程序 | 原生 + TypeScript + 云开发 |
-| 后台 API | Node.js + Express + TypeScript + Prisma + PostgreSQL + Redis |
+| 后台 API | Node.js + Express + TypeScript + Prisma + PostgreSQL |
 | 后台管理前端 | Vue 3 + Vite + TypeScript + Element Plus + Pinia |
 | 跨端移动端 | uni-app + Vue 3 |
 | 数据库 | PostgreSQL 16 |
-| 缓存 | Redis 7 |
+| 缓存 | 内存缓存 (进程内 Map) |
 | CI/CD | GitHub Actions |
 
 ## 环境要求
@@ -71,7 +71,7 @@ airecipe/
 - **Node.js** >= 18.x
 - **pnpm** >= 8.x
 - **PostgreSQL** >= 14.x
-- **Redis** >= 6.x
+- ~~**Redis** >= 6.x~~ (已移除，改用内存缓存)
 - **宝塔面板** (推荐，用于服务器部署和管理)
 
 ---
@@ -121,8 +121,8 @@ DB_USER=postgres
 DB_PASSWORD=your_password
 
 # Redis 配置
-REDIS_HOST=localhost
-REDIS_PORT=6379
+# REDIS_HOST=localhost
+# REDIS_PORT=6379
 
 # JWT 配置
 JWT_SECRET=your_jwt_secret
@@ -554,7 +554,7 @@ PORT=3001 pnpm dev:admin-api
 pm2 logs airecipe-api
 ```
 
-常见原因：数据库连接失败、Redis 未启动、端口被占用。
+常见原因：数据库连接失败、端口被占用。
 
 ### 4. 宝塔 Nginx 502 Bad Gateway
 

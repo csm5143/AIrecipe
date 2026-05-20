@@ -2,7 +2,7 @@
  * 冰箱 API - 对接后端 /v1/app/fridge
  */
 
-import { get, post, put, del } from './request';
+import { get, post, put, del } from './request.js';
 
 export interface FridgeItem {
   id: string;

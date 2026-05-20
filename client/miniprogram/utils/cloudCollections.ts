@@ -4,7 +4,7 @@
  * 保留接口签名，让旧代码不崩溃
  */
 
-import * as collectionApi from './httpApi/collection';
+import * as collectionApi from './httpApi/collection.js';
 
 export interface SyncResult {
   success: boolean;

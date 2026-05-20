@@ -9,11 +9,11 @@ import {
   Ingredient,
   RecipeStep,
   RecipeDifficulty
-} from '../../../utils/cloudUserRecipe';
+} from '../../../utils/cloudUserRecipe.js';
 import { 
   uploadAvatarToCOS 
-} from '../../../utils/fileUpload';
-import { isLoggedIn } from '../../../utils/userAuth';
+} from '../../../utils/fileUpload.js';
+import { isLoggedIn } from '../../../utils/userAuth.js';
 
 interface RecipeForm {
   title: string;

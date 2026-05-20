@@ -1,4 +1,4 @@
-import { Recipe } from '../types/index';
+import { Recipe } from '../types/index.js';
 
 /**
  * 当 JSON 菜谱数据加载失败或为空时使用的兜底示例菜谱列表

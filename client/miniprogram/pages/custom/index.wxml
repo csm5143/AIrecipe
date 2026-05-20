@@ -61,49 +61,6 @@
         </scroll-view>
       </view>
 
-      <!-- 精选推荐 -->
-      <view class="section-title">精选推荐</view>
-      <view wx:if="{{isLoadingFeatured}}" class="featured-loading">
-        <text class="featured-loading__text">正在加载...</text>
-      </view>
-      <view wx:elif="{{featuredRecipes.length > 0}}" class="featured-grid">
-        <view
-          wx:for="{{featuredRecipes}}"
-          wx:key="id"
-          class="featured-card"
-          bindtap="onGoToFeaturedDetail"
-          data-id="{{item.id}}"
-        >
-          <view class="featured-card__cover-wrap">
-            <image
-              wx:if="{{item.coverImage}}"
-              class="featured-card__cover"
-              src="{{item.coverImage}}"
-              mode="aspectFill"
-            />
-            <view wx:else class="featured-card__cover featured-card__cover--placeholder">
-              <text>配图待导入</text>
-            </view>
-          </view>
-          <view class="featured-card__info">
-            <text class="featured-card__title">{{item.title}}</text>
-            <text class="featured-card__desc">{{item.description}}</text>
-            <view class="featured-card__meta">
-              <text wx:if="{{item.difficulty}}" class="featured-card__difficulty">{{item.difficulty}}</text>
-              <text wx:if="{{item.cookingTime}}" class="featured-card__time">{{item.cookingTime}}分钟</text>
-            </view>
-          </view>
-        </view>
-      </view>
-      <view wx:else class="featured-empty">
-        <text class="featured-empty__text">暂无精选菜谱</text>
-      </view>
-
-      <!-- 查看全部精选入口 -->
-      <view wx:if="{{featuredRecipes.length > 0}}" class="featured-more" bindtap="onGoToAllFeatured">
-        <text>查看全部精选菜谱 ›</text>
-      </view>
-
       <!-- 健身减脂餐入口 -->
       <view class="section-title">健身减脂餐</view>
       <view class="fitness-banner" bindtap="onGoToFitness">

@@ -2,27 +2,30 @@
  * 收藏服务 - API + 本地缓存降级
  * 整合 httpApi/collection 与 Storage，作为收藏夹数据的唯一入口
  */
-import * as collectionApi from '../../httpApi/collection';
-import { cacheService } from './cacheService';
+import * as collectionApi from '../httpApi/collection.js';
+import { cacheService } from './cacheService.js';
 
 const CACHE_KEY = 'collections_v3';
 const CACHE_TTL = 10 * 60 * 1000; // 10min
 
-export * from '../../httpApi/collection';
+export * from '../httpApi/collection.js';
 
 /** 获取收藏夹列表（带缓存） */
-export async function getCollectionsWithCache(): Promise<collectionApi.Collection[]> {
+async function fetchCollectionsFromApi(): Promise<collectionApi.Collection[]> {
   const data = await cacheService.getOrFetch(
     CACHE_KEY,
     async () => {
       const res = await collectionApi.getMyCollections();
       if (res.success && res.data) return res.data;
-      throw new Error(res.message || '获取收藏夹失败');
+      throw new Error((res as any).message || '获取收藏夹失败');
     },
     CACHE_TTL
   );
   return data || [];
 }
+
+/** 获取收藏夹列表（带缓存） — 显式命名导出，避免模块解析歧义 */
+export const getCollectionsWithCache = fetchCollectionsFromApi;
 
 /** 刷新收藏夹缓存 */
 export async function refreshCollectionsCache(): Promise<collectionApi.Collection[]> {
@@ -31,7 +34,7 @@ export async function refreshCollectionsCache(): Promise<collectionApi.Collectio
     async () => {
       const res = await collectionApi.getMyCollections();
       if (res.success && res.data) return res.data;
-      throw new Error(res.message || '获取收藏夹失败');
+      throw new Error((res as any).message || '获取收藏夹失败');
     },
     CACHE_TTL
   );
@@ -86,9 +89,49 @@ export async function getCollectionDetailCached(id: number) {
     async () => {
       const res = await collectionApi.getCollectionDetail(id);
       if (res.success && res.data) return res.data;
-      throw new Error(res.message || '获取收藏夹详情失败');
+      throw new Error((res as any).message || '获取收藏夹详情失败');
     },
     CACHE_TTL
   );
   return data;
 }
+
+/** 更新收藏夹（清除缓存） */
+export async function updateCollectionCached(id: number, params: {
+  name?: string;
+  description?: string;
+  coverImage?: string;
+}): Promise<{ success: boolean; message: string }> {
+  const res = await collectionApi.updateCollection(id, params);
+  if (res.success) {
+    cacheService.remove(`collection_detail_${id}`);
+    await refreshCollectionsCache();
+  }
+  return res;
+}
+
+/** 检查菜谱是否已被收藏 */
+export async function isRecipeCollected(recipeId: number): Promise<boolean> {
+  const collections = await getCollectionsWithCache();
+  for (const collection of collections) {
+    const detail = await getCollectionDetailCached(Number(collection.id));
+    const recipes = (detail as any)?.recipes || [];
+    if (recipes.some((item: any) => Number(item.recipeId || item.id || item.recipe?.id) === recipeId)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** 统一导出的 collectionService 对象 */
+export const collectionService = {
+  getCollectionsWithCache,
+  refreshCollectionsCache,
+  createCollectionCached,
+  deleteCollectionCached,
+  addFavoriteCached,
+  removeFavoriteCached,
+  getCollectionDetailCached,
+  updateCollectionCached,
+  isRecipeCollected,
+};

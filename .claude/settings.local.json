@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(netstat -ano)",
+      "Bash(systeminfo)",
+      "Bash(wmic cpu *)",
+      "Bash(wmic os *)",
+      "Bash(powershell *)",
+      "Bash(xxd)",
+      "Bash(grep -n \"async function loadRecipeByIdAsync\\\\|return recipe \\\\|\\\\| null;\\\\|^}$\" \"/c/Users/Admin/Desktop/AIrecipe/client/miniprogram/pages/recipes/detail.ts\")",
+      "Bash(sed -i \"22s/import { cacheRecipe, getCachedRecipe } from '..\\\\/..\\\\/utils\\\\/recipeCache.js';/import { cacheRecipe } from '..\\\\/..\\\\/utils\\\\/recipeCache.js';/\" detail.ts)",
+      "Bash(sed -i \"23d\" detail.ts)",
+      "Bash(sed -i '78,110d' detail.ts)",
+      "Bash(sed -i \"s/import { loadRecipesJson } from '.\\\\/dataLoader.js';/import { getGlobalRecipes } from '.\\\\/httpServices\\\\/recipeService.js';/\" utils/recipeSearch.ts)",
+      "Bash(sed -i \"s/loadRecipesJson\\(\\)/getGlobalRecipes\\(\\) || []/g\" utils/recipeSearch.ts)",
+      "Bash(sed -i \"s/import { loadIngredientsJson } from '.\\\\/dataLoader.js';/import { getGlobalRecipes } from '.\\\\/httpServices\\\\/recipeService.js';/\" utils/fallbackIngredients.ts)",
+      "Bash(sed -i \"s/import { loadRecipesJson } from '..\\\\/..\\\\/utils\\\\/dataLoader.js';/import { getGlobalRecipes } from '..\\\\/..\\\\/utils\\\\/httpServices\\\\/recipeService.js';/\" pages/index/index.ts)",
+      "Bash(sed -i \"s/loadRecipesJson\\(\\)/getGlobalRecipes\\(\\) || []/g\" pages/index/index.ts)"
+    ]
+  }
+}

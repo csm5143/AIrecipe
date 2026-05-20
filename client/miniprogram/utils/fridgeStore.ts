@@ -2,8 +2,8 @@
  * 冰箱食材管理模块
  * 优先调用后端 /v1/app/fridge API，localStorage 作为离线降级
  */
-import { get, post, put, del } from '../httpApi/request';
-import { getWxToken } from '../httpApi/authStorage';
+import { get, post, put, del } from './httpApi/request';
+import { getWxToken } from './httpApi/authStorage';
 
 export interface FridgeItem {
   id: string;
@@ -244,4 +244,14 @@ export function getFridgeItemsByCategory(): Record<string, FridgeItem[]> {
     groups[cat].push(item);
   }
   return groups;
+}
+
+/** 获取所有食材名称列表（用于菜谱匹配） */
+export function getFridgeIngredientNames(): string[] {
+  return getLocalFridgeItems().map(i => i.name);
+}
+
+/** 检查某食材是否在冰箱中 */
+export function isInFridge(name: string): boolean {
+  return getLocalFridgeItems().some(i => i.name === name);
 }

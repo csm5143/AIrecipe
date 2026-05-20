@@ -12,13 +12,13 @@ import {
   getFridgeItemsWithCache,
   addToFridgeCached,
   addBatchCached,
-  removeFromFridge,
-  updateFridgeItem,
+  deleteFridgeItemCached,
+  updateFridgeItemCached,
   clearAllCached,
   type FridgeItem
-} from '../../utils/services/fridgeService';
-import { recognizeImage, type IngredientRecognitionResult } from '../../utils/ingredientRecognize';
-import { getAppIngredientsList } from '../../utils/httpApi/ingredient';
+} from '../../utils/services/fridgeService.js';
+import { recognizeImage, type IngredientRecognitionResult } from '../../utils/ingredientRecognize.js';
+import { getAppIngredientsList } from '../../utils/httpApi/ingredient.js';
 
 // ============ 食材建议 API ============
 
@@ -66,6 +66,49 @@ async function fetchIngredientSuggestions(keyword?: string): Promise<IngredientS
   }
 
   return [];
+}
+
+// ============ 拍照次数限制 ============
+
+const SCAN_LIMIT_KEY = 'scanLimit';
+const SCAN_DATE_KEY = 'scanDate';
+const MAX_SCAN_COUNT = 3;
+
+function getTodayDate(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+function getScanCount(): number {
+  const today = getTodayDate();
+  const savedDate = wx.getStorageSync(SCAN_DATE_KEY) || '';
+  if (savedDate !== today) {
+    wx.setStorageSync(SCAN_DATE_KEY, today);
+    wx.setStorageSync(SCAN_LIMIT_KEY, 0);
+    return 0;
+  }
+  return parseInt(wx.getStorageSync(SCAN_LIMIT_KEY) || '0', 10);
+}
+
+function incrementScanCount(): void {
+  const count = getScanCount();
+  wx.setStorageSync(SCAN_LIMIT_KEY, count + 1);
+}
+
+/** 获取今日剩余可用次数 */
+function getDisplayRemainingCount(): number {
+  const used = getScanCount();
+  return Math.max(0, MAX_SCAN_COUNT - used);
+}
+
+/** 检查今日是否还有拍照权限 */
+function checkScanAccess(): { canUse: boolean; used: number; remaining: number } {
+  const used = getScanCount();
+  return {
+    canUse: used < MAX_SCAN_COUNT,
+    used,
+    remaining: Math.max(0, MAX_SCAN_COUNT - used),
+  };
 }
 
 Page({
@@ -140,8 +183,10 @@ Page({
 
   async refresh() {
     this.setData({ loading: true });
+    console.log('[Fridge] refresh 开始, cacheService=', typeof (globalThis as any).cacheService, typeof (globalThis as any).fridgeService);
     try {
       const items = await getFridgeItemsWithCache();
+      console.log('[Fridge] refresh 成功, items=', items.length);
       const categoryCount = this.countByCategory(items);
       this.setData({
         items,
@@ -370,6 +415,8 @@ Page({
       camera: 'back',
       sizeType: ['compressed'],
       success: (res) => {
+        incrementScanCount();
+        this.updateRemainingCount();
         const tempFilePath = res.tempFiles[0].tempFilePath;
         this.setData({ imageUrls: [tempFilePath], recognizing: true });
         this.recognizeImage(tempFilePath);
@@ -401,6 +448,9 @@ Page({
       success: (res) => {
         const tempFilePaths = res.tempFiles.map(f => f.tempFilePath);
         if (tempFilePaths.length === 0) return;
+
+        incrementScanCount();
+        this.updateRemainingCount();
 
         this.setData({
           imageUrls: tempFilePaths,
@@ -646,8 +696,8 @@ Page({
     const { editingItem, editQuantity, editUnit } = this.data;
     if (!editingItem) return;
 
-    await fridgeService.updateFridgeItem(editingItem.id, {
-      count: editQuantity,
+    await updateFridgeItemCached(editingItem.id, {
+      amount: String(editQuantity),
       unit: editUnit,
     });
 
@@ -669,7 +719,7 @@ Page({
       cancelText: '取消',
       success: async (res) => {
         if (res.confirm) {
-          await fridgeService.deleteFridgeItemCached(id);
+          await deleteFridgeItemCached(id);
           await this.refresh();
           wx.showToast({ title: '已删除', icon: 'none' });
         }
@@ -693,7 +743,7 @@ Page({
       cancelText: '取消',
       success: async (res) => {
         if (res.confirm) {
-          await fridgeService.clearAllCached();
+          await clearAllCached();
           await this.refresh();
           wx.showToast({ title: '已清空', icon: 'none' });
         }

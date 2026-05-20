@@ -507,6 +507,10 @@
   box-shadow: 0 4rpx 16rpx rgba(226, 166, 80, 0.12);
   margin: 0;
 }
+.action-btn-hover {
+  background: #fef0da;
+  transform: scale(0.97);
+}
 
 .action-btn::after {
   border: none;

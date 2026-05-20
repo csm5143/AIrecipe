@@ -1,10 +1,10 @@
 // pages/custom/fitness-menu/index.ts
 // 健身餐专属菜单页面（单品组合视角）
 
-import { FitnessDish, FitnessMealDisplay, Recipe } from '../../../types/index';
-import { loadRecipesJson, loadRecipesAsync } from '../../../utils/dataLoader';
+import { FitnessDish, FitnessMealDisplay, Recipe } from '../../../types/index.js';
+import { getGlobalRecipesAsync, getGlobalRecipes } from '../../../utils/httpServices/recipeService.js';
 // 统一收藏接口
-import { getFavorites, toggleFavorite } from '../../../utils/favorites';
+import { getFavorites, toggleFavorite } from '../../../utils/favorites.js';
 
 interface NutritionTip {
   icon: string;
@@ -330,12 +330,12 @@ async function loadFitnessDishesAsync(): Promise<FitnessDish[]> {
   // 本地加载
   let recipes: Recipe[] = [];
   try {
-    recipes = await loadRecipesAsync();
+    recipes = await getGlobalRecipesAsync();
   } catch (e) {
     console.warn('[fitness-menu] 加载失败', e);
   }
   if (!recipes.length) {
-    recipes = loadRecipesJson();
+    recipes = getGlobalRecipes() || [];
   }
 
   const all: FitnessDish[] = [];

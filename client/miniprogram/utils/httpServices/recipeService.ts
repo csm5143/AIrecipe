@@ -4,20 +4,11 @@
  * 替换原 wx.cloud.database() 的菜谱加载逻辑
  */
 
-import * as recipeApi from '../httpApi/recipe';
-import { Recipe } from '../../types/index';
-
-function getFallbackRecipes(): Recipe[] {
-  try {
-    const data = require('../../data/recipes.js');
-    return Array.isArray(data) ? data as Recipe[] : [];
-  } catch {
-    return [];
-  }
-}
+import * as recipeApi from '../httpApi/recipe.js';
+import { Recipe } from '../../types/index.js';
 
 // ============ API → App 数据格式转换 ============
-// 后端 API 返回 { title, ingredients: {name}[] }，前端使用 { name, ingredients: string[] }
+// 后端 mapRecipeToAppFormat 返回 { name, timeCost, ingredients: string[], ... }
 function transformApiRecipe(apiRecipe: recipeApi.Recipe): Recipe {
   let ingredients: string[] = [];
   if (apiRecipe.ingredients) {
@@ -37,17 +28,28 @@ function transformApiRecipe(apiRecipe: recipeApi.Recipe): Recipe {
     }
     return 'normal' as const;
   })();
+  const api = apiRecipe as any;
   return {
     id: String(apiRecipe.id),
-    name: apiRecipe.title || '',
-    aliases: [],
+    name: api.name || api.title || '',
+    aliases: api.aliases || [],
     coverImage: apiRecipe.coverImage || '',
     description: apiRecipe.description || '',
     ingredients,
     mealTimes: apiRecipe.mealTimes || [],
     dishTypes: apiRecipe.dishTypes || [],
-    timeCost: apiRecipe.cookingTime ?? null,
+    timeCost: api.timeCost ?? api.cookingTime ?? null,
     difficulty,
+    isHot: apiRecipe.isHot ?? false,
+    isNew: api.isNew ?? false,
+    steps: api.steps || [],
+    usage: api.usage || {},
+    nutrition: api.nutrition || null,
+    fitnessMeal: api.fitnessMeal ?? false,
+    fitnessCategory: api.fitnessCategory || '',
+    goal: api.goal || '',
+    childrenMeal: api.childrenMeal ?? false,
+    ageBand: api.ageBand || '',
   };
 }
 
@@ -56,8 +58,8 @@ function transformApiRecipes(apiRecipes: recipeApi.Recipe[]): Recipe[] {
 }
 
 // ============ 本地缓存 ============
-const CACHE_KEY = 'local_recipes_cache';
-const CACHE_META = 'local_recipes_meta';
+const CACHE_KEY = 'local_recipes_cache_v2';
+const CACHE_META = 'local_recipes_meta_v2';
 const CACHE_EXPIRE_MS = 24 * 60 * 60 * 1000;
 
 function getCached(): Recipe[] | null {
@@ -95,7 +97,7 @@ export function getGlobalRecipes(): Recipe[] | null {
     _loaded = true;
     return cached;
   }
-  _globalRecipes = getFallbackRecipes();
+  _globalRecipes = [];
   _loaded = true;
   return _globalRecipes;
 }
@@ -128,32 +130,33 @@ export function getGlobalRecipesAsync(): Promise<Recipe[]> {
 
 async function loadFromServer(): Promise<Recipe[]> {
   const PAGE_SIZE = 100;
-  let page = 1;
-  let allRecipes: Recipe[] = [];
 
   try {
-    while (true) {
-      const res = await recipeApi.getRecipeList({ page, pageSize: PAGE_SIZE });
-      if (!res.success || !res.data || res.data.length === 0) break;
+    // 第一页：获取数据 + total
+    const firstRes = await recipeApi.getRecipeList({ page: 1, pageSize: PAGE_SIZE });
+    if (!firstRes.success || !firstRes.data || firstRes.data.length === 0) return [];
 
-      // 转换 API 数据格式后追加
-      const transformed = transformApiRecipes(res.data);
-      allRecipes = allRecipes.concat(transformed);
+    const firstPage = transformApiRecipes(firstRes.data);
+    const total = firstRes.total ?? 0;
+    if (total === 0 || firstRes.data.length < PAGE_SIZE) return firstPage;
 
-      // 后端返回了总数量，则不继续翻页
-      if (res.total != null) {
-        break;
-      }
-      // 否则按 pageSize 判断是否还有下一页
-      if (res.data.length < PAGE_SIZE) break;
-      page++;
+    // 计算剩余页数，并行请求
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+    const remainingPages: Promise<Recipe[]>[] = [];
+    for (let page = 2; page <= totalPages; page++) {
+      remainingPages.push(
+        recipeApi.getRecipeList({ page, pageSize: PAGE_SIZE })
+          .then(res => res.success && res.data ? transformApiRecipes(res.data) : [])
+          .catch(() => [] as Recipe[])
+      );
     }
+
+    const results = await Promise.all(remainingPages);
+    return firstPage.concat(...results);
   } catch (e) {
     console.warn('[RecipeService] 从服务器加载菜谱失败', e);
+    return [];
   }
-
-  // 若 API 没有数据，返回空数组，让调用方自行走 fallback
-  return allRecipes;
 }
 
 /** 预加载（后台静默） */
@@ -177,13 +180,6 @@ export async function search(keyword: string): Promise<Recipe[]> {
     (r.name || (r as any).title)?.toLowerCase().includes(kw) ||
     r.description?.toLowerCase().includes(kw)
   );
-}
-
-/** 推荐菜谱 */
-export async function getFeatured(): Promise<Recipe[]> {
-  const res = await recipeApi.getFeaturedRecipes({ pageSize: 20 });
-  if (res.success && res.data) return transformApiRecipes(res.data);
-  return (getGlobalRecipes() || []).filter(r => r.isFeatured).slice(0, 20);
 }
 
 /** 热门菜谱 */

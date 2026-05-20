@@ -3,8 +3,8 @@
  * 提供按名称/关键词搜索菜谱的能力，替代原 cloudService 中的云端搜索
  */
 
-import { Recipe } from '../types/index';
-import { loadRecipesJson } from './dataLoader';
+import { Recipe } from '../types/index.js';
+import { getGlobalRecipes } from './httpServices/recipeService.js';
 
 /**
  * 按菜谱名称搜索（本地实现）
@@ -12,7 +12,7 @@ import { loadRecipesJson } from './dataLoader';
  * @returns 匹配的菜谱，未找到返回 null
  */
 export async function getRecipeByNameFromCloud(name: string): Promise<Recipe | null> {
-  const recipes = loadRecipesJson();
+  const recipes = getGlobalRecipes() || [];
   const kw = name.trim().toLowerCase();
 
   if (!kw) return null;

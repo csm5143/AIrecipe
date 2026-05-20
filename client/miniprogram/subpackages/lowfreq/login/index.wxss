@@ -8,6 +8,7 @@
   background: linear-gradient(160deg, #fef9f3 0%, #fff5eb 50%, #fef3e8 100%);
   position: relative;
   overflow: hidden;
+  pointer-events: auto;
 }
 
 /* 用户信息行 */
@@ -161,6 +162,7 @@
   background: linear-gradient(160deg, #fef9f3 0%, #fff5eb 50%, #fef3e8 100%);
   position: relative;
   overflow: hidden;
+  pointer-events: auto;
 }
 
 /* 背景装饰 - 柔和的几何图形 */
@@ -281,8 +283,10 @@
   padding: 0;
   background: transparent;
   border: none;
-  border-radius: 50%;
+  width: 148rpx;
+  height: 148rpx;
   position: relative;
+  z-index: 10;
 }
 
 .avatar-btn-large::after {
@@ -683,4 +687,215 @@
 
 .modal-btn-confirm:active {
   transform: scale(0.98);
+}
+
+/* ================================================
+   已登录状态 - 增强样式
+   ================================================ */
+.user-avatar-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20rpx;
+}
+
+.user-info-center {
+  text-align: center;
+}
+
+.user-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  margin-top: 10rpx;
+  flex-wrap: wrap;
+}
+
+.user-meta-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 16rpx;
+  background: #f0f0f5;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  color: #8e8e93;
+}
+
+.meta-icon {
+  font-size: 22rpx;
+  margin-right: 4rpx;
+}
+
+.meta-text {
+  font-size: 22rpx;
+}
+
+.user-bio {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #8e8e93;
+  line-height: 1.5;
+  padding: 0 20rpx;
+}
+
+.gender-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20rpx;
+}
+
+.gender-tag {
+  padding: 6rpx 24rpx;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.gender-tag--male {
+  background: #e8f4ff;
+  color: #007aff;
+}
+
+.gender-tag--female {
+  background: #ffe8f0;
+  color: #ff2d55;
+}
+
+.menu-item-icon--password {
+  background: linear-gradient(135deg, #f7c94820, #f7c94810);
+}
+
+.menu-item--danger {
+  border-top: none;
+}
+
+/* ================================================
+   资料编辑弹窗 - 表单样式
+   ================================================ */
+.modal-box--tall {
+  width: 640rpx;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-body--form {
+  padding: 24rpx 36rpx 28rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 28rpx;
+}
+
+.form-avatar-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 8rpx;
+}
+
+.avatar-btn-edit {
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+}
+
+.avatar-btn-edit::after {
+  border: none;
+}
+
+.avatar-img-edit {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  border: 4rpx solid #f7c948;
+}
+
+.avatar-edit-icon {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 40rpx;
+  height: 40rpx;
+  background: linear-gradient(135deg, #f7c948, #e2a650);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-edit-icon image {
+  width: 24rpx;
+  height: 24rpx;
+}
+
+.form-avatar-tip {
+  font-size: 22rpx;
+  color: #8e8e93;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.form-label {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1c1c1e;
+}
+
+.form-input {
+  width: 100%;
+  height: 88rpx;
+  background: #f8f8f8;
+  border-radius: 20rpx;
+  padding: 0 28rpx;
+  font-size: 30rpx;
+  color: #1c1c1e;
+  box-sizing: border-box;
+}
+
+.form-gender-row {
+  display: flex;
+  gap: 16rpx;
+}
+
+.form-gender-btn {
+  flex: 1;
+  height: 72rpx;
+  border-radius: 36rpx;
+  background: #f5f5f7;
+  color: #636366;
+  font-size: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.form-gender-btn.active {
+  background: linear-gradient(135deg, #07c160 0%, #10b056 100%);
+  color: #ffffff;
+  box-shadow: 0 4rpx 16rpx rgba(7, 193, 96, 0.3);
+}
+
+.form-textarea {
+  width: 100%;
+  min-height: 160rpx;
+  background: #f8f8f8;
+  border-radius: 20rpx;
+  padding: 20rpx 28rpx;
+  font-size: 30rpx;
+  color: #1c1c1e;
+  box-sizing: border-box;
+  line-height: 1.5;
+}
+
+.form-counter {
+  text-align: right;
+  font-size: 22rpx;
+  color: #c7c7cc;
+  padding-right: 4rpx;
 }

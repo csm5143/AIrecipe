@@ -1,62 +1,85 @@
 <view class="page">
-  <!-- TabBar 高亮 -->
-  <block wx:if="{{false}}"><!-- 占位，不显示任何内容 --></block>
-
   <!-- Loading -->
   <view wx:if="{{loading}}" class="loading-wrap">
     <view class="loading-ring"></view>
     <text class="loading-text">加载中...</text>
   </view>
 
-  <!-- Error / Empty -->
+  <!-- Empty -->
   <view wx:elif="{{isEmpty}}" class="empty-wrap">
-    <image class="empty-icon" src="/assets/收藏.png" mode="aspectFit" />
-    <text class="empty-title">还没有收藏</text>
-    <text class="empty-tip">去菜谱详情页，点击收藏按钮来收藏喜欢的菜谱</text>
-    <view class="empty-action" bindtap="onGoExplore">去看看菜谱</view>
+    <view class="empty-illustration">📂</view>
+    <text class="empty-title">还没有收藏夹</text>
+    <text class="empty-tip">创建一个收藏夹，然后去菜谱详情页收藏喜欢的菜谱</text>
+    <view class="empty-actions">
+      <view class="empty-action primary" bindtap="onAddCollection">+ 新建收藏夹</view>
+      <view class="empty-action secondary" bindtap="onGoExplore">去看看菜谱</view>
+    </view>
   </view>
 
   <!-- Content -->
   <block wx:else>
+    <view class="header-bar">
+      <view class="header-left">
+        <text class="header-title">我的收藏夹</text>
+        <text class="header-sub">共 {{collections.length}} 个</text>
+      </view>
+      <view class="header-action" bindtap="onAddCollection">
+        <text class="header-action-icon">+</text>
+        <text>新建</text>
+      </view>
+    </view>
+
     <scroll-view
       class="grid-scroll"
       scroll-y
       enhanced
+      show-scrollbar="{{false}}"
       bounces="{{true}}"
       refresher-enabled="{{true}}"
       bindrefresherrefresh="loadCollections"
     >
+      <view wx:if="{{error}}" class="offline-tip">
+        <text>当前处于离线模式，仅显示缓存数据</text>
+      </view>
+
       <view class="grid-container">
-
-        <!-- 离线提示 -->
-        <view wx:if="{{error}}" class="offline-tip-full">
-          <text>当前处于离线模式，仅显示缓存数据</text>
-        </view>
-
-        <!-- 网格列表 -->
         <view
           wx:for="{{collections}}"
           wx:key="id"
-          class="grid-card {{item.isOffline ? 'offline-item' : ''}}"
-          bindtap="onItemTap"
-          data-id="{{item.id}}"
-          data-offline="{{item.isOffline ? 1 : 0}}"
+          class="grid-cell"
         >
-          <view class="card-image-wrap">
-            <image
-              class="card-image"
-              src="{{item.coverImage || (item.recipes && item.recipes[0] && item.recipes[0].coverImage) || '/assets/占位图.png'}}"
-              mode="aspectFill"
-            />
-            <view wx:if="{{item.isOffline}}" class="offline-badge">离线</view>
-          </view>
-          <view class="card-body">
-            <text class="card-title">{{item.name || item.title || '无标题'}}</text>
-            <text class="card-count">{{item.itemCount || (item.recipes && item.recipes.length) || 0}} 道菜谱</text>
+          <view
+            class="grid-card"
+            bindtap="onItemTap"
+            bindlongpress="onCollectionLongPress"
+            data-id="{{item.id}}"
+            data-name="{{item.name}}"
+            data-isdefault="{{item.isDefault}}"
+          >
+            <view class="card-cover">
+              <image
+                class="cover-img"
+                src="{{item.coverImage || (item.recipes && item.recipes[0] && item.recipes[0].coverImage) || ''}}"
+                mode="aspectFill"
+                binderror="onCoverError"
+              />
+              <view wx:if="{{!item.coverImage && (!item.recipes || !item.recipes[0] || !item.recipes[0].coverImage)}}" class="cover-fallback">
+                <text class="cover-fallback-icon">{{item.isDefault ? '⭐' : '📁'}}</text>
+              </view>
+              <view class="cover-badge">
+                <text class="badge-num">{{item.itemCount || (item.recipes && item.recipes.length) || 0}}</text>
+                <text class="badge-label">道</text>
+              </view>
+            </view>
+            <view class="card-body">
+              <text class="card-name">{{item.name || '未命名'}}</text>
+              <text class="card-desc" wx:if="{{item.description}}">{{item.description}}</text>
+            </view>
           </view>
         </view>
-
       </view>
+
+      <view class="bottom-safe"></view>
     </scroll-view>
   </block>
 </view>

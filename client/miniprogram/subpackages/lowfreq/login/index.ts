@@ -1,19 +1,49 @@
-// 登录页面：微信一键登录（统一 authService）
+// 登录页面：微信一键登录 + 完整资料编辑（统一 authService）
 
-import { login as authLogin, updateProfile, getCurrentUser, logout as authLogout } from '../../../utils/services/authService';
+import {
+  login as authLogin,
+  updateProfile,
+  getCurrentUser,
+  logout as authLogout,
+  changePassword,
+  isLoggedIn,
+} from '../../../utils/services/authService.js';
+import { getUserProfile } from '../../../utils/httpApi/auth.js';
 
 Page({
   data: {
+    // 用户信息
     userInfo: null as any,
     nickname: '',
     avatarUrl: '',
-    guestAvatarUrl: '/assets/默认头像.png',
+    phone: '',
+    gender: '',
+    bio: '',
     hasLogin: false,
-    showNicknameInput: false,
-    tempNickname: '',
+    guestAvatarUrl: '/assets/默认头像.png',
+
+    // 登录状态
     isAgreed: false,
-    isRestoring: false,
     loginLoading: false,
+
+    // 资料编辑弹窗
+    showEditProfile: false,
+    editForm: {
+      nickname: '',
+      phone: '',
+      gender: '',
+      bio: '',
+      avatarUrl: '',
+    },
+
+    // 修改密码弹窗
+    showChangePassword: false,
+    changePwdForm: {
+      oldPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+    changePwdLoading: false,
   },
 
   onLoad() {
@@ -24,43 +54,51 @@ Page({
     this.loadUserInfo();
   },
 
-  loadUserInfo() {
+  // ============ 加载用户信息 ============
+  async loadUserInfo() {
+    const hasLogin = isLoggedIn();
     const info = getCurrentUser();
-    // 只要有 loginState=true 就视为已登录，nickname 为空是正常的（注册时未填）
-    const hasLogin = !!(info && info.loginState);
 
-    this.setData({
-      userInfo: info,
-      hasLogin,
-      nickname: info?.nickname || '',
-      avatarUrl: info?.avatar || '',
-    });
-  },
-
-  onToggleAgreement() {
-    this.setData({ isAgreed: !this.data.isAgreed });
-  },
-
-  onChooseAvatar(e: any) {
-    const avatarUrl = e.detail.avatarUrl;
-    this.setData({ avatarUrl });
-
-    const nickname = this.data.tempNickname || this.data.nickname;
-    if (nickname) {
-      updateProfile(nickname, avatarUrl);
-      this.setData({ hasLogin: true });
-      wx.showToast({ title: '头像已更新', icon: 'success' });
+    if (hasLogin) {
+      // 先用本地数据快速显示，再从后端拉取完整资料
+      this.setData({
+        userInfo: info,
+        hasLogin: true,
+        nickname: info?.nickname || '',
+        avatarUrl: info?.avatar || '',
+        phone: info?.phone || '',
+        gender: info?.gender || '',
+        bio: info?.bio || '',
+      });
+      // 从后端拉取最新资料（含 bio, gender, phone）
+      try {
+        const res = await getUserProfile();
+        if (res.success && res.data) {
+          this.setData({
+            phone: res.data.phone || '',
+            gender: res.data.gender || '',
+            bio: res.data.bio || '',
+            nickname: res.data.nickname || this.data.nickname,
+            avatarUrl: res.data.avatar || this.data.avatarUrl,
+          });
+        }
+      } catch (e) {
+        console.warn('[Login] 获取后端用户资料失败', e);
+      }
+    } else {
+      this.setData({
+        userInfo: null,
+        hasLogin: false,
+        nickname: '',
+        avatarUrl: '',
+        phone: '',
+        gender: '',
+        bio: '',
+      });
     }
   },
 
-  onNicknameInput(e: any) {
-    this.setData({ tempNickname: e.detail.value });
-  },
-
-  onClearNickname() {
-    this.setData({ tempNickname: '' });
-  },
-
+  // ============ 微信一键登录 ============
   async onWechatLogin() {
     if (!this.data.isAgreed) {
       wx.showToast({ title: '请阅读并勾选用户协议', icon: 'none', duration: 2000 });
@@ -71,32 +109,29 @@ Page({
     wx.showLoading({ title: '登录中...', mask: true });
 
     try {
-      // 优先使用用户输入的昵称，其次用已有的昵称，都没有则留空让后端生成
-      const nickname = this.data.tempNickname.trim() || this.data.nickname || undefined;
-      const avatarUrl = this.data.avatarUrl || undefined;
-
-      // 如果没有昵称，引导用户先填写
-      if (!nickname) {
-        wx.hideLoading();
-        this.setData({ loginLoading: false });
-        wx.showToast({ title: '请先设置昵称', icon: 'none' });
-        this.setData({ showNicknameInput: true });
-        return;
-      }
-
       const result = await authLogin({
-        nickName: nickname,
-        avatarUrl: avatarUrl,
+        nickName: this.data.nickname || undefined,
+        avatarUrl: this.data.avatarUrl || undefined,
       });
 
       if (!result.success) {
         throw new Error(result.error || '登录失败');
       }
 
-      // authService.login 已经从数据库获取最新资料并保存到本地，直接刷新页面显示
       wx.hideLoading();
-      this.loadUserInfo(); // 重新加载，显示数据库中的昵称/头像
       this.setData({ loginLoading: false });
+
+      // 重新获取完整用户信息（含 gender, bio 等）
+      const updatedInfo = getCurrentUser();
+      this.setData({
+        userInfo: updatedInfo,
+        hasLogin: true,
+        nickname: updatedInfo?.nickname || '',
+        avatarUrl: updatedInfo?.avatar || '',
+        phone: updatedInfo?.phone || '',
+        gender: updatedInfo?.gender || '',
+        bio: updatedInfo?.bio || '',
+      });
 
       wx.showToast({
         title: result.isNewUser ? '注册成功' : '登录成功',
@@ -114,45 +149,156 @@ Page({
     }
   },
 
-  onShowNicknameInput() {
+  onToggleAgreement() {
+    this.setData({ isAgreed: !this.data.isAgreed });
+  },
+
+  // ============ 头像选择 ============
+  onChooseAvatar(e: any) {
+    const avatarUrl = e.detail.avatarUrl;
+    if (this.data.hasLogin) {
+      // 已登录：直接更新头像
+      this.setData({ avatarUrl });
+      updateProfile({ avatar: avatarUrl }).then((synced) => {
+        if (synced) {
+          this.loadUserInfo();
+          wx.showToast({ title: '头像已更新', icon: 'success' });
+        }
+      });
+    } else {
+      // 未登录：先保存到表单
+      const editForm = { ...this.data.editForm, avatarUrl };
+      this.setData({
+        avatarUrl,
+        editForm,
+      });
+    }
+  },
+
+  // ============ 资料编辑弹窗 ============
+  onEditProfile() {
     this.setData({
-      showNicknameInput: true,
-      tempNickname: this.data.nickname || '',
+      showEditProfile: true,
+      editForm: {
+        nickname: this.data.nickname,
+        phone: this.data.phone,
+        gender: this.data.gender,
+        bio: this.data.bio,
+        avatarUrl: this.data.avatarUrl,
+      },
     });
   },
 
-  onConfirmNickname() {
-    const nickname = this.data.tempNickname.trim();
+  onCloseEditProfile() {
+    this.setData({ showEditProfile: false });
+  },
 
-    if (!nickname) {
+  onEditFormInput(e: any) {
+    const field = e.currentTarget.dataset.field as string;
+    const value = e.detail.value;
+    this.setData({
+      editForm: { ...this.data.editForm, [field]: value },
+    });
+  },
+
+  onSelectGender(e: any) {
+    const gender = e.currentTarget.dataset.gender as string;
+    if (gender) {
+      this.setData({ editForm: { ...this.data.editForm, gender } });
+    }
+  },
+
+  onConfirmEditProfile() {
+    const form = this.data.editForm;
+
+    if (!form.nickname || !form.nickname.trim()) {
       wx.showToast({ title: '请输入昵称', icon: 'none' });
       return;
     }
-    if (nickname.length > 20) {
-      wx.showToast({ title: '昵称过长', icon: 'none' });
+    if (form.nickname.trim().length > 20) {
+      wx.showToast({ title: '昵称不能超过20字', icon: 'none' });
+      return;
+    }
+    if (form.bio && form.bio.length > 100) {
+      wx.showToast({ title: '简介不能超过100字', icon: 'none' });
       return;
     }
 
-    const avatarRaw = this.data.avatarUrl || '';
-    const avatar = avatarRaw.startsWith('http') && !avatarRaw.includes('127.0.0.1') && !avatarRaw.includes('localhost')
-      ? avatarRaw : '';
+    wx.showLoading({ title: '保存中...', mask: true });
 
-    updateProfile(nickname, avatar);
-    this.setData({
-      nickname,
-      showNicknameInput: false,
+    updateProfile({
+      nickname: form.nickname.trim(),
+      avatar: form.avatarUrl || undefined,
+      gender: form.gender || 'UNKNOWN',
+      bio: form.bio?.trim() || undefined,
+      phone: form.phone?.trim() || undefined,
+    }).then((synced) => {
+      wx.hideLoading();
+      this.setData({ showEditProfile: false });
+      this.loadUserInfo();
+      wx.showToast({
+        title: synced ? '保存成功' : '保存成功（网络同步失败）',
+        icon: 'success',
+      });
+    }).catch(() => {
+      wx.hideLoading();
+      wx.showToast({ title: '保存失败', icon: 'none' });
     });
-    wx.showToast({ title: '保存成功', icon: 'success' });
   },
 
-  onCancelNickname() {
-    this.setData({ showNicknameInput: false });
+  // ============ 修改密码 ============
+  onChangePassword() {
+    this.setData({
+      showChangePassword: true,
+      changePwdForm: { oldPassword: '', newPassword: '', confirmPassword: '' },
+    });
   },
 
-  preventTouchMove() {
-    return false;
+  onCloseChangePassword() {
+    this.setData({ showChangePassword: false });
   },
 
+  onChangePwdInput(e: any) {
+    const field = e.currentTarget.dataset.field as string;
+    const value = e.detail.value;
+    this.setData({
+      changePwdForm: { ...this.data.changePwdForm, [field]: value },
+    });
+  },
+
+  onConfirmChangePassword() {
+    const { oldPassword, newPassword, confirmPassword } = this.data.changePwdForm;
+
+    if (!newPassword || newPassword.length < 6) {
+      wx.showToast({ title: '新密码不能少于6位', icon: 'none' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      wx.showToast({ title: '两次密码输入不一致', icon: 'none' });
+      return;
+    }
+
+    this.setData({ changePwdLoading: true });
+    wx.showLoading({ title: '修改中...', mask: true });
+
+    changePassword(oldPassword, newPassword)
+      .then((result) => {
+        wx.hideLoading();
+        this.setData({ changePwdLoading: false, showChangePassword: false });
+        if (result.success) {
+          wx.showToast({ title: '密码修改成功', icon: 'success' });
+        } else {
+          wx.showToast({ title: result.message || '修改失败', icon: 'none' });
+        }
+      })
+      .catch(() => {
+        wx.hideLoading();
+        this.setData({ changePwdLoading: false });
+        wx.showToast({ title: '修改失败，请重试', icon: 'none' });
+      });
+  },
+
+  // ============ 退出登录 ============
   onLogout() {
     wx.showModal({
       title: '提示',
@@ -165,12 +311,19 @@ Page({
             hasLogin: false,
             nickname: '',
             avatarUrl: '',
+            phone: '',
+            gender: '',
+            bio: '',
             isAgreed: false,
           });
           wx.showToast({ title: '已退出登录', icon: 'success' });
         }
       },
     });
+  },
+
+  preventTouchMove() {
+    return false;
   },
 
   onViewAgreement() {

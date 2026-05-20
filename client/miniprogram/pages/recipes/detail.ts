@@ -1,38 +1,25 @@
-import { ChildMeal, FitnessDish, Recipe } from '../../types/index';
-import { loadRecipesJson } from '../../utils/dataLoader';
-import { loadRecipesAsync } from '../../utils/dataLoader';
+import { ChildMeal, FitnessDish, Recipe } from '../../types/index.js';
 import {
-  normalizeRecipesFromRaw,
   extractCalories,
   normalizeStepsForDisplay,
   resolveUsageAmount
-} from '../../utils/recipeUtils';
-import { getFallbackRecipes } from '../../utils/fallbackRecipes';
-import { handleWarning } from '../../utils/errorHandler';
-import { SEASONING_INGREDIENTS } from '../../utils/constants';
-import { expandUserIngredients, isIngredientOwnedWithChickenExceptions } from '../../utils/ingredientUtils';
+} from '../../utils/recipeUtils.js';
+import { getGlobalRecipesAsync, getGlobalRecipes } from '../../utils/httpServices/recipeService.js';
+import { SEASONING_INGREDIENTS } from '../../utils/constants.js';
+import { expandUserIngredients, isIngredientOwnedWithChickenExceptions } from '../../utils/ingredientUtils.js';
 import {
   MEAL_TIME_LABELS,
   getDifficultyLabel,
   getMealTimeLabelString,
   getPrimaryCategoryLabel,
   getSecondaryCategoryLabels
-} from '../../utils/labels';
-import { addRecipeIngredients, isRecipeInBasket, removeRecipeById } from '../../utils/shoppingList';
-import { getFridgeIngredientNames, isInFridge } from '../../utils/fridgeStore';
+} from '../../utils/labels.js';
+import { addRecipeIngredients, isRecipeInBasket, removeRecipeById } from '../../utils/shoppingList.js';
+import { getFridgeIngredientNames, isInFridge } from '../../utils/fridgeStore.js';
 // 统一收藏接口：所有类型菜品共用同一个收藏列表
-import { getFavorites, isFavorite, toggleFavorite } from '../../utils/favorites';
-// 新的多收藏夹系统
-import {
-  getActiveCollection,
-  toggleRecipeInCollection,
-  isRecipeInCollection,
-  getCollections,
-  addRecipeToCollection,
-  isRecipeInAnyCollection
-} from '../../utils/collections';
-import { cacheRecipe } from '../../utils/recipeCache';
-import { getRecipeByNameFromCloud } from '../../utils/recipeSearch';
+import { collectionService } from '../../utils/services/collectionService.js';
+import { authService } from '../../utils/services/authService.js';
+import { cacheRecipe } from '../../utils/recipeCache.js';
 
 const LIST_OPTIONAL_SEASONING_INGREDIENTS: readonly string[] = [];
 
@@ -75,76 +62,18 @@ function stripMealTimeFromSecondary(mealTimeSummary: string, secondary: string[]
   return secondary.filter((l) => !mealTexts.has(l));
 }
 
-/** 异步加载全部菜谱（云端优先，自动缓存兜底） */
+/** 从后端 API 加载全部菜谱 */
 async function loadAllRecipesAsync(): Promise<Recipe[]> {
-  let recipes: Recipe[] = [];
   try {
-    recipes = await loadRecipesAsync();
+    const recipes = await getGlobalRecipesAsync();
+    if (recipes && recipes.length > 0) {
+      console.log('[detail] 从API加载了', recipes.length, '条菜谱');
+      return recipes;
+    }
   } catch (e) {
-    handleWarning(e, '云端加载菜谱');
+    console.warn('[detail] API加载菜谱失败', e);
   }
-  if (!recipes.length) {
-    recipes = loadRecipesJson();
-  }
-  if (!recipes.length) {
-    try {
-      const recipesData: any = require('../../data/recipes.js');
-      const rawList: any[] = Array.isArray(recipesData)
-        ? recipesData
-        : recipesData && Array.isArray((recipesData as any).recipes)
-        ? (recipesData as any).recipes
-        : [];
-      if (rawList.length > 0) {
-        recipes = normalizeRecipesFromRaw(rawList);
-      }
-    } catch (requireError: any) {
-      handleWarning(requireError, 'require 方式加载菜谱');
-    }
-  }
-  if (!recipes.length) {
-    return getFallbackRecipes();
-  }
-  
-  // 云数据库的 id 格式是 MD5 哈希（如 "6a0a1fb669db06c803ee086c54f6fe43"）
-  // 本地数据的 id 格式是数字字符串（如 "34"）
-  // 需要建立 name 映射表来支持跨数据源查找
-  console.log('[detail] 加载了', recipes.length, '条菜谱');
-  
-  return recipes;
-}
-
-/** 懒加载单条菜谱：优先从缓存获取，未命中则异步加载全部再查找 */
-async function loadRecipeByIdAsync(id: string): Promise<Recipe | null> {
-  // 1. 先尝��从缓存获取（仅限单条）
-  const cached = getRecipeById(id);
-  if (cached) {
-    return cached;
-  }
-
-  // 2. 缓存未命中，异步加载全部并查找
-  const recipes = await loadAllRecipesAsync();
-  let recipe = recipes.find(r => String(r.id) === id);
-
-  // 3. 如果云数据库的 id 格式不同（MD5 哈希），尝试通过 name 查找
-  // 云数据库的 id 是 "6a0a1fb669db06c803ee086c54f6fe43" 这样的格式
-  // 而传入的 id 可能是 "34" 这样的数字字符串
-  if (!recipe && id.length < 20) {
-    // 如果 id 看起来像数字字符串，在云数据库中搜索
-    console.log(`[detail] id "${id}" 未找到，尝试从云数据库按 name 查找...`);
-    const cloudRecipe = await getRecipeByNameFromCloud(id);
-    if (cloudRecipe) {
-      console.log(`[detail] 从云数据库找到菜谱: ${cloudRecipe.name}`);
-      cacheRecipe(cloudRecipe);
-      return cloudRecipe;
-    }
-  }
-
-  // 4. 找到后存入缓存
-  if (recipe) {
-    cacheRecipe(recipe);
-  }
-
-  return recipe || null;
+  return getGlobalRecipes() || [];
 }
 
 /** 从菜谱中查找健身菜品（fitnessMeal=true 或有 fitnessCategory） */
@@ -263,7 +192,7 @@ function fitnessDishToRecipe(fd: FitnessDish): Recipe {
     timeCost: 15,
     difficulty: fd.difficulty,
     steps: fd.steps || [],
-    usage: Object.keys(usage).length > 0 ? usage : undefined
+    usage: Object.keys(usage).length > 0 ? usage : null
   };
 }
 
@@ -430,7 +359,7 @@ Page({
         recipeName: recipe.name,
         recipe,
         coverUrl: (recipe && recipe.coverImage) ? String(recipe.coverImage).trim() : '',
-        timeCost: recipe.timeCost != null ? recipe.timeCost : undefined,
+        timeCost: recipe.timeCost ?? null,
         difficultyLabel,
         mealTimeLabel,
         primaryCategoryLabel,
@@ -445,10 +374,14 @@ Page({
         ownedOptional,
         missingOptional,
         missingForBasket: [...missingCore],
-        isFavorited: isFavorite(id),
+        isFavorited: false,
         isInBasket: isRecipeInBasket(id),
         hasFridge: hasUserData
       });
+      // 后台静默更新收藏状态
+      collectionService.isRecipeCollected(Number(id)).then(fav => {
+        if (fav) this.setData({ isFavorited: true });
+      }).catch(() => {});
       return;
     }
 
@@ -483,9 +416,10 @@ Page({
       const { ownedCore, missingCore, ownedOptional, missingOptional } = this._compareIngredientsWithRecipe(userIngredients, recipe.ingredients || []);
       const showCompare = hasUserData && (ownedCore.length > 0 || missingCore.length > 0 || ownedOptional.length > 0 || missingOptional.length > 0);
 
-      // 使用新的多收藏夹系统检查收藏状态
-      const { isRecipeInAnyCollection } = require('../../utils/collections');
-      const isFavorited = isRecipeInAnyCollection(id);
+      // 收藏状态先设 false，后台静默更新
+      collectionService.isRecipeCollected(Number(id)).then(fav => {
+        if (fav) this.setData({ isFavorited: true });
+      }).catch(() => {});
 
       this.setData({
         entryFrom: 'children',
@@ -495,7 +429,7 @@ Page({
         recipeName: recipe.name,
         recipe,
         coverUrl: (recipe && recipe.coverImage) ? String(recipe.coverImage).trim() : '',
-        timeCost: recipe.timeCost != null ? recipe.timeCost : undefined,
+        timeCost: recipe.timeCost ?? null,
         difficultyLabel,
         mealTimeLabel,
         primaryCategoryLabel,
@@ -510,134 +444,42 @@ Page({
         ownedOptional,
         missingOptional,
         missingForBasket: [...missingCore],
-        isFavorited,
+        isFavorited: false,
         isInBasket: isRecipeInBasket(id),
         hasFridge: hasUserData
       });
       return;
     }
 
-    // 步骤1：同步加载本地 recipes.json，立即显示基本数据
-    console.log('[detail] 开始加载本地 recipes.json, id:', id);
-    const t0 = Date.now();
+    // 从后端 API 加载菜谱数据
+    console.log('[detail] 从API加载菜谱, id:', id);
 
-    // 使用统一的加载函数（内部会自动选择 require 或文件系统读取）
-    const localRecipes = loadRecipesJson();
-    const t1 = Date.now();
-    console.log('[detail] loadRecipesJson() 返回，数量:', localRecipes.length, '耗时:', t1 - t0, 'ms');
+    wx.showLoading({ title: '加载中...' });
 
-    let recipe = localRecipes.find((r) => String(r.id).trim() === id);
+    try {
+      const recipes = await loadAllRecipesAsync();
+      wx.hideLoading();
 
-    if (recipe) {
-      console.log('[detail] 从本地 recipes.json 找到菜品:', recipe.name, '总耗时:', Date.now() - t0, 'ms');
-      this._displayRecipeBasic(recipe, id, from);
-      cacheRecipe(recipe);
-    } else {
-      // 本地没有，先显示一个加载中的基本页面
-      console.log('[detail] 本地未找到 id:', id, '，将等待异步加载。总耗时:', Date.now() - t0, 'ms');
-    }
-
-    // 步骤2：后台异步加载云端数据，更新完整信息
-    loadAllRecipesAsync().then(async (cloudRecipes) => {
-      // 从云端数据中查找
-      let fullRecipe = cloudRecipes.find(r => String(r.id) === id);
-
-      // 如果云端有更完整的数据，或者本地没有，用云端数据更新
-      if (fullRecipe && (!recipe || this._isRecipeMoreComplete(fullRecipe, recipe))) {
-        recipe = fullRecipe;
-        cacheRecipe(fullRecipe);
-      }
-
-      // 如果本地和云端都没有，尝试按名称查找
-      if (!recipe) {
-        const cloudRecipe = await getRecipeByNameFromCloud(id);
-        if (cloudRecipe) {
-          recipe = cloudRecipe;
-          cacheRecipe(cloudRecipe);
-        }
-      }
+      let recipe = recipes.find((r) => String(r.id).trim() === id);
 
       if (!recipe) {
+        console.warn('[detail] 未找到菜谱 id:', id);
         safeBackToList(from);
         return;
       }
 
-      // 用完整数据更新页面
+      console.log('[detail] 找到菜谱:', recipe.name);
+      cacheRecipe(recipe);
       this._updateRecipeDisplay(recipe, id, from);
-    }).catch(e => {
-      handleWarning(e, '详情页加载菜谱');
-      if (!recipe) {
-        safeBackToList(from);
-      }
-    });
-  },
-
-  // 检查云端数据是否比本地缓存更完整
-  _isRecipeMoreComplete(cloud: Recipe, local: Recipe): boolean {
-    const hasSteps = (r: Recipe) => Array.isArray(r.steps) && r.steps.length > 0;
-    const hasIngredients = (r: Recipe) => Array.isArray(r.ingredients) && r.ingredients.length > 0;
-    const hasUsage = (r: Recipe) => r.usage && typeof r.usage === 'object' && Object.keys(r.usage).length > 0;
-
-    const localScore = (hasSteps(local) ? 1 : 0) + (hasIngredients(local) ? 1 : 0) + (hasUsage(local) ? 1 : 0);
-    const cloudScore = (hasSteps(cloud) ? 1 : 0) + (hasIngredients(cloud) ? 1 : 0) + (hasUsage(cloud) ? 1 : 0);
-
-    return cloudScore > localScore;
-  },
-
-  // 立即显示菜谱基本信息（不含完整steps/usage等）
-  _displayRecipeBasic(recipe: Recipe, id: string, from: string) {
-    try {
-      wx.setNavigationBarTitle({ title: recipe.name });
-    } catch (_e) {}
-
-    // 读取用户食材并计算对比
-    const userIngredients = this._loadUserIngredients();
-    const hasUserData = userIngredients.length > 0;
-    const recipeIngredients = recipe.ingredients || [];
-    const { ownedCore, missingCore, ownedOptional, missingOptional } = this._compareIngredientsWithRecipe(userIngredients, recipeIngredients);
-    const showCompare = hasUserData && (ownedCore.length > 0 || missingCore.length > 0 || ownedOptional.length > 0 || missingOptional.length > 0);
-
-    // 使用新的多收藏夹系统检查收藏状态
-    const { isRecipeInAnyCollection } = require('../../utils/collections');
-    const isFavorited = isRecipeInAnyCollection(id);
-
-    this.setData({
-      entryFrom: from,
-      isFitnessMeal: false,
-      isChildrenMeal: false,
-      recipeId: id,
-      recipeName: recipe.name,
-      recipe,
-      coverUrl: (recipe && recipe.coverImage) ? String(recipe.coverImage).trim() : '',
-      timeCost: recipe.timeCost != null ? recipe.timeCost : undefined,
-      difficultyLabel: getDifficultyLabel(recipe.difficulty),
-      mealTimeLabel: getMealTimeLabelString(recipe.mealTimes),
-      primaryCategoryLabel: getPrimaryCategoryLabel(recipe.dishTypes, recipe.mealTimes),
-      secondaryCategoryLabels: stripMealTimeFromSecondary(
-        getMealTimeLabelString(recipe.mealTimes),
-        getSecondaryCategoryLabels(recipe.dishTypes, recipe.mealTimes, getPrimaryCategoryLabel(recipe.dishTypes, recipe.mealTimes))
-      ),
-      calories: extractCalories(recipe.description),
-      allIngredients: uniq(recipe.ingredients || []).map((name) => ({
-        name,
-        amount: '适量'
-      })),
-      steps: recipe.steps && recipe.steps.length > 0 ? normalizeStepsForDisplay(recipe.steps, recipe.description) : [],
-      showIngredientCompare: showCompare,
-      userIngredients,
-      ownedCore,
-      missingCore,
-      ownedOptional,
-      missingOptional,
-      missingForBasket: [...missingCore],
-      isFavorited,
-      isInBasket: isRecipeInBasket(id),
-      hasFridge: hasUserData
-    });
+    } catch (e) {
+      wx.hideLoading();
+      console.error('[detail] 菜谱加载失败', e);
+      safeBackToList(from);
+    }
   },
 
   // 用完整数据更新页面显示
-  _updateRecipeDisplay(recipe: Recipe, id: string, from: string) {
+  async _updateRecipeDisplay(recipe: Recipe, id: string, from: string) {
     const usage = recipe.usage;
     const allIngredients = uniq(recipe.ingredients || []).map((name) => ({
       name,
@@ -652,14 +494,18 @@ Page({
     const { ownedCore, missingCore, ownedOptional, missingOptional } = this._compareIngredientsWithRecipe(userIngredients, recipeIngredients);
     const showCompare = hasUserData && (ownedCore.length > 0 || missingCore.length > 0 || ownedOptional.length > 0 || missingOptional.length > 0);
 
-    // 使用新的多收藏夹系统检查收藏状态
-    const { isRecipeInAnyCollection } = require('../../utils/collections');
-    const isFavorited = isRecipeInAnyCollection(id);
+    // 检查收藏状态（静默失败，不影响页面加载）
+    let isFavorited = false;
+    try {
+      isFavorited = await collectionService.isRecipeCollected(Number(id));
+    } catch (_e) { /* 401 或网络错误时保持 false */ }
 
     this.setData({
+      recipeId: String(id),
+      recipeName: recipe.name,
       recipe,
       coverUrl: (recipe && recipe.coverImage) ? String(recipe.coverImage).trim() : '',
-      timeCost: recipe.timeCost != null ? recipe.timeCost : undefined,
+      timeCost: recipe.timeCost ?? null,
       difficultyLabel: getDifficultyLabel(recipe.difficulty),
       mealTimeLabel: getMealTimeLabelString(recipe.mealTimes),
       primaryCategoryLabel: getPrimaryCategoryLabel(recipe.dishTypes, recipe.mealTimes),
@@ -811,53 +657,59 @@ Page({
     const id = this.data.recipeId;
     if (!id) return;
 
-    // 获取当前激活的收藏夹
-    const activeCollection = getActiveCollection();
-    if (!activeCollection) {
-      // 警告：没有收藏夹
-      this.showToast(
-        '请先创建收藏夹',
-        'warning',
-        false,
-        '',
-        2500,
-        'warning'
-      );
+    if (!authService.isLoggedIn()) {
+      authService.requireAuth();
       return;
     }
 
-    // 检查当前菜谱是否已在活跃收藏夹中
-    const isInActiveCollection = isRecipeInCollection(activeCollection.id, id);
+    wx.showLoading({ title: '请稍候...' });
 
-    if (isInActiveCollection) {
-      // 菜谱已在当前收藏夹中，直接取消收藏
-      this.toggleCollectionForRecipe(id, activeCollection.id, true);
-      // 取消收藏：info类型，显示2秒，带删除图标
-      this.showToast('已取消收藏', 'info', false, '', 2000, 'delete');
-    } else {
-      // 菜谱不在当前收藏夹中，直接添加
-      const result = toggleRecipeInCollection(id, activeCollection.id);
+    collectionService.getCollectionsWithCache().then(async (collections) => {
+      wx.hideLoading();
 
-      if (result.success && result.added) {
-        this.setData({ isFavorited: true });
-
-        // 添加收藏成功：success类型，显示3秒（带按钮需要更长时间），带成功图标
-        this.showToast(
-          `已添加到"${result.collectionName}"`,
-          'success',
-          true,
-          '修改',
-          3000,
-          'success'
-        );
-
-        // 触发云端同步
-        const { markCollectionsDirty } = require('../../utils/collections');
-        const { syncDebounced } = require('../../utils/dataSync');
-        markCollectionsDirty();
-        syncDebounced();
+      // 如果没有收藏夹，自动创建一个默认的
+      if (!collections || collections.length === 0) {
+        const createResult = await collectionService.createCollectionCached({
+          name: '我的收藏',
+          description: '默认收藏夹',
+          isPublic: false,
+        });
+        if (!createResult.success) {
+          this.showToast('创建收藏夹失败，请稍后重试', 'warning', false, '', 2000, 'warning');
+          return;
+        }
+        // 重新获取收藏夹列表
+        collections = await collectionService.getCollectionsWithCache();
+        if (!collections || collections.length === 0) {
+          this.showToast('创建收藏夹失败', 'warning', false, '', 2000, 'warning');
+          return;
+        }
       }
-    }
+
+      const defaultCollection = (collections as any[])[0];
+
+      if (this.data.isFavorited) {
+        // 取消收藏：从所有收藏夹中移除
+        for (const col of collections as any[]) {
+          await collectionService.removeFavoriteCached(Number(col.id), Number(id)).catch(() => {});
+        }
+        this.setData({ isFavorited: false });
+        this.showToast('已取消收藏', 'success', false, '', 2000, 'success');
+      } else {
+        // 添加收藏：加入默认收藏夹
+        const result = await collectionService.addFavoriteCached(Number(defaultCollection.id), Number(id));
+        if (result.success) {
+          this.setData({ isFavorited: true });
+          this.showToast(`已收藏到"${defaultCollection.name}"`, 'success', false, '', 2500, 'success');
+        } else {
+          this.showToast(result.message || '收藏失败', 'warning', false, '', 2000, 'warning');
+        }
+      }
+    }).catch((e) => {
+      wx.hideLoading();
+      console.error('[Detail] 收藏操作失败:', e);
+      this.showToast('网络异常，请稍后重试', 'warning', false, '', 2000, 'warning');
+    });
   },
 
   // 长按收藏按钮 - 显示收藏夹选择器
@@ -865,152 +717,94 @@ Page({
     const id = this.data.recipeId;
     if (!id) return;
 
-    // 获取所有收藏夹
-    const collections = getCollections();
-    if (collections.length === 0) {
-      wx.showToast({ title: '请先创建收藏夹', icon: 'none' });
+    if (!authService.isLoggedIn()) {
+      authService.requireAuth();
       return;
     }
 
-    // 获取当前菜品所在的所有收藏夹
-    const {
-      getCollectionsContainingRecipe,
-      isRecipeInCollection
-    } = require('../../utils/collections');
-    const containingCollections = getCollectionsContainingRecipe(id);
+    wx.showLoading({ title: '加载中...' });
 
-    // 构建选择列表
-    const itemList = collections.map(c => {
-      const isIn = containingCollections.some(cc => cc.id === c.id);
-      return {
-        id: c.id,
-        name: c.name,
-        isIn,
-        coverImage: c.coverImage
-      };
-    });
+    collectionService.getCollectionsWithCache().then(async (collections) => {
+      wx.hideLoading();
 
-    // 添加"新建收藏夹"选项
-    itemList.push({
-      id: '__create_new__',
-      name: '+ 新建收藏夹',
-      isIn: false
-    });
-
-    // 显示操作菜单
-    wx.showActionSheet({
-      itemList: itemList.map((item, index) => {
-        if (item.id === '__create_new__') {
-          return item.name;
-        }
-        return item.isIn ? `✓ ${item.name}` : item.name;
-      }),
-      success: (res) => {
-        console.log('[Detail] ActionSheet 选择:', res.tapIndex);
-        const selectedItem = itemList[res.tapIndex];
-        if (!selectedItem) return;
-
-        if (selectedItem.id === '__create_new__') {
-          // 创建新收藏夹
-          console.log('[Detail] 创建新收藏夹');
-          this.showCreateCollectionDialog(id);
-        } else {
-          // 切换该收藏夹的收藏状态
-          console.log('[Detail] 切换收藏状态:', { recipeId: id, collectionId: selectedItem.id, currentlyIn: selectedItem.isIn });
-          this.toggleCollectionForRecipe(id, selectedItem.id, selectedItem.isIn);
-        }
-      },
-      fail: (err) => {
-        console.log('[Detail] ActionSheet 取消或失败:', err.errMsg);
+      if (!collections || collections.length === 0) {
+        wx.showToast({ title: '请先创建收藏夹', icon: 'none' });
+        return;
       }
+
+      const itemList = [
+        ...(collections as any[]).map(c => c.name),
+        '+ 新建收藏夹'
+      ];
+
+      wx.showActionSheet({
+        itemList,
+        itemColor: '#111111',
+        success: async (res) => {
+          if (res.tapIndex === collections.length) {
+            this.showCreateCollectionDialog();
+          } else {
+            wx.showLoading({ title: '收藏中...' });
+            const targetCollection = (collections as any[])[res.tapIndex];
+            const result = await collectionService.addFavoriteCached(Number(targetCollection.id), Number(id));
+            wx.hideLoading();
+            if (result.success) {
+              this.setData({ isFavorited: true });
+              this.showToast(`已添加到"${targetCollection.name}"`, 'success', false, '', 2000, 'success');
+            } else {
+              this.showToast(result.message || '收藏失败', 'warning', false, '', 2000, 'warning');
+            }
+          }
+        },
+        fail: () => {},
+      });
+    }).catch((e) => {
+      wx.hideLoading();
+      console.error('[Detail] 长按收藏失败:', e);
+      this.showToast('网络异常，请稍后重试', 'warning', false, '', 2000, 'warning');
     });
   },
 
   // 显示创建新收藏夹对话框
-  showCreateCollectionDialog(recipeId: string) {
-    console.log('[Detail] 显示创建收藏夹对话框, recipeId:', recipeId);
+  showCreateCollectionDialog() {
+    const id = this.data.recipeId;
+    if (!id) return;
+
     wx.showModal({
       title: '创建新收藏夹',
       editable: true,
       placeholderText: '请输入收藏夹名称',
-      defaultText: '',
-      success: (res) => {
+      success: async (res) => {
         if (res.confirm && res.content) {
-          const { createCollection, addRecipeToCollection } = require('../../utils/collections');
           const name = res.content.trim();
-
           if (!name) {
             this.showToast('名称不能为空', 'warning', false, '', 2500, 'warning');
             return;
           }
 
-          console.log('[Detail] 创建收藏夹:', name);
-          const newCollection = createCollection({ name });
-          console.log('[Detail] 创建结果:', newCollection);
-
-          if (newCollection) {
-            // 创建成功后，将菜谱添加到新收藏夹
-            const addResult = addRecipeToCollection(newCollection.id, recipeId);
-            console.log('[Detail] 添加菜谱到收藏夹结果:', addResult);
-
-            // 更新UI
+          const result = await collectionService.createCollectionCached({ name, isPublic: false });
+          if (result.success && result.collectionId) {
+            await collectionService.addFavoriteCached(result.collectionId, Number(id));
             this.setData({ isFavorited: true });
-            console.log('[Detail] 已设置 isFavorited = true');
-
-            // 显示轻量级提示
-            this.showToast(
-              `已添加到"${name}"`,
-              'success',
-              true,
-              '修改收藏夹',
-              3000,
-              'success'
-            );
-
-            // 触发云端同步
-            const { markCollectionsDirty } = require('../../utils/collections');
-            const { syncDebounced } = require('../../utils/dataSync');
-            markCollectionsDirty();
-            syncDebounced();
+            this.showToast(`已添加到"${name}"`, 'success', false, '', 3000, 'success');
           } else {
-            this.showToast('创建失败', 'warning', false, '', 2500, 'warning');
-            console.error('[Detail] 创建收藏夹失败');
+            this.showToast(result.message || '创建失败', 'warning', false, '', 2500, 'warning');
           }
-        } else {
-          console.log('[Detail] 用户取消创建或输入为空');
         }
       }
     });
   },
 
   // 切换菜谱在指定收藏夹的收藏状态
-  toggleCollectionForRecipe(recipeId: string, collectionId: string, currentlyIn: boolean) {
-    console.log('[Detail] toggleCollectionForRecipe:', { recipeId, collectionId, currentlyIn });
-
-    const {
-      addRecipeToCollection,
-      removeRecipeFromCollection
-    } = require('../../utils/collections');
-
-    let success = false;
+  async toggleCollectionForRecipe(recipeId: string, collectionId: string, currentlyIn: boolean) {
     if (currentlyIn) {
-      // 移除
-      success = removeRecipeFromCollection(collectionId, recipeId);
-      console.log('[Detail] 移除收藏结果:', success);
-      // 显示取消收藏提示（轻量级，自动消失）
+      await collectionService.removeFavoriteCached(Number(collectionId), Number(recipeId));
       this.showToast('已取消收藏', 'info', false, '', 2000, 'delete');
     } else {
-      // 添加
-      success = addRecipeToCollection(collectionId, recipeId);
-      console.log('[Detail] 添加收藏结果:', success);
-      // 添加成功时会触发其他流程，这里不重复显示
+      await collectionService.addFavoriteCached(Number(collectionId), Number(recipeId));
     }
 
-    // 检查是否还在任何收藏夹中
-    const { isRecipeInAnyCollection } = require('../../utils/collections');
-    const isFavorited = isRecipeInAnyCollection(recipeId);
-    console.log('[Detail] 检查收藏状态:', { recipeId, isFavorited });
-
+    const isFavorited = await collectionService.isRecipeCollected(Number(recipeId));
     this.setData({ isFavorited });
   },
 

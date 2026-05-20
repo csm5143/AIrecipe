@@ -2,7 +2,7 @@
  * 内容 API - 对接后端 /v1/app/content
  * 首页 banner、notice、home 数据
  */
-import { get } from './request';
+import { get } from './request.js';
 
 // ============ 类型定义 ============
 

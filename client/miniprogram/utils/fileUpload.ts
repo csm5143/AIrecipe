@@ -3,7 +3,7 @@
  * 使用云函数上传头像到 COS，反馈图片到 feedback 文件夹
  */
 
-import { COS_CONFIG, COS_FOLDERS, getCOSUrl as getCOSUrlFromCos } from './cos';
+import { COS_CONFIG, COS_FOLDERS, getCOSUrl as getCOSUrlFromCos } from './cos.js';
 
 // 云函数返回结果类型
 interface CloudFunctionResult {

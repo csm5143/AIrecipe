@@ -6,8 +6,8 @@ import {
   checkLiked,
   increaseViewCount,
   UserRecipe
-} from '../../../utils/cloudUserRecipe';
-import { addRecipeIngredients } from '../../../utils/shoppingList';
+} from '../../../utils/cloudUserRecipe.js';
+import { addRecipeIngredients } from '../../../utils/shoppingList.js';
 
 Page({
   data: {

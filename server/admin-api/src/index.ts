@@ -5,7 +5,6 @@ import 'reflect-metadata';
 import express, { Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import config from './config';
 import { prisma } from './lib/prisma';
@@ -69,10 +68,6 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// 请求日志
-if (config.app.env !== 'test') {
-  app.use(morgan('combined'));
-}
 app.use(requestLogger);
 
 // 限流
