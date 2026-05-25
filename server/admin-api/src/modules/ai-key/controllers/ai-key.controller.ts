@@ -226,49 +226,56 @@ export async function testAiKey(req: Request, res: Response) {
     return;
   }
 
+  // 自动移除用户多余的后缀路径
+  let base = baseUrl.replace(/\/$/, '');
+  base = base.replace(/\/images\/generations$/, '').replace(/\/chat\/completions$/, '');
+  const isImageModel = /image|dall-e|flux|stable|midjourney/i.test(model);
+
+  const [endpoint, body] = isImageModel
+    ? ['/images/generations', JSON.stringify({ model, prompt: 'test', n: 1, size: '1024x1024' })]
+    : ['/chat/completions', JSON.stringify({ model, messages: [{ role: 'user', content: 'Hi' }], max_tokens: 10 })];
+
   const start = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+
   try {
-    const response = await fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
+    const response = await fetch(`${base}${endpoint}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: 'Hi, respond with just "ok".' }],
-        max_tokens: 10,
-      }),
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body,
+      signal: controller.signal,
     });
+    clearTimeout(timer);
 
     const elapsed = Date.now() - start;
-    const data = await response.json();
+    const text = await response.text();
+    let data: any = {};
+    try { data = JSON.parse(text); } catch (_) {}
 
     if (!response.ok) {
       res.json(success({
         success: false,
         status: response.status,
-        error: data?.error?.message || response.statusText,
+        error: data?.error?.message || text.slice(0, 200),
         elapsed,
       }));
       return;
     }
 
-    const content = data.choices?.[0]?.message?.content || '';
-    const tokens = (data.usage?.prompt_tokens || 0) + (data.usage?.completion_tokens || 0);
+    const result: any = { success: true, model: data.model || model, elapsed };
+    if (isImageModel) {
+      result.response = data?.data?.[0]?.url ? '图片生成接口连接成功' : '已连接';
+    } else {
+      result.response = data?.choices?.[0]?.message?.content?.trim() || '已连接';
+      const tokens = (data.usage?.prompt_tokens || 0) + (data.usage?.completion_tokens || 0);
+      result.tokens = tokens;
+    }
 
-    res.json(success({
-      success: true,
-      model: data.model || model,
-      response: content.trim(),
-      tokens,
-      elapsed,
-    }));
+    res.json(success(result));
   } catch (err: any) {
-    res.json(success({
-      success: false,
-      error: err.message,
-      elapsed: Date.now() - start,
-    }));
+    clearTimeout(timer);
+    const msg = err.name === 'AbortError' ? '连接超时（12s），请检查 baseUrl 和 API 是否可达' : err.message;
+    res.json(success({ success: false, error: msg, elapsed: Date.now() - start }));
   }
 }

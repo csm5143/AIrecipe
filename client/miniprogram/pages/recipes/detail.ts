@@ -20,6 +20,8 @@ import { getFridgeIngredientNames, isInFridge } from '../../utils/fridgeStore.js
 import { collectionService } from '../../utils/services/collectionService.js';
 import { authService } from '../../utils/services/authService.js';
 import { cacheRecipe } from '../../utils/recipeCache.js';
+import * as recipeApi from '../../utils/httpApi/recipe.js';
+import { post } from '../../utils/httpApi/request.js';
 
 const LIST_OPTIONAL_SEASONING_INGREDIENTS: readonly string[] = [];
 
@@ -471,6 +473,9 @@ Page({
       console.log('[detail] 找到菜谱:', recipe.name);
       cacheRecipe(recipe);
       this._updateRecipeDisplay(recipe, id, from);
+
+      // 后台上报浏览量（fire-and-forget）
+      recipeApi.getRecipeDetail(Number(id)).catch(() => {});
     } catch (e) {
       wx.hideLoading();
       console.error('[detail] 菜谱加载失败', e);
@@ -527,6 +532,11 @@ Page({
       isInBasket: isRecipeInBasket(id),
       hasFridge: hasUserData
     });
+
+    // 静默记录浏览历史
+    if (authService.isLoggedIn()) {
+      post('/v1/wx/app/browse-history', { recipeId: Number(id), source: from }, { withToken: true }).catch(() => {});
+    }
   },
 
   onGoBack() {

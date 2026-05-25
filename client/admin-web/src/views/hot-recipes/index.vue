@@ -281,7 +281,7 @@ const statusMap: Record<string, string> = {
 
 function getStatusText(s: string) { return statusMap[s] || s; }
 
-onMounted(() => fetchList());
+onMounted(() => { fetchList(); fetchSetList(); });
 
 async function fetchList() {
   loading.value = true;

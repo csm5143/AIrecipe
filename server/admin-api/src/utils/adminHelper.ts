@@ -36,9 +36,11 @@ export async function addToRecycleBin(
   itemId: number,
   itemData: any,
   reason?: string,
-  expiresDays = 30
+  expiresDays = 30,
+  tx?: any
 ) {
-  await prisma.recycleBin.create({
+  const client = tx || prisma;
+  await client.recycleBin.create({
     data: {
       itemType,
       itemId,

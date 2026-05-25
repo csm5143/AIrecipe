@@ -172,20 +172,23 @@ export async function deleteAdmin(req: Request, res: Response) {
     return;
   }
 
-  // 软删除：只标记 isDeleted = true
-  await prisma.admin.update({
-    where: { id },
-    data: { isDeleted: true },
-  });
-
-  // 清理该管理员在回收站的记录（防止重复入站）
-  await prisma.recycleBin.deleteMany({
-    where: { itemType: 'admin', itemId: id },
-  });
-
   const adminId = getAdminId(req);
   const adminName = getAdminName(req);
-  await addToRecycleBin(adminId, 'admin', id, existing, undefined, 30);
+
+  // Wrap in transaction for atomicity
+  await prisma.$transaction(async (tx) => {
+    await tx.admin.update({
+      where: { id },
+      data: { isDeleted: true },
+    });
+
+    await tx.recycleBin.deleteMany({
+      where: { itemType: 'admin', itemId: id },
+    });
+
+    await addToRecycleBin(adminId, 'admin', id, existing, undefined, 30, tx);
+  });
+
   await createOperationLog(adminId, adminName, 'delete', 'admin', existing.username, `删除了管理员「${existing.username}」`, req.ip || undefined);
 
   res.json(success(null, '删除成功'));

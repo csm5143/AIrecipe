@@ -34,22 +34,22 @@
       <div class="error-suggestions">
         <p class="suggestions-title">您可以尝试</p>
         <div class="suggestions-list">
-          <a href="/dashboard" class="suggestion-link">
+          <router-link to="/dashboard" class="suggestion-link">
             <el-icon><DataLine /></el-icon>
             数据看板
-          </a>
-          <a href="/recipes" class="suggestion-link">
+          </router-link>
+          <router-link to="/recipes" class="suggestion-link">
             <el-icon><Food /></el-icon>
             食谱管理
-          </a>
-          <a href="/users" class="suggestion-link">
+          </router-link>
+          <router-link to="/users" class="suggestion-link">
             <el-icon><User /></el-icon>
             用户管理
-          </a>
-          <a href="/content" class="suggestion-link">
+          </router-link>
+          <router-link to="/content" class="suggestion-link">
             <el-icon><TrendCharts /></el-icon>
             内容运营
-          </a>
+          </router-link>
         </div>
       </div>
     </div>

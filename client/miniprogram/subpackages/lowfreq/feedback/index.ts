@@ -3,9 +3,20 @@
  * 支持提交反馈到云数据库，同时保存到本地
  */
 
-import { getUserType } from '../../../utils/cloudUserData.js';
 import { submitFeedbackToCloud, FEEDBACK_TYPE_MAP, type FeedbackType } from '../../../utils/cloudFeedback.js';
 import { getUserInfo, isFormalUser } from '../../../utils/userAuth.js';
+
+/** 获取用户类型（从 cloudUserData 内联，原云开发模块已移除） */
+function getUserType(): 'none' | 'normal' {
+  try {
+    const raw = wx.getStorageSync('userInfo');
+    if (!raw) return 'none';
+    const info = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return info && info.loginState === true ? 'normal' : 'none';
+  } catch {
+    return 'none';
+  }
+}
 
 interface FeedbackItem {
   id: string;

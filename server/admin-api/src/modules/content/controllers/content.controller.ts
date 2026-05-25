@@ -39,7 +39,7 @@ export async function getBanners(req: Request, res: Response) {
 
 export async function createBanner(req: Request, res: Response) {
   const body = req.body;
-  const { title, imageUrl, linkType, linkValue, sortOrder, status, startTime, endTime } = body;
+  const { title, subtitle, imageUrl, linkType, linkValue, sortOrder, status, platform, startTime, endTime } = body;
 
   if (!title || !imageUrl) {
     res.status(400).json(badRequest('标题和图片不能为空'));
@@ -49,11 +49,13 @@ export async function createBanner(req: Request, res: Response) {
   const result = await prisma.banner.create({
     data: {
       title,
+      subtitle: subtitle || null,
       imageUrl,
       linkType: (linkType as LinkType) || 'NONE',
       linkValue: linkValue || null,
       sortOrder: sortOrder || 0,
       status: (status as ContentStatus) || 'ACTIVE',
+      platform: platform || 'ALL',
       startTime: startTime ? new Date(startTime) : null,
       endTime: endTime ? new Date(endTime) : null,
     },
@@ -75,17 +77,19 @@ export async function updateBanner(req: Request, res: Response) {
     return;
   }
 
-  const { title, imageUrl, linkType, linkValue, sortOrder, status, startTime, endTime } = req.body;
+  const { title, subtitle, imageUrl, linkType, linkValue, sortOrder, status, platform, startTime, endTime } = req.body;
 
   const result = await prisma.banner.update({
     where: { id },
     data: {
       ...(title !== undefined && { title }),
+      ...(subtitle !== undefined && { subtitle }),
       ...(imageUrl !== undefined && { imageUrl }),
       ...(linkType !== undefined && { linkType }),
       ...(linkValue !== undefined && { linkValue }),
       ...(sortOrder !== undefined && { sortOrder }),
       ...(status !== undefined && { status }),
+      ...(platform !== undefined && { platform }),
       ...(startTime !== undefined && { startTime: startTime ? new Date(startTime) : null }),
       ...(endTime !== undefined && { endTime: endTime ? new Date(endTime) : null }),
     },
@@ -167,7 +171,7 @@ export async function createNotice(req: Request, res: Response) {
     data: {
       title,
       content,
-      type: type || 'SYSTEM',
+      type: type || 'NORMAL',
       target: target || 'ALL',
       status: (status as ContentStatus) || 'ACTIVE',
       publishedAt: publishedAt ? new Date(publishedAt) : new Date(),

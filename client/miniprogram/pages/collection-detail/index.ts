@@ -91,36 +91,37 @@ Page({
         return;
       }
 
-      const recipeIds = backendRecipes.map(r => Number(r.id));
-      console.log('[CollectionDetail] 收藏夹有', backendRecipes.length, '道菜，recipeIds:', recipeIds);
+      // 直接用后端返回的菜谱数据，不再依赖本地分页列表
+      const recipes = backendRecipes.map((r: any) => ({
+        id: r.id,
+        name: r.title || r.name || '未知菜谱',
+        coverImage: r.coverImage || '',
+        difficulty: r.difficulty || 'easy',
+        cookingTime: r.cookingTime || r.timeCost || 0,
+        calories: r.calories || 0,
+        description: r.description || '',
+        ingredients: r.ingredients || [],
+        usage: r.usage || {},
+        mealTimes: r.mealTimes || [],
+        dishTypes: r.dishTypes || [],
+        tags: r.tags || [],
+        steps: r.steps || [],
+        nutrition: r.nutrition || {},
+        difficultyLabel: getDifficultyLabel(r.difficulty || 'easy'),
+        mealTimeLabel: getMealTimeLabelString(r.mealTimes || []),
+        primaryCategoryLabel: getPrimaryCategoryLabel(r),
+        secondaryCategoryLabels: getSecondaryCategoryLabels(r),
+        calories: extractCalories(r),
+        isFavorite: true,
+      }));
 
-      let allRecipes = await getGlobalRecipesAsync();
-      if (!allRecipes || !allRecipes.length) {
-        allRecipes = getGlobalRecipes() || [];
-      }
-      console.log('[CollectionDetail] API菜谱数量:', allRecipes.length);
-
-      const enriched = allRecipes
-        .filter(r => recipeIds.includes(Number(r.id)))
-        .map(r => ({
-          ...r,
-          difficultyLabel: getDifficultyLabel(r.difficulty),
-          mealTimeLabel: getMealTimeLabelString(r.mealTimes),
-          primaryCategoryLabel: getPrimaryCategoryLabel(r),
-          secondaryCategoryLabels: getSecondaryCategoryLabels(r),
-          calories: extractCalories(r),
-          isFavorite: true
-        }));
-
-      console.log('[CollectionDetail] 匹配到的菜谱数量:', enriched.length, '/', backendRecipes.length);
-
-      const recipesNotFound = enriched.length === 0 && backendRecipes.length > 0;
+      console.log('[CollectionDetail] 菜谱数量:', recipes.length);
 
       this.setData({
-        recipes: enriched,
-        isEmpty: enriched.length === 0,
+        recipes,
+        isEmpty: recipes.length === 0,
         isLoading: false,
-        recipesNotFound
+        recipesNotFound: false,
       });
     } catch (error) {
       console.error('[CollectionDetail] 加载菜谱失败:', error);

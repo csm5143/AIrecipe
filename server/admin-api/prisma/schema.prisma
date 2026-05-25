@@ -165,6 +165,8 @@ model Recipe {
   isFeatured   Boolean      @default(false)  // 精选推荐
   isHot        Boolean      @default(false)   // 热门
   weight       Int           @default(0)       // 排序权重
+  isAiGenerated Boolean     @default(false)  // AI 生成
+  aiPrompt      String?
   
   publishedAt  DateTime?
   createdAt    DateTime      @default(now())
@@ -485,6 +487,7 @@ model FeedbackReply {
 model Banner {
   id           Int           @id @default(autoincrement())
   title        String
+  subtitle     String?
   imageUrl     String
   linkType     LinkType      @default(NONE)
   linkValue    String?
@@ -504,7 +507,7 @@ model Notice {
   id           Int           @id @default(autoincrement())
   title        String
   content      String
-  type         NoticeType    @default(SYSTEM)
+  type         NoticeType    @default(NORMAL)
   target       NoticeTarget  @default(ALL)
   status       ContentStatus @default(ACTIVE)
   publishedAt  DateTime?
@@ -737,11 +740,20 @@ enum LinkType {
   RECIPE
   PAGE
   LINK
+  WEBVIEW
+  CATEGORY
+  DAILY
+  DISCOVER
+  LIST
+  SEARCH
+  HOT
 }
 
 enum NoticeType {
-  SYSTEM
+  NORMAL
+  IMPORTANT
   ACTIVITY
+  SYSTEM
   UPDATE
   WELCOME
 }

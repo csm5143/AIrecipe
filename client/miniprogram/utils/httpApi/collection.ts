@@ -110,3 +110,14 @@ export async function removeFavorite(collectionId: number, recipeId: number): Pr
   const res = await del(`/v1/wx/app/collections/${collectionId}/items/${recipeId}`, undefined, { withToken: true });
   return { success: res.success, message: res.message || '' };
 }
+
+/**
+ * 批量获取用户所有收藏夹中的菜谱 ID（单次查询，避免 N+1）
+ * 对应后端 GET /v1/wx/app/collected-recipe-ids
+ */
+export async function getCollectedRecipeIds(): Promise<{
+  success: boolean; data?: number[];
+}> {
+  const res = await get<number[]>('/v1/wx/app/collected-recipe-ids', undefined, { withToken: true });
+  return { success: res.success, data: res.data };
+}

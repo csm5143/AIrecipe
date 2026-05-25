@@ -171,6 +171,13 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
+            <el-form-item label="子分类">
+              <el-input v-model="form.subCategory" placeholder="如：叶菜、根茎、瓜果" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :span="12">
             <el-form-item label="状态">
               <el-radio-group v-model="form.status">
                 <el-radio value="ACTIVE">启用</el-radio>
@@ -178,13 +185,13 @@
               </el-radio-group>
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="是否常用食材">
               <el-switch v-model="form.isCommon" />
             </el-form-item>
           </el-col>
+        </el-row>
+        <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="食材图片">
               <div class="ingredient-upload-area">
@@ -332,63 +339,13 @@
     </el-dialog>
 
     <!-- 导出弹窗 -->
-    <el-dialog v-model="exportDialogVisible" title="导出食材" width="480px" :close-on-click-modal="false">
-      <div class="export-dialog-body">
-        <p class="export-tip">
-          共 <strong>{{ pagination.total }}</strong> 条食材数据，将按照当前筛选条件导出
-        </p>
-        <div class="export-format-list">
-          <label
-            class="export-format-item"
-            :class="{ active: exportFormat === 'xlsx' }"
-            @click="exportFormat = 'xlsx'"
-          >
-            <input type="radio" name="exportFormat" value="xlsx" v-model="exportFormat" hidden />
-            <div class="format-icon xlsx-icon"><span>Excel</span></div>
-            <div class="format-info">
-              <span class="format-name">Excel 格式</span>
-              <span class="format-ext">.xlsx</span>
-              <span class="format-desc">支持公式、筛选，适合数据分析</span>
-            </div>
-            <div class="format-check" v-if="exportFormat === 'xlsx'"><el-icon><Check /></el-icon></div>
-          </label>
-
-          <label
-            class="export-format-item"
-            :class="{ active: exportFormat === 'csv' }"
-            @click="exportFormat = 'csv'"
-          >
-            <input type="radio" name="exportFormat" value="csv" v-model="exportFormat" hidden />
-            <div class="format-icon csv-icon"><span>CSV</span></div>
-            <div class="format-info">
-              <span class="format-name">CSV 格式</span>
-              <span class="format-ext">.csv</span>
-              <span class="format-desc">体积更小，兼容所有编辑器</span>
-            </div>
-            <div class="format-check" v-if="exportFormat === 'csv'"><el-icon><Check /></el-icon></div>
-          </label>
-
-          <label
-            class="export-format-item"
-            :class="{ active: exportFormat === 'json' }"
-            @click="exportFormat = 'json'"
-          >
-            <input type="radio" name="exportFormat" value="json" v-model="exportFormat" hidden />
-            <div class="format-icon json-icon"><span>JSON</span></div>
-            <div class="format-info">
-              <span class="format-name">JSON 数据</span>
-              <span class="format-ext">.json</span>
-              <span class="format-desc">保留完整结构，适合程序导入</span>
-            </div>
-            <div class="format-check" v-if="exportFormat === 'json'"><el-icon><Check /></el-icon></div>
-          </label>
-        </div>
-      </div>
-      <template #footer>
-        <el-button @click="exportDialogVisible = false" :disabled="exporting">取消</el-button>
-        <el-button type="primary" :loading="exporting" @click="handleConfirm">确认导出</el-button>
-      </template>
-    </el-dialog>
+    <ExportDialog
+      v-model="exportDialogVisible"
+      name="食材"
+      :total="pagination.total"
+      :exporting="exporting"
+      @confirm="onExportConfirm"
+    />
   </div>
 </template>
 
@@ -399,7 +356,8 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import type { UploadFile, FormInstance, FormRules } from 'element-plus';
 import { ingredientApi, type IngredientRow, type IngredientFormData } from '@/api/ingredient';
 import { uploadIngredient } from '@/api/upload';
-import { useExport, downloadFile } from '@/composables/useExport';
+import { useExport, downloadFile, type ExportFormat } from '@/composables/useExport';
+import ExportDialog from '@/components/common/ExportDialog.vue';
 import { usePreferences } from '@/composables/usePreferences';
 
 const { defaultPageSize } = usePreferences();
@@ -452,6 +410,7 @@ const selectedRows = ref<IngredientRow[]>([]);
 const form = reactive<IngredientFormData & { coverImage?: string }>({
   name: '',
   category: 'vegetable',
+  subCategory: '',
   alias: '',
   isCommon: false,
   status: 'ACTIVE',
@@ -540,6 +499,7 @@ function handleCreate() {
   Object.assign(form, {
     name: '',
     category: 'vegetable',
+    subCategory: '',
     alias: '',
     isCommon: false,
     status: 'ACTIVE',
@@ -582,6 +542,7 @@ async function handleSave() {
     const data: IngredientFormData & { coverImage?: string } = {
       name: form.name,
       category: form.category,
+      subCategory: form.subCategory || undefined,
       alias: form.alias,
       isCommon: form.isCommon,
       status: form.status,
@@ -723,6 +684,11 @@ async function handleExport() {
     total: pagination.total,
     exportFn: (format) => downloadFile('/ingredients/export', params, format),
   });
+}
+
+function onExportConfirm(format: ExportFormat) {
+  exportFormat.value = format;
+  handleConfirm();
 }
 
 onMounted(() => {
@@ -1194,108 +1160,6 @@ $radius: 8px;
   .dialog-footer-bar {
     justify-content: center;
   }
-}
-
-// ============================================================
-// 导出弹窗
-// ============================================================
-
-.export-dialog-body {
-  padding: 8px 4px;
-}
-
-.export-tip {
-  color: rgba(38, 37, 30, 0.6);
-  font-size: 13px;
-  margin-bottom: 20px;
-
-  strong {
-    color: var(--cursor-orange);
-    font-weight: 600;
-  }
-}
-
-.export-format-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.export-format-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
-  border: 1.5px solid var(--border-primary);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-  user-select: none;
-
-  &:hover {
-    border-color: var(--cursor-orange);
-    background: rgba(245, 111, 32, 0.04);
-  }
-
-  &.active {
-    border-color: var(--cursor-orange);
-    background: rgba(245, 111, 32, 0.06);
-
-    .format-icon {
-      opacity: 1;
-    }
-  }
-}
-
-.format-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 13px;
-  flex-shrink: 0;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-  color: #fff;
-
-  &.xlsx-icon { background: #1d7a3d; }
-  &.csv-icon { background: #3a6e38; }
-  &.json-icon { background: #c47f17; }
-}
-
-.format-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.format-name {
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--cursor-dark);
-  font-family: var(--font-display);
-}
-
-.format-ext {
-  font-size: 11px;
-  color: rgba(38, 37, 30, 0.4);
-  font-family: monospace;
-}
-
-.format-desc {
-  font-size: 12px;
-  color: rgba(38, 37, 30, 0.5);
-  margin-top: 2px;
-}
-
-.format-check {
-  color: var(--cursor-orange);
-  font-size: 18px;
-  flex-shrink: 0;
 }
 
 .ingredient-upload-area {

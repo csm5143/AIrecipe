@@ -93,9 +93,9 @@ export async function removeFeaturedRecipe(req: Request, res: Response) {
 
 export async function updateFeaturedWeight(req: Request, res: Response) {
   const id = parseInt(req.params.id);
-  const { weight } = req.body as { weight: number };
+  const { weight, note } = req.body as { weight: number; note?: string };
 
-  if (Number.isNaN(weight)) {
+  if (weight !== undefined && Number.isNaN(weight)) {
     res.status(400).json(badRequest('weight 参数无效'));
     return;
   }
@@ -106,8 +106,11 @@ export async function updateFeaturedWeight(req: Request, res: Response) {
     return;
   }
 
-  await prisma.featuredRecipe.update({ where: { id }, data: { weight } });
-  res.json(success(null, '权重已更新'));
+  const data: any = {};
+  if (weight !== undefined) data.weight = weight;
+  if (note !== undefined) data.note = note;
+  await prisma.featuredRecipe.update({ where: { id }, data });
+  res.json(success(null, '已更新'));
 }
 
 export async function batchUpdateWeight(req: Request, res: Response) {
@@ -145,7 +148,7 @@ export async function getHotRecipes(req: Request, res: Response) {
       where: { ...where, isDeleted: false },
       skip: (page - 1) * pageSize,
       take: pageSize,
-      orderBy: { viewCount: 'desc' },
+      orderBy: [{ viewCount: 'desc' }, { collectCount: 'desc' }],
       select: {
         id: true,
         title: true,
@@ -177,15 +180,26 @@ export async function toggleHot(req: Request, res: Response) {
 }
 
 export async function batchToggleHot(req: Request, res: Response) {
-  const { ids, isHot } = req.body as { ids: number[]; isHot: boolean };
+  try {
+    const { ids, isHot } = req.body as { ids: number[]; isHot: boolean };
 
-  if (!Array.isArray(ids) || ids.length === 0) {
-    res.status(400).json(badRequest('请传入有效的 id 列表'));
-    return;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      res.status(400).json(badRequest('请传入有效的 id 列表'));
+      return;
+    }
+
+    const intIds = ids.map((id: any) => parseInt(id)).filter((id: number) => !isNaN(id));
+    if (intIds.length === 0) {
+      res.status(400).json(badRequest('id 列表无效'));
+      return;
+    }
+
+    await prisma.recipe.updateMany({ where: { id: { in: intIds } }, data: { isHot } });
+    res.json(success({ count: intIds.length, isHot }, isHot ? '已设为热门' : '已取消热门'));
+  } catch (error: any) {
+    console.error('[Featured] batchToggleHot 失败:', error);
+    res.status(500).json(badRequest(error?.message || '操作失败'));
   }
-
-  await prisma.recipe.updateMany({ where: { id: { in: ids } }, data: { isHot } });
-  res.json(success({ count: ids.length, isHot }, `已对 ${ids.length} 条菜谱设为热门`));
 }
 
 // ---
@@ -233,7 +247,7 @@ export async function getAllRecipesForHot(req: Request, res: Response) {
       where,
       skip: (page - 1) * pageSize,
       take: pageSize,
-      orderBy: { viewCount: 'desc' },
+      orderBy: [{ viewCount: 'desc' }, { collectCount: 'desc' }],
       select: {
         id: true,
         title: true,

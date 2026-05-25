@@ -9,6 +9,7 @@ import {
   type MergedIngredient
 } from './ingredientMerge.js';
 import { SEASONING_INGREDIENTS } from './constants.js';
+import { post, get, del } from './httpApi/request.js';
 
 /** 与菜谱列表一致的调料判定，并补充常见写法（蒜末、代糖等） */
 const EXTRA_SEASONING_NAMES: string[] = [
@@ -87,6 +88,44 @@ function load(): BasketRecipeEntry[] {
 
 function save(entries: BasketRecipeEntry[]) {
   wx.setStorageSync(STORAGE_KEY, JSON.stringify(entries));
+  // 后台静默同步到服务端
+  syncBasketToServer().catch(() => {});
+}
+
+// ============ 服务端同步 ============
+
+/** 将整个小菜篮同步到服务端 */
+export async function syncBasketToServer(): Promise<boolean> {
+  try {
+    const basket = load();
+    if (basket.length === 0) {
+      // 小菜篮为空，删除服务端所有清单
+      const res = await get<{ id: number }[]>('/v1/wx/app/shopping-lists', {}, { withToken: true });
+      if (res.success && res.data) {
+        for (const list of res.data) {
+          await del(`/v1/wx/app/shopping-lists/${list.id}`, {}, { withToken: true });
+        }
+      }
+      return true;
+    }
+
+    for (const entry of basket) {
+      await post('/v1/wx/app/shopping-lists', {
+        name: entry.recipeName,
+        recipeId: parseInt(entry.recipeId) || undefined,
+        items: entry.ingredients.map(i => ({
+          name: i.name,
+          amount: i.amount,
+          unit: '适量',
+          category: '',
+        })),
+      }, { withToken: true });
+    }
+    return true;
+  } catch (e) {
+    console.warn('[ShoppingList] 同步到服务端失败', e);
+    return false;
+  }
 }
 
 // ── 公开 API ─────────────────────────────────────────────

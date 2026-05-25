@@ -3,6 +3,7 @@ import { Recipe } from '../../../types/index';
 import { getGlobalRecipesAsync, getGlobalRecipes } from '../../../utils/httpServices/recipeService';
 import { extractCalories } from '../../../utils/recipeUtils';
 import { getDifficultyLabel } from '../../../utils/labels.js';
+import { get } from '../../../utils/httpApi/request.js';
 
 interface RecipeItem {
   id: string;
@@ -57,37 +58,35 @@ Page({
     // 根据日期生成稳定的随机种子
     const todaySeed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
 
-    // 从后端 API 加载菜谱
-    let allRecipes: Recipe[] = [];
+    // 从推荐 API 加载精选菜谱
+    let recipes: any[] = [];
     try {
-      allRecipes = await getGlobalRecipesAsync();
+      const res = await get<any[]>('/v1/app/content/daily-recommend', { limit: 18 });
+      if (res.success && res.data && res.data.length > 0) {
+        recipes = res.data;
+      }
     } catch (e) {
       console.warn('[每日推荐] API加载失败', e);
     }
-    if (!allRecipes || !allRecipes.length) {
-      allRecipes = getGlobalRecipes() || [];
+    // Fallback: 降级到本地菜谱池
+    if (!recipes.length) {
+      let allRecipes: Recipe[] = [];
+      try { allRecipes = await getGlobalRecipesAsync(); } catch (e) { /* ok */ }
+      if (!allRecipes || !allRecipes.length) allRecipes = getGlobalRecipes() || [];
+      recipes = allRecipes.filter((r: Recipe) => {
+        const img = r.coverImage || '';
+        return img.length > 0 && !img.includes('dummyimage');
+      }).slice(0, 18);
     }
-    if (!allRecipes || !allRecipes.length) {
-      this.setData({ dateStr, recipeCount: 0, coverImage: '', recipes: [] });
-      return;
-    }
-
-    // 只保留有真实图片的菜谱
-    const withImage = allRecipes.filter((r: Recipe) => {
-      const img = r.coverImage || '';
-      return img.length > 0 && !img.includes('dummyimage');
-    });
-    if (!withImage.length) {
+    if (!recipes.length) {
       this.setData({ dateStr, recipeCount: 0, coverImage: '', recipes: [] });
       return;
     }
 
     // 存储所有菜谱用于后续操作
-    this.setData({ _allRecipes: allRecipes });
+    this.setData({ _allRecipes: recipes });
 
-    // 使用日期种子打乱有图菜品顺序，然后取前 18 道
-    const shuffled = this._shuffleWithSeed([...withImage], todaySeed);
-    const selected = shuffled.slice(0, 18);
+    const selected = recipes.slice(0, 18);
 
     // 封面图片（取第一道菜的封面作为主图，无图则用 fallback）
     const firstItem = selected[0];
@@ -108,7 +107,7 @@ Page({
         difficultyLabel: getDifficultyLabel(difficulty),
         difficultyClass: difficulty,
         calories: extractCalories(r.description || ''),
-        sceneLabel: this._getSceneLabel(r)
+        sceneLabel: r.sceneLabel || this._getSceneLabel(r)
       };
     });
 
@@ -127,7 +126,7 @@ Page({
             difficultyLabel: getDifficultyLabel(difficulty),
             difficultyClass: difficulty,
             calories: extractCalories(r.description || ''),
-            sceneLabel: this._getSceneLabel(r)
+            sceneLabel: r.sceneLabel || this._getSceneLabel(r)
           };
         })()
       : null;

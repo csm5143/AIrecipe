@@ -192,11 +192,13 @@ export function parseAmount(raw: string): ParsedAmount {
   // 匹配数字 + 单位
   // 支持: "250g", "250 g", "250克", "3个", "2-3瓣", "1/2杯", "半个"
   const patterns = [
+    // 半个、半 + 可选单位（必须放在最前面优先匹配）
+    /^(半个|半)\s*(g|kg|ml|L|克|千克|毫升|升|个|只|头|瓣|片|根|把|勺|汤勺|茶匙|小勺|大勺|杯|碗|瓶|袋|包|颗|粒|块|条|段|节|两|钱)?$/i,
     // 数字 + 单位: 250g, 250 g, 250克, 3个
     /^([\d.]+)\s*(g|kg|ml|L|克|千克|毫升|升|个|只|头|瓣|片|根|把|勺|汤勺|茶匙|小勺|大勺|杯|碗|瓶|袋|包|颗|粒|块|条|段|节|两|钱)?$/i,
     // 范围: 2-3, 1.5-2.5
     /^([\d.]+)[\-~至]([\d.]+)\s*(g|kg|ml|L|克|千克|毫升|升|个|只|头|瓣|片|根|把|勺|汤勺|茶匙|杯|碗|瓶|袋|包|颗|粒|块|条|两)?$/i,
-    // 分数或文字: 1/2, 半个, 二分之一
+    // 分数或文字: 1/2, 二分之一
     /^(二分之一|1\/2|½)\s*(个|杯|碗|勺|克|g|ml)?$/i,
     // 纯数字（如只有数字）
     /^(\d+\.?\d*)$/i,
@@ -208,7 +210,11 @@ export function parseAmount(raw: string): ParsedAmount {
       let number: number | null = null;
       let unit = '';
       
-      if (pattern.source.startsWith('^([\\d.]+)\\s')) {
+      if (pattern.source.startsWith('^(半个|半)')) {
+        // 半个、半 + 单位
+        number = 0.5;
+        unit = UNIT_ALIASES[match[2] || ''] || match[2] || '';
+      } else if (pattern.source.startsWith('^([\\d.]+)\\s')) {
         // 数字 + 单位
         number = parseFloat(match[1]);
         unit = UNIT_ALIASES[match[2] || ''] || match[2] || '';

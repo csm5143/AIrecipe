@@ -66,10 +66,4 @@ export const systemApi = {
 
   updateSettings: (category: keyof SystemSettings, data: any) =>
     request.put<ApiResponse<null>>(`/system/settings/${category}`, data),
-
-  getAiSettings: () =>
-    request.get<ApiResponse<AiSettings>>('/system/settings/ai'),
-
-  updateAiSettings: (data: AiSettings) =>
-    request.put<ApiResponse<AiSettings>>('/system/settings/ai', data),
 };

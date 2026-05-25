@@ -14,11 +14,14 @@
     <div class="card-container">
       <div class="filter-section">
         <div class="filter-left">
-          <el-select v-model="filters.adminId" placeholder="选择管理员" clearable style="width: 140px">
+          <el-select v-model="filters.adminId" placeholder="选择管理员" clearable style="width: 160px">
             <el-option label="全部" value="" />
-            <el-option label="超级管理员" value="1" />
-            <el-option label="内容编辑" value="2" />
-            <el-option label="运营经理" value="3" />
+            <el-option
+              v-for="admin in adminList"
+              :key="admin.id"
+              :label="admin.nickname || admin.username"
+              :value="String(admin.id)"
+            />
           </el-select>
           <el-select v-model="filters.module" placeholder="模块" clearable style="width: 120px">
             <el-option label="全部" value="" />
@@ -121,6 +124,7 @@ import { ref, reactive, onMounted, watch } from 'vue';
 import { Search, Refresh, Download } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { logsApi } from '@/api/logs';
+import { adminApi } from '@/api/admin';
 import { usePreferences } from '@/composables/usePreferences';
 
 const { defaultPageSize } = usePreferences();
@@ -139,6 +143,21 @@ const pagination = reactive({
 });
 
 const tableData = ref<any[]>([]);
+const adminList = ref<Array<{ id: number; username: string; nickname?: string }>>([]);
+
+async function fetchAdmins() {
+  try {
+    const res = await adminApi.list({ page: 1, pageSize: 100 });
+    const data = res.data ?? {};
+    adminList.value = (data.list ?? []).map((a: any) => ({
+      id: a.id,
+      username: a.username,
+      nickname: a.nickname,
+    }));
+  } catch {
+    // admin list is non-critical; leave empty
+  }
+}
 
 function getActionText(action: string) {
   const map: Record<string, string> = {
@@ -209,7 +228,7 @@ function handleExport() {
   ElMessage.success('导出功能开发中');
 }
 
-onMounted(() => fetchLogs());
+onMounted(() => { fetchLogs(); fetchAdmins(); });
 </script>
 
 <style scoped lang="scss">

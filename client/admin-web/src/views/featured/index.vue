@@ -278,9 +278,10 @@ async function handleWeightChange(row: FeaturedRecipeItem) {
 
 async function handleNoteChange(row: FeaturedRecipeItem) {
   try {
-    await featuredApi.updateWeight(row.id, row.weight);
-  } catch {
-    // silently update note along with weight
+    await featuredApi.updateWeight(row.id, row.weight, row.note);
+    ElMessage.success('备注已保存');
+  } catch (e: any) {
+    ElMessage.error(e?.message || '保存失败');
   }
 }
 

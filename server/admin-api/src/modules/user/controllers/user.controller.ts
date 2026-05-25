@@ -81,7 +81,8 @@ export async function getUsers(req: Request, res: Response) {
         bio: true,
         createdAt: true,
         lastLoginAt: true,
-        _count: { select: { feedbacks: true, favorites: true } },
+        _count: { select: { feedbacks: true } },
+        collections: { select: { items: { select: { id: true } } } },
       },
     }),
     prisma.user.count({ where }),
@@ -89,7 +90,7 @@ export async function getUsers(req: Request, res: Response) {
 
   const list = users.map(u => ({
     ...u,
-    collectionCount: u._count.favorites,
+    collectionCount: u.collections.reduce((sum, c) => sum + c.items.length, 0),
     feedbackCount: u._count.feedbacks,
     createdAt: u.createdAt.toISOString().slice(0, 16).replace('T', ' '),
     lastLoginAt: u.lastLoginAt?.toISOString().slice(0, 16).replace('T', ' ') || '',
@@ -103,14 +104,16 @@ export async function getUserById(req: Request, res: Response) {
   const user = await prisma.user.findUnique({
     where: { id, deletedAt: null },
     include: {
-      favorites: {
-        take: 20,
-        orderBy: { createdAt: 'desc' },
-        include: { recipe: { select: { id: true, title: true, coverImage: true } } },
-      },
       collections: {
         orderBy: { createdAt: 'desc' },
-        include: { _count: { select: { items: true } } },
+        include: {
+          _count: { select: { items: true } },
+          items: {
+            take: 50,
+            orderBy: { createdAt: 'desc' },
+            include: { recipe: { select: { id: true, title: true, coverImage: true } } },
+          },
+        },
       },
       fridgeItems: {
         take: 50,
@@ -126,17 +129,45 @@ export async function getUserById(req: Request, res: Response) {
         orderBy: { createdAt: 'desc' },
         include: { recipe: { select: { id: true, title: true, coverImage: true } } },
       },
+      feedbacks: {
+        take: 20,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          replies: {
+            orderBy: { createdAt: 'asc' },
+            include: { admin: { select: { nickname: true } } },
+          },
+        },
+      },
       notifications: {
         take: 10,
         orderBy: { createdAt: 'desc' },
       },
-      _count: { select: { feedbacks: true, favorites: true, fridgeItems: true, aiScans: true } },
+      _count: { select: { feedbacks: true, fridgeItems: true, aiScans: true } },
     },
   });
   if (!user) {
     res.status(404).json(notFound('用户不存在'));
     return;
   }
+  // 从所有收藏夹中提取收藏的菜谱（去重）
+  const allCollectedRecipes = new Map<number, any>();
+  user.collections.forEach(c => {
+    c.items.forEach(item => {
+      if (item.recipe && !allCollectedRecipes.has(item.recipe.id)) {
+        allCollectedRecipes.set(item.recipe.id, {
+          id: item.id,
+          recipeId: item.recipe.id,
+          recipeTitle: item.recipe.title || '',
+          recipeCover: item.recipe.coverImage || '',
+          createdAt: item.createdAt.getTime(),
+        });
+      }
+    });
+  });
+
+  const totalCollectionItems = user.collections.reduce((sum, c) => sum + c.items.length, 0);
+
   res.json(success({
     id: user.id,
     nickname: user.nickname,
@@ -147,24 +178,18 @@ export async function getUserById(req: Request, res: Response) {
     bio: user.bio,
     createdAt: user.createdAt.toISOString().slice(0, 16).replace('T', ' '),
     lastLoginAt: user.lastLoginAt?.toISOString().slice(0, 16).replace('T', ' ') || '',
-    collectionCount: user._count.favorites,
+    collectionCount: totalCollectionItems,
     feedbackCount: user._count.feedbacks,
     fridgeCount: user._count.fridgeItems,
     aiScanCount: user._count.aiScans,
-    favorites: user.favorites.map(f => ({
-      id: f.id,
-      recipeId: f.recipeId,
-      recipeTitle: f.recipe?.title || '',
-      recipeCover: f.recipe?.coverImage || '',
-      createdAt: f.createdAt.getTime(),
-    })),
+    favorites: Array.from(allCollectedRecipes.values()),
     collections: user.collections.map(c => ({
       id: c.id,
       name: c.name,
       description: c.description,
       coverImage: c.coverImage,
       isPublic: c.isPublic,
-      itemCount: c._count.items,
+      itemCount: c.items.length,
       createdAt: c.createdAt.toISOString().slice(0, 16).replace('T', ' '),
     })),
     fridgeItems: user.fridgeItems.map(fi => ({
@@ -194,6 +219,21 @@ export async function getUserById(req: Request, res: Response) {
       content: n.content,
       isRead: n.isRead,
       createdAt: n.createdAt.toISOString().slice(0, 16).replace('T', ' '),
+    })),
+    feedbacks: user.feedbacks.map(f => ({
+      id: f.id,
+      type: f.type,
+      content: f.content,
+      contact: f.contact || '',
+      images: (f.images as string[]) || [],
+      status: f.status,
+      createdAt: f.createdAt.toISOString().slice(0, 16).replace('T', ' '),
+      replies: (f.replies || []).map(r => ({
+        id: r.id,
+        adminName: r.admin?.nickname || '管理员',
+        content: r.content,
+        createdAt: r.createdAt.toISOString().slice(0, 16).replace('T', ' '),
+      })),
     })),
   }));
 }

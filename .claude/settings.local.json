@@ -15,7 +15,20 @@
       "Bash(sed -i \"s/loadRecipesJson\\(\\)/getGlobalRecipes\\(\\) || []/g\" utils/recipeSearch.ts)",
       "Bash(sed -i \"s/import { loadIngredientsJson } from '.\\\\/dataLoader.js';/import { getGlobalRecipes } from '.\\\\/httpServices\\\\/recipeService.js';/\" utils/fallbackIngredients.ts)",
       "Bash(sed -i \"s/import { loadRecipesJson } from '..\\\\/..\\\\/utils\\\\/dataLoader.js';/import { getGlobalRecipes } from '..\\\\/..\\\\/utils\\\\/httpServices\\\\/recipeService.js';/\" pages/index/index.ts)",
-      "Bash(sed -i \"s/loadRecipesJson\\(\\)/getGlobalRecipes\\(\\) || []/g\" pages/index/index.ts)"
+      "Bash(sed -i \"s/loadRecipesJson\\(\\)/getGlobalRecipes\\(\\) || []/g\" pages/index/index.ts)",
+      "Bash(pnpm dev *)",
+      "Bash(curl -s http://localhost:3000/v1/auth/login -X POST -H \"Content-Type: application/json\" -d \"{\\\\\"username\\\\\":\\\\\"admin\\\\\",\\\\\"password\\\\\":\\\\\"admin123\\\\\"}\")",
+      "Bash(curl -s http://localhost:3000/v1/admin/recipes?page=1\\\\&pageSize=5 -H \"Content-Type: application/json\")",
+      "Bash(curl -s 'http://localhost:3000/v1/recipes?page=1&pageSize=5' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJhZG1pbiIsInJvbGUiOiJTVVBFUl9BRE1JTiIsImlhdCI6MTc3OTMyNjc1MiwiZXhwIjoxNzc5OTMxNTUyfQ.IDaLVkqf3d1ZMl43BQokjRgFjGbzvgJAHkSVFFCXj-A')",
+      "Bash(curl -s 'http://localhost:3000/v1/users?page=1&pageSize=5' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJhZG1pbiIsInJvbGUiOiJTVVBFUl9BRE1JTiIsImlhdCI6MTc3OTMyNjc1MiwiZXhwIjoxNzc5OTMxNTUyfQ.IDaLVkqf3d1ZMl43BQokjRgFjGbzvgJAHkSVFFCXj-A')",
+      "Bash(curl -s 'http://localhost:3000/v1/ingredients?page=1&pageSize=5' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJhZG1pbiIsInJvbGUiOiJTVVBFUl9BRE1JTiIsImlhdCI6MTc3OTMyNjc1MiwiZXhwIjoxNzc5OTMxNTUyfQ.IDaLVkqf3d1ZMl43BQokjRgFjGbzvgJAHkSVFFCXj-A')",
+      "Bash(npx tsc *)",
+      "Bash(curl -s http://localhost:3000/v1/users/1 -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJhZG1pbiIsInJvbGUiOiJTVVBFUl9BRE1JTiIsImlhdCI6MTc3OTMzMzU5OSwiZXhwIjoxNzc5OTM4Mzk5fQ.3ppMwvn8pU5NK2e_a6VUKY1Wj4lzNHcVDYyZzKeRd2I')",
+      "Bash(curl -s 'http://localhost:3000/v1/users?page=1&pageSize=5' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJhZG1pbiIsInJvbGUiOiJTVVBFUl9BRE1JTiIsImlhdCI6MTc3OTMzMzU5OSwiZXhwIjoxNzc5OTM4Mzk5fQ.3ppMwvn8pU5NK2e_a6VUKY1Wj4lzNHcVDYyZzKeRd2I')",
+      "Bash(npx prisma *)",
+      "Bash(taskkill //f //im node.exe)",
+      "Bash(curl -s -X POST http://localhost:3000/v1/auth/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"admin123\"}')",
+      "Bash(curl *)"
     ]
   }
 }

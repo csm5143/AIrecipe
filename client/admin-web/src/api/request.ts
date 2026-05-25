@@ -2,6 +2,9 @@ import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestCo
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/v1';
 
+/** 防止并发 401 触发多次 refresh 调用 */
+let refreshPromise: Promise<any> | null = null;
+
 const request: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 15000,
@@ -59,9 +62,20 @@ request.interceptors.response.use(
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
         try {
-          const res = await axios.post(`${BASE_URL}/auth/refresh-token`, { refreshToken });
-          const { token } = res.data.data;
-          localStorage.setItem('token', token);
+          // 防止并发 401 触发多次 refresh 调用
+          if (!refreshPromise) {
+            refreshPromise = axios
+              .post(`${BASE_URL}/auth/refresh-token`, { refreshToken })
+              .then((res) => {
+                const { token } = res.data.data;
+                localStorage.setItem('token', token);
+                return token;
+              })
+              .finally(() => {
+                refreshPromise = null;
+              });
+          }
+          const token = await refreshPromise;
           if (error.config && error.config.headers) {
             error.config.headers.Authorization = `Bearer ${token}`;
             return request(error.config);

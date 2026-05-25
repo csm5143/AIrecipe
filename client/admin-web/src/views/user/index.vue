@@ -67,11 +67,11 @@
             <span class="text-mono">{{ row.phone || '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="gender" label="性别" width="60" align="center">
+        <el-table-column prop="gender" label="性别" width="80" align="center">
           <template #default="{ row }">
-            <span class="cursor-pill" :class="row.gender === 'MALE' ? 'info' : row.gender === 'FEMALE' ? 'success' : ''">
-              {{ row.gender === 'MALE' ? '男' : row.gender === 'FEMALE' ? '女' : '-' }}
-            </span>
+            <el-tag v-if="row.gender === 'MALE'" size="small" type="primary">男</el-tag>
+            <el-tag v-else-if="row.gender === 'FEMALE'" size="small" type="danger">女</el-tag>
+            <span v-else class="text-muted">-</span>
           </template>
         </el-table-column>
         <el-table-column label="简介" min-width="160">
@@ -139,6 +139,8 @@
           :page-sizes="[10, 20, 50, 100]"
           layout="sizes, prev, pager, next"
           background
+          @size-change="handlePageSizeChange"
+          @current-change="handlePageChange"
         />
       </div>
     </div>
@@ -386,6 +388,44 @@
             </div>
           </el-tab-pane>
 
+          <!-- 反馈记录 -->
+          <el-tab-pane label="反馈记录" name="feedbacks">
+            <div v-if="userDetailData.feedbacks?.length" class="feedback-list">
+              <div v-for="fb in userDetailData.feedbacks" :key="fb.id" class="feedback-item">
+                <div class="feedback-head">
+                  <span class="feedback-type">
+                    <el-tag size="small" :type="fb.type === 'BUG' ? 'danger' : fb.type === 'SUGGESTION' ? 'warning' : 'info'">
+                      {{ fb.type === 'BUG' ? '问题' : fb.type === 'SUGGESTION' ? '建议' : fb.type === 'FEATURE' ? '需求' : fb.type }}
+                    </el-tag>
+                  </span>
+                  <span class="feedback-status">
+                    <el-tag size="small" :type="fb.status === 'RESOLVED' ? 'success' : fb.status === 'PENDING' ? 'warning' : 'info'">
+                      {{ fb.status === 'RESOLVED' ? '已解决' : fb.status === 'PENDING' ? '处理中' : fb.status === 'REJECTED' ? '已拒绝' : fb.status }}
+                    </el-tag>
+                  </span>
+                  <span class="feedback-time">{{ fb.createdAt }}</span>
+                </div>
+                <div class="feedback-content">{{ fb.content }}</div>
+                <div v-if="fb.contact" class="feedback-contact">联系方式：{{ fb.contact }}</div>
+                <div v-if="fb.images?.length" class="feedback-images">
+                  <image v-for="(img, idx) in fb.images" :key="idx" :src="getFullImageUrl(img)" mode="aspectFill" class="feedback-thumb" />
+                </div>
+                <!-- 管理员回复 -->
+                <div v-if="fb.replies?.length" class="feedback-replies">
+                  <div v-for="r in fb.replies" :key="r.id" class="reply-item">
+                    <span class="reply-admin">{{ r.adminName }}</span>
+                    <span class="reply-content">{{ r.content }}</span>
+                    <span class="reply-time">{{ r.createdAt }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="empty-tab">
+              <el-icon><ChatDotRound /></el-icon>
+              <span>暂无反馈</span>
+            </div>
+          </el-tab-pane>
+
           <!-- 通知记录 -->
           <el-tab-pane label="通知记录" name="notifications">
             <div v-if="userDetailData.notifications?.length" class="notification-list">
@@ -411,65 +451,13 @@
     </el-drawer>
 
     <!-- 导出弹窗 -->
-    <el-dialog v-model="exportDialogVisible" title="导出用户" width="480px" :close-on-click-modal="false">
-      <div class="export-dialog-body">
-        <p class="export-tip">
-          共 <strong>{{ pagination.total }}</strong> 条用户数据，将按照当前筛选条件导出
-        </p>
-        <div class="export-format-list">
-          <label
-            class="export-format-item"
-            :class="{ active: exportFormat === 'xlsx' }"
-            @click="exportFormat = 'xlsx'"
-          >
-            <input type="radio" name="exportFormat" value="xlsx" v-model="exportFormat" hidden />
-            <div class="format-icon xlsx-icon"><span>Excel</span></div>
-            <div class="format-info">
-              <span class="format-name">Excel 格式</span>
-              <span class="format-ext">.xlsx</span>
-              <span class="format-desc">支持公式、筛选，适合数据分析</span>
-            </div>
-            <div class="format-check" v-if="exportFormat === 'xlsx'"><el-icon><Check /></el-icon></div>
-          </label>
-
-          <label
-            class="export-format-item"
-            :class="{ active: exportFormat === 'csv' }"
-            @click="exportFormat = 'csv'"
-          >
-            <input type="radio" name="exportFormat" value="csv" v-model="exportFormat" hidden />
-            <div class="format-icon csv-icon"><span>CSV</span></div>
-            <div class="format-info">
-              <span class="format-name">CSV 格式</span>
-              <span class="format-ext">.csv</span>
-              <span class="format-desc">体积更小，兼容所有编辑器</span>
-            </div>
-            <div class="format-check" v-if="exportFormat === 'csv'"><el-icon><Check /></el-icon></div>
-          </label>
-
-          <label
-            class="export-format-item"
-            :class="{ active: exportFormat === 'json' }"
-            @click="exportFormat = 'json'"
-          >
-            <input type="radio" name="exportFormat" value="json" v-model="exportFormat" hidden />
-            <div class="format-icon json-icon"><span>JSON</span></div>
-            <div class="format-info">
-              <span class="format-name">JSON 数据</span>
-              <span class="format-ext">.json</span>
-              <span class="format-desc">保留完整结构，适合程序导入</span>
-            </div>
-            <div class="format-check" v-if="exportFormat === 'json'"><el-icon><Check /></el-icon></div>
-          </label>
-        </div>
-      </div>
-      <template #footer>
-        <el-button @click="exportDialogVisible = false" :disabled="exporting">取消</el-button>
-        <el-button type="primary" :loading="exporting" @click="handleConfirm">
-          确认导出
-        </el-button>
-      </template>
-    </el-dialog>
+    <ExportDialog
+      v-model="exportDialogVisible"
+      name="用户"
+      :total="pagination.total"
+      :exporting="exporting"
+      @confirm="onExportConfirm"
+    />
 
     <!-- 编辑用户对话框 -->
     <el-dialog v-model="editVisible" title="编辑用户资料" width="520px" destroy-on-close>
@@ -509,7 +497,8 @@ import {
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { userApi, type UserRow } from '@/api/user';
 import { uploadAvatar } from '@/api/upload';
-import { useExport, downloadFile } from '@/composables/useExport';
+import { useExport, downloadFile, type ExportFormat } from '@/composables/useExport';
+import ExportDialog from '@/components/common/ExportDialog.vue';
 import { usePreferences } from '@/composables/usePreferences';
 
 const { defaultPageSize } = usePreferences();
@@ -598,6 +587,17 @@ async function fetchUsers() {
   }
 }
 
+function handlePageChange(page: number) {
+  pagination.page = page;
+  fetchUsers();
+}
+
+function handlePageSizeChange(size: number) {
+  pagination.pageSize = size;
+  pagination.page = 1;
+  fetchUsers();
+}
+
 async function handleAvatarChange(file: File) {
   if (!currentUser.value) return;
   avatarUploading.value = true;
@@ -637,6 +637,7 @@ async function fetchUserDetail(userId: number) {
         aiScans: data.aiScans || [],
         browseHistory: data.browseHistory || [],
         notifications: data.notifications || [],
+        feedbacks: data.feedbacks || [],
       };
     }
   } catch (e) {
@@ -785,6 +786,11 @@ function handleExport() {
     total: pagination.total,
     exportFn: (format) => downloadFile('/users/export', params, format),
   });
+}
+
+function onExportConfirm(format: ExportFormat) {
+  exportFormat.value = format;
+  handleConfirm();
 }
 
 async function handleCreate() {
@@ -1001,105 +1007,6 @@ onMounted(() => {
       font-size: 14px;
     }
   }
-}
-
-// 导出弹窗
-.export-dialog-body {
-  padding: 8px 4px;
-}
-
-.export-tip {
-  color: rgba(38, 37, 30, 0.6);
-  font-size: 13px;
-  margin-bottom: 20px;
-
-  strong {
-    color: var(--cursor-orange);
-    font-weight: 600;
-  }
-}
-
-.export-format-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.export-format-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
-  border: 1.5px solid var(--border-primary);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-  user-select: none;
-
-  &:hover {
-    border-color: var(--cursor-orange);
-    background: rgba(245, 111, 32, 0.04);
-  }
-
-  &.active {
-    border-color: var(--cursor-orange);
-    background: rgba(245, 111, 32, 0.06);
-
-    .format-icon {
-      opacity: 1;
-    }
-  }
-}
-
-.format-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 13px;
-  flex-shrink: 0;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-  color: #fff;
-
-  &.xlsx-icon { background: #1d7a3d; }
-  &.csv-icon { background: #3a6e38; }
-  &.json-icon { background: #c47f17; }
-}
-
-.format-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.format-name {
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--cursor-dark);
-  font-family: var(--font-display);
-}
-
-.format-ext {
-  font-size: 11px;
-  color: rgba(38, 37, 30, 0.4);
-  font-family: monospace;
-}
-
-.format-desc {
-  font-size: 12px;
-  color: rgba(38, 37, 30, 0.5);
-  margin-top: 2px;
-}
-
-.format-check {
-  color: var(--cursor-orange);
-  font-size: 18px;
-  flex-shrink: 0;
 }
 
 // 用户详情抽屉
@@ -1437,5 +1344,104 @@ onMounted(() => {
     color: rgba(38, 37, 30, 0.4);
     white-space: nowrap;
   }
+}
+
+// 反馈记录
+.feedback-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.feedback-item {
+  padding: 14px 16px;
+  background: var(--surface-100);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+}
+
+.feedback-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.feedback-type {
+  flex-shrink: 0;
+}
+
+.feedback-status {
+  flex-shrink: 0;
+}
+
+.feedback-time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(38, 37, 30, 0.4);
+  margin-left: auto;
+}
+
+.feedback-content {
+  font-size: 14px;
+  color: var(--cursor-dark);
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+.feedback-contact {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: rgba(38, 37, 30, 0.5);
+  margin-bottom: 4px;
+}
+
+.feedback-images {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.feedback-thumb {
+  width: 72px;
+  height: 72px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid var(--border-primary);
+}
+
+.feedback-replies {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reply-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.reply-admin {
+  font-weight: 600;
+  color: var(--primary-strong);
+  white-space: nowrap;
+}
+
+.reply-content {
+  flex: 1;
+  color: var(--cursor-dark);
+}
+
+.reply-time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(38, 37, 30, 0.4);
+  white-space: nowrap;
 }
 </style>

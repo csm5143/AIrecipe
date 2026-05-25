@@ -96,6 +96,11 @@
         </el-table-column>
       </el-table>
 
+      <div v-if="tableData.length === 0 && !loading" class="empty-state">
+        <div class="empty-icon"><el-icon><User /></el-icon></div>
+        <div class="empty-title">暂无管理员</div>
+      </div>
+
       <div class="table-footer">
         <span class="total-info">共 {{ pagination.total }} 条</span>
         <el-pagination
@@ -190,7 +195,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { Plus, Edit, Delete, Key, Search, Upload } from '@element-plus/icons-vue';
+import { Plus, Edit, Delete, Key, Search, Upload, User } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { adminApi } from '@/api/admin';
 import { useUserStore } from '@/store/modules/user';

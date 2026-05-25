@@ -12,7 +12,8 @@
     "pages/collections/index",
     "pages/collection-detail/index",
     "pages/collection-edit/index",
-    "pages/fridge/index"
+    "pages/fridge/index",
+    "pages/preference/index"
   ],
   "subpackages": [
     {

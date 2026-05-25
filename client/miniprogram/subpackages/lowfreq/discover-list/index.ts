@@ -77,7 +77,7 @@ function toDisplayRecipe(recipe: Recipe, index: number, showWesternTag: boolean)
 
 // ---------- 分类筛选函数 ----------
 
-// 本周热门：dishTypes 含 internet，或名称含网红/爆款/热门
+// 每日推荐：dishTypes 含 internet，或名称含网红/爆款/热门
 function matchInternet(r: Recipe): boolean {
   const tags = (r.dishTypes || []).map((t: string) => t.toLowerCase());
   const name = (r.name || '').toLowerCase();

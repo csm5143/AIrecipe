@@ -1,265 +1,198 @@
-<!-- 登录页面：微信一键登录 + 完整资料编辑 -->
+<!-- 登录/个人中心页面 -->
 
-<view class="page">
-  <!-- 背景装饰 -->
-  <view class="bg-decoration">
-    <view class="bg-circle bg-circle--1"></view>
-    <view class="bg-circle bg-circle--2"></view>
-    <view class="bg-circle bg-circle--3"></view>
+<view class="login-page">
+  <!-- 背景 -->
+  <view class="login-bg">
+    <view class="login-bg-circle login-bg-circle--1"></view>
+    <view class="login-bg-circle login-bg-circle--2"></view>
   </view>
 
   <view class="login-container">
 
-    <!-- 顶部品牌 -->
-    <view class="brand-section">
-      <view class="brand-logo-wrap">
-        <image class="brand-logo" src="https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/%E7%B3%BB%E7%BB%9F%E5%9B%BE%E7%89%87/%E5%90%83%E4%BA%86%E4%B9%884.png" mode="aspectFit" />
-        <view class="brand-logo-glow"></view>
+    <!-- 品牌 -->
+    <view class="login-brand">
+      <view class="login-brand-logo">
+        <image class="login-brand-img" src="https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/%E7%B3%BB%E7%BB%9F%E5%9B%BE%E7%89%87/%E5%90%83%E4%BA%86%E4%B9%884.png" mode="aspectFit" />
       </view>
-      <view class="brand-tagline">AI 智能菜谱 · 让做饭更简单</view>
+      <text class="login-brand-tagline">AI 智能菜谱 · 让做饭更简单</text>
     </view>
 
-    <!-- ==================== 已登录状态 ==================== -->
+    <!-- ============ 已登录 ============ -->
     <block wx:if="{{hasLogin}}">
-      <view class="logged-in-section">
-        <!-- 用户卡片 -->
-        <view class="user-card">
-          <view class="user-avatar-wrap">
-            <button class="avatar-btn-large" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
-              <image
-                class="avatar-img-large"
-                src="{{avatarUrl || guestAvatarUrl}}"
-                mode="aspectFill"
-              />
-              <view class="avatar-edit-badge">
-                <image src="/assets/相机2.png" mode="aspectFit" />
-              </view>
-            </button>
+      <view class="login-section">
+
+        <!-- 用户信息卡片 -->
+        <view class="login-user-card">
+          <!-- 头像 -->
+          <view class="login-avatar-area" bindtap="onChangeAvatar">
+            <image class="login-avatar-img" src="{{avatarUrl || guestAvatarUrl}}" mode="aspectFill" />
+            <view class="login-avatar-badge">
+              <image src="/assets/相机2.png" mode="aspectFit" />
+            </view>
           </view>
-          <view class="user-info-center">
-            <view class="user-nickname">{{nickname || '未设置昵称'}}</view>
-            <view class="user-meta-row">
-              <view wx:if="{{phone}}" class="user-meta-tag">
-                <text class="meta-icon">📱</text>
-                <text class="meta-text">{{phone}}</text>
+          <!-- 用户信息 -->
+          <view class="login-user-body">
+            <view class="login-user-name">{{nickname || '未设置昵称'}}</view>
+            <view class="login-user-meta">
+              <view wx:if="{{phone}}" class="login-user-tag">
+                <text>📱 {{phone}}</text>
               </view>
-              <view class="user-login-badge">
-                <view class="badge-dot"></view>
-                <text class="badge-text">已登录</text>
+              <view class="login-user-online">
+                <view class="login-user-dot"></view>
+                <text>已登录</text>
               </view>
             </view>
-            <view wx:if="{{bio}}" class="user-bio">{{bio}}</view>
+            <view wx:if="{{bio}}" class="login-user-bio">{{bio}}</view>
           </view>
         </view>
 
         <!-- 性别标签 -->
-        <view class="gender-row" wx:if="{{gender && gender !== 'UNKNOWN'}}">
-          <view class="gender-tag {{gender === 'MALE' ? 'gender-tag--male' : 'gender-tag--female'}}">
+        <view wx:if="{{gender && gender !== 'UNKNOWN'}}" class="login-gender-row">
+          <view class="login-gender-tag {{gender === 'MALE' ? 'login-gender--male' : ''}} {{gender === 'FEMALE' ? 'login-gender--female' : ''}}">
             {{gender === 'MALE' ? '♂ 男士' : '♀ 女士'}}
           </view>
         </view>
 
         <!-- 功能菜单 -->
-        <view class="menu-card">
-          <view class="menu-item" bindtap="onEditProfile">
-            <view class="menu-item-left">
-              <view class="menu-item-icon menu-item-icon--edit">
-                <image src="/assets/修改.png" mode="aspectFit" />
-              </view>
-              <text class="menu-item-text">编辑资料</text>
+        <view class="login-menu">
+          <view class="login-menu-item" bindtap="onEditProfile" hover-class="login-menu-item--hover">
+            <view class="login-menu-item-icon" style="background:rgba(226,165,80,0.1)">
+              <image src="/assets/修改.png" mode="aspectFit" />
             </view>
-            <text class="menu-arrow">›</text>
+            <text class="login-menu-item-text">编辑资料</text>
+            <text class="login-menu-item-arrow">›</text>
           </view>
 
-          <view class="menu-divider"></view>
+          <view class="login-menu-divider"></view>
 
-          <view class="menu-item" bindtap="onChangePassword">
-            <view class="menu-item-left">
-              <view class="menu-item-icon menu-item-icon--password">
-                <image src="/assets/密码.png" mode="aspectFit" />
-              </view>
-              <text class="menu-item-text">修改密码</text>
+          <view class="login-menu-item" bindtap="onChangePassword" hover-class="login-menu-item--hover">
+            <view class="login-menu-item-icon" style="background:rgba(226,165,80,0.1)">
+              <image src="/assets/密码.png" mode="aspectFit" />
             </view>
-            <text class="menu-arrow">›</text>
+            <text class="login-menu-item-text">修改密码</text>
+            <text class="login-menu-item-arrow">›</text>
           </view>
 
-          <view class="menu-divider"></view>
+          <view class="login-menu-divider"></view>
 
-          <view class="menu-item menu-item--danger" bindtap="onLogout">
-            <view class="menu-item-left">
-              <view class="menu-item-icon menu-item-icon--logout">
-                <image src="/assets/删除.png" mode="aspectFit" />
-              </view>
-              <text class="menu-item-text menu-item-text--danger">退出当前账号</text>
+          <view class="login-menu-item" bindtap="onLogout" hover-class="login-menu-item--hover">
+            <view class="login-menu-item-icon" style="background:rgba(212,106,76,0.1)">
+              <image src="/assets/删除.png" mode="aspectFit" />
             </view>
-            <text class="menu-arrow">›</text>
+            <text class="login-menu-item-text login-menu-item-text--danger">退出当前账号</text>
+            <text class="login-menu-item-arrow">›</text>
           </view>
         </view>
       </view>
     </block>
 
-    <!-- ==================== 未登录状态 ==================== -->
+    <!-- ============ 未登录 ============ -->
     <block wx:else>
       <view class="login-sheet">
-        <!-- 微信一键登录（主要按钮） -->
         <button
-          class="btn-wechat {{!isAgreed ? 'btn-wechat--locked' : ''}}"
+          class="login-btn-wechat {{!isAgreed ? 'login-btn-wechat--locked' : ''}}"
           bindtap="onWechatLogin"
         >
-          <image class="btn-wechat-icon" src="/assets/微信.png" mode="aspectFit" />
+          <image class="login-btn-wechat-icon" src="/assets/微信.png" mode="aspectFit" />
           <text>微信一键登录</text>
         </button>
 
-        <!-- 协议说明 -->
-        <view class="agreement-row" bindtap="onToggleAgreement">
-          <view class="agreement-checkbox {{isAgreed ? 'checked' : ''}}">
-            <image wx:if="{{isAgreed}}" class="check-icon" src="/assets/选中2.png" mode="aspectFit" />
-            <image wx:else class="check-icon" src="/assets/未选中圆圈.png" mode="aspectFit" />
+        <view class="login-agreement" bindtap="onToggleAgreement">
+          <view class="login-agreement-check {{isAgreed ? 'login-agreement-check--on' : ''}}">
+            <image wx:if="{{isAgreed}}" src="/assets/选中2.png" mode="aspectFit" />
+            <image wx:else src="/assets/未选中圆圈.png" mode="aspectFit" />
           </view>
-          <view class="agreement-inline">
-            <text class="agreement-plain">我已阅读并同意</text>
-            <text class="agreement-link" catchtap="onViewAgreement">《用户协议》</text>
-            <text class="agreement-plain">和</text>
-            <text class="agreement-link" catchtap="onViewPrivacy">《隐私政策》</text>
+          <view class="login-agreement-text">
+            <text class="login-agreement-gray">我已阅读并同意</text>
+            <text class="login-agreement-link" catchtap="onViewAgreement">《用户协议》</text>
+            <text class="login-agreement-gray">和</text>
+            <text class="login-agreement-link" catchtap="onViewPrivacy">《隐私政策》</text>
           </view>
         </view>
       </view>
     </block>
 
-    <!-- ==================== 编辑资料弹窗 ==================== -->
-    <view wx:if="{{showEditProfile}}" class="modal-overlay" catchtouchmove="preventTouchMove">
-      <view class="modal-mask" bindtap="onCloseEditProfile"></view>
-      <view class="modal-box modal-box--tall">
-        <view class="modal-header">
-          <text class="modal-title">编辑资料</text>
-          <view class="modal-close" bindtap="onCloseEditProfile">×</view>
+    <!-- ============ 编辑资料弹窗 ============ -->
+    <view wx:if="{{showEditProfile}}" class="login-modal-mask" catchtouchmove="preventTouchMove">
+      <view class="login-modal" catchtap="noop">
+        <view class="login-modal-head">
+          <text class="login-modal-title">编辑资料</text>
+          <view class="login-modal-close" bindtap="onCloseEditProfile">×</view>
         </view>
 
-        <view class="modal-body modal-body--form">
+        <view class="login-modal-body">
           <!-- 头像 -->
-          <view class="form-avatar-row">
-            <button class="avatar-btn-edit" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
-              <image
-                class="avatar-img-edit"
-                src="{{editForm.avatarUrl || guestAvatarUrl}}"
-                mode="aspectFill"
-              />
-              <view class="avatar-edit-icon">
+          <view class="login-form-avatar" bindtap="onEditAvatar">
+            <view class="login-form-avatar-wrap">
+              <image class="login-form-avatar-img" src="{{editForm.avatarUrl || guestAvatarUrl}}" mode="aspectFill" />
+              <view class="login-form-avatar-badge">
                 <image src="/assets/相机2.png" mode="aspectFit" />
               </view>
-            </button>
-            <text class="form-avatar-tip">点击更换头像</text>
+            </view>
+            <text class="login-form-avatar-tip">点击更换头像</text>
           </view>
 
           <!-- 昵称 -->
-          <view class="form-field">
-            <view class="form-label">昵称</view>
-            <input
-              class="form-input"
-              type="nickname"
-              placeholder="请输入昵称"
-              value="{{editForm.nickname}}"
-              bindinput="onEditFormInput"
-              data-field="nickname"
-              maxlength="20"
-            />
+          <view class="login-form-field">
+            <text class="login-form-label">昵称</text>
+            <input class="login-form-input" type="nickname" placeholder="请输入昵称" value="{{editForm.nickname}}" bindinput="onEditFormInput" data-field="nickname" maxlength="20" />
           </view>
 
           <!-- 手机号 -->
-          <view class="form-field">
-            <view class="form-label">手机号</view>
-            <input
-              class="form-input"
-              type="number"
-              placeholder="选填，便于接收通知"
-              value="{{editForm.phone}}"
-              bindinput="onEditFormInput"
-              data-field="phone"
-              maxlength="11"
-            />
+          <view class="login-form-field">
+            <text class="login-form-label">手机号</text>
+            <input class="login-form-input" type="number" placeholder="选填，便于接收通知" value="{{editForm.phone}}" bindinput="onEditFormInput" data-field="phone" maxlength="11" />
           </view>
 
           <!-- 性别 -->
-          <view class="form-field">
-            <view class="form-label">性别</view>
-            <view class="form-gender-row" bindtap="onSelectGender">
-              <view class="form-gender-btn {{editForm.gender === 'MALE' ? 'active' : ''}}" data-gender="MALE">♂ 男士</view>
-              <view class="form-gender-btn {{editForm.gender === 'FEMALE' ? 'active' : ''}}" data-gender="FEMALE">♀ 女士</view>
-              <view class="form-gender-btn {{editForm.gender === 'UNKNOWN' || !editForm.gender ? 'active' : ''}}" data-gender="UNKNOWN">保密</view>
+          <view class="login-form-field">
+            <text class="login-form-label">性别</text>
+            <view class="login-form-gender">
+              <view class="login-form-gender-btn {{editForm.gender === 'MALE' ? 'login-form-gender--on' : ''}}" bindtap="onSelectGender" data-gender="MALE">♂ 男士</view>
+              <view class="login-form-gender-btn {{editForm.gender === 'FEMALE' ? 'login-form-gender--on' : ''}}" bindtap="onSelectGender" data-gender="FEMALE">♀ 女士</view>
+              <view class="login-form-gender-btn {{!editForm.gender || editForm.gender === 'UNKNOWN' ? 'login-form-gender--on' : ''}}" bindtap="onSelectGender" data-gender="UNKNOWN">保密</view>
             </view>
           </view>
 
-          <!-- 个人简介 -->
-          <view class="form-field">
-            <view class="form-label">个人简介</view>
-            <textarea
-              class="form-textarea"
-              placeholder="选填，让大家更了解你"
-              value="{{editForm.bio}}"
-              bindinput="onEditFormInput"
-              data-field="bio"
-              maxlength="100"
-              auto-height
-            />
-            <view class="form-counter">{{editForm.bio ? editForm.bio.length : 0}}/100</view>
+          <!-- 简介 -->
+          <view class="login-form-field">
+            <text class="login-form-label">个人简介</text>
+            <textarea class="login-form-textarea" placeholder="选填，让大家更了解你" value="{{editForm.bio}}" bindinput="onEditFormInput" data-field="bio" maxlength="100" auto-height />
+            <text class="login-form-counter">{{editForm.bio ? editForm.bio.length : 0}}/100</text>
           </view>
         </view>
 
-        <view class="modal-footer">
-          <view class="modal-btn-cancel" bindtap="onCloseEditProfile">取消</view>
-          <view class="modal-btn-confirm" bindtap="onConfirmEditProfile">保存</view>
+        <view class="login-modal-foot">
+          <view class="login-modal-btn login-modal-btn--cancel" bindtap="onCloseEditProfile">取消</view>
+          <view class="login-modal-btn login-modal-btn--confirm" bindtap="onConfirmEditProfile">保存</view>
         </view>
       </view>
     </view>
 
-    <!-- ==================== 修改密码弹窗 ==================== -->
-    <view wx:if="{{showChangePassword}}" class="modal-overlay" catchtouchmove="preventTouchMove">
-      <view class="modal-mask" bindtap="onCloseChangePassword"></view>
-      <view class="modal-box">
-        <view class="modal-header">
-          <text class="modal-title">修改密码</text>
-          <view class="modal-close" bindtap="onCloseChangePassword">×</view>
+    <!-- ============ 修改密码弹窗 ============ -->
+    <view wx:if="{{showChangePassword}}" class="login-modal-mask" catchtouchmove="preventTouchMove">
+      <view class="login-modal" catchtap="noop">
+        <view class="login-modal-head">
+          <text class="login-modal-title">修改密码</text>
+          <view class="login-modal-close" bindtap="onCloseChangePassword">×</view>
         </view>
-        <view class="modal-body modal-body--form">
-          <view class="form-field">
-            <view class="form-label">原密码</view>
-            <input
-              class="form-input"
-              type="password"
-              placeholder="请输入原密码"
-              value="{{changePwdForm.oldPassword}}"
-              bindinput="onChangePwdInput"
-              data-field="oldPassword"
-            />
+        <view class="login-modal-body">
+          <view class="login-form-field">
+            <text class="login-form-label">原密码</text>
+            <input class="login-form-input" type="password" placeholder="请输入原密码" value="{{changePwdForm.oldPassword}}" bindinput="onChangePwdInput" data-field="oldPassword" />
           </view>
-          <view class="form-field">
-            <view class="form-label">新密码</view>
-            <input
-              class="form-input"
-              type="password"
-              placeholder="请输入新密码（至少6位）"
-              value="{{changePwdForm.newPassword}}"
-              bindinput="onChangePwdInput"
-              data-field="newPassword"
-              maxlength="20"
-            />
+          <view class="login-form-field">
+            <text class="login-form-label">新密码</text>
+            <input class="login-form-input" type="password" placeholder="至少6位" value="{{changePwdForm.newPassword}}" bindinput="onChangePwdInput" data-field="newPassword" maxlength="20" />
           </view>
-          <view class="form-field">
-            <view class="form-label">确认密码</view>
-            <input
-              class="form-input"
-              type="password"
-              placeholder="请再次输入新密码"
-              value="{{changePwdForm.confirmPassword}}"
-              bindinput="onChangePwdInput"
-              data-field="confirmPassword"
-              maxlength="20"
-            />
+          <view class="login-form-field">
+            <text class="login-form-label">确认密码</text>
+            <input class="login-form-input" type="password" placeholder="再次输入新密码" value="{{changePwdForm.confirmPassword}}" bindinput="onChangePwdInput" data-field="confirmPassword" maxlength="20" />
           </view>
         </view>
-        <view class="modal-footer">
-          <view class="modal-btn-cancel" bindtap="onCloseChangePassword">取消</view>
-          <view class="modal-btn-confirm" bindtap="onConfirmChangePassword">确认修改</view>
+        <view class="login-modal-foot">
+          <view class="login-modal-btn login-modal-btn--cancel" bindtap="onCloseChangePassword">取消</view>
+          <view class="login-modal-btn login-modal-btn--confirm" bindtap="onConfirmChangePassword">确认修改</view>
         </view>
       </view>
     </view>

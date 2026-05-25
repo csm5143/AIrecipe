@@ -58,6 +58,12 @@ export async function wxLogin(req: Request, res: Response) {
   try {
     const session = await getWxSession(code);
 
+    if (session.errcode) {
+      const status = session.errcode === -1 ? 503 : 401;
+      res.status(status).json(badRequest(session.errmsg || '微信登录失败'));
+      return;
+    }
+
     if (!session.openid) {
       res.status(401).json(unauthorized('微信登录失败'));
       return;

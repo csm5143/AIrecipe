@@ -197,18 +197,26 @@ export async function previewImportIngredients(req: Request, res: Response) {
     return;
   }
 
-  const duplicates: { name: string; existingId: number }[] = [];
+  const validItems = items.filter((i: any) => i.name);
+  const allNames = validItems.map((i: any) => i.name);
 
-  for (const item of items) {
-    if (!item.name) continue;
-    const existing = await prisma.ingredient.findFirst({ where: { name: item.name } });
-    if (existing) {
-      duplicates.push({ name: item.name, existingId: existing.id });
+  // Batch check existing ingredients (single query instead of N queries)
+  const existingList = await prisma.ingredient.findMany({
+    where: { name: { in: allNames } },
+    select: { id: true, name: true },
+  });
+  const existingMap = new Map(existingList.map(e => [e.name, e.id]));
+
+  const duplicates: { name: string; existingId: number }[] = [];
+  for (const item of validItems) {
+    const existingId = existingMap.get(item.name);
+    if (existingId !== undefined) {
+      duplicates.push({ name: item.name, existingId });
     }
   }
 
   res.json(success({
-    total: items.filter((i: any) => i.name).length,
+    total: validItems.length,
     duplicateCount: duplicates.length,
     duplicates,
   }));
@@ -230,13 +238,24 @@ export async function batchImportIngredients(req: Request, res: Response) {
     other: 'other',
   };
 
+  const validItems = items.filter((i: any) => i.name);
+  const allNames = validItems.map((i: any) => i.name);
+
+  // Batch check existing ingredients (single query instead of N queries)
+  const existingList = await prisma.ingredient.findMany({
+    where: { name: { in: allNames } },
+    select: { id: true, name: true },
+  });
+  const existingMap = new Map(existingList.map(e => [e.name, e.id]));
+
   let imported = 0;
   let updated = 0;
   let skipped = 0;
 
-  for (const item of items) {
-    if (!item.name) { skipped++; continue; }
+  const newItems: any[] = [];
+  const updateOps: any[] = [];
 
+  for (const item of validItems) {
     const mappedCategory = categoryMap[item.category] || 'other';
     const nutritionData = {
       protein: item.protein || 0,
@@ -252,12 +271,12 @@ export async function batchImportIngredients(req: Request, res: Response) {
     // selected: false = INACTIVE, selected: true/undefined = ACTIVE
     const mappedStatus = (item.selected === false ? 'INACTIVE' : 'ACTIVE') as any;
 
-    const existing = await prisma.ingredient.findFirst({ where: { name: item.name } });
+    const existingId = existingMap.get(item.name);
 
-    if (existing) {
+    if (existingId !== undefined) {
       if (overwrite) {
-        await prisma.ingredient.update({
-          where: { id: existing.id },
+        updateOps.push({
+          where: { id: existingId },
           data: {
             alias: aliasValue,
             subCategory: item.subCategory || null,
@@ -273,20 +292,30 @@ export async function batchImportIngredients(req: Request, res: Response) {
         skipped++;
       }
     } else {
-      await prisma.ingredient.create({
-        data: {
-          name: item.name,
-          alias: aliasValue,
-          subCategory: item.subCategory || null,
-          category: mappedCategory,
-          unit: item.unit || null,
-          calories: item.calories || null,
-          nutrition: nutritionData as Prisma.InputJsonValue,
-          status: mappedStatus,
-        },
+      newItems.push({
+        name: item.name,
+        alias: aliasValue,
+        subCategory: item.subCategory || null,
+        category: mappedCategory,
+        unit: item.unit || null,
+        calories: item.calories || null,
+        nutrition: nutritionData as Prisma.InputJsonValue,
+        status: mappedStatus,
       });
       imported++;
     }
+  }
+
+  // Batch create new ingredients
+  if (newItems.length > 0) {
+    await prisma.ingredient.createMany({ data: newItems });
+  }
+
+  // Batch update existing ingredients in a transaction
+  if (updateOps.length > 0) {
+    await prisma.$transaction(
+      updateOps.map(op => prisma.ingredient.update(op))
+    );
   }
 
   const action = overwrite ? '覆盖导入' : '导入';

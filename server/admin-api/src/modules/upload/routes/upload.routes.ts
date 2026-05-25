@@ -12,6 +12,7 @@ import {
   uploadSettings,
 } from '../controllers/upload.controller';
 import { authenticate } from '../../auth/middleware/auth.middleware';
+import { wxAuthenticate } from '../../wx/middleware/wxAuth.middleware';
 
 const router: ExpressRouter = Router();
 
@@ -19,6 +20,7 @@ router.post('/', asyncHandler(authenticate), uploadMiddleware, asyncHandler(uplo
 router.post('/scan', uploadMiddleware, asyncHandler(uploadScanImage));
 router.post('/admin-avatar', asyncHandler(authenticate), uploadMiddleware, asyncHandler(uploadAdminAvatar));
 router.post('/avatar', asyncHandler(authenticate), uploadMiddleware, asyncHandler(uploadUserAvatar));
+router.post('/wx-avatar', asyncHandler(wxAuthenticate), uploadMiddleware, asyncHandler(uploadUserAvatar));
 router.post('/ingredient', asyncHandler(authenticate), uploadMiddleware, asyncHandler(uploadIngredient));
 router.post('/category-icon', asyncHandler(authenticate), uploadMiddleware, asyncHandler(uploadCategoryIcon));
 router.post('/feedback', asyncHandler(authenticate), uploadMiddleware, asyncHandler(uploadFeedback));

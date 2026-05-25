@@ -29,15 +29,15 @@
           <div class="stat-icon">
             <el-icon><component :is="stat.icon" /></el-icon>
           </div>
-          <div class="stat-trend" :class="{ negative: stat.change < 0 }">
+          <div v-if="stat.showChange" class="stat-trend" :class="{ negative: stat.change < 0 }">
             <el-icon v-if="stat.change >= 0"><TrendCharts /></el-icon>
             <el-icon v-else><Bottom /></el-icon>
-            <span>{{ Math.abs(stat.change) }}%</span>
+            <span>{{ stat.change > 0 ? '+' : '' }}{{ stat.change }}</span>
           </div>
         </div>
         <div class="stat-value">{{ formatNumber(stat.value) }}</div>
         <div class="stat-label">{{ stat.label }}</div>
-        <div class="stat-sublabel">较上{{ stat.period }}</div>
+        <div v-if="stat.showChange" class="stat-sublabel">{{ stat.period }}</div>
       </div>
 
       <!-- AI Token 卡片（按模型分组，每模型一张迷你卡） -->
@@ -202,12 +202,13 @@ interface StatCard {
   color: string;
   change: number;
   period: string;
+  showChange: boolean;
 }
 
 const statCards = ref<StatCard[]>([
-  { key: 'users', label: '用户总数', value: 0, icon: User, color: '#f54e00', change: 0, period: '月' },
-  { key: 'recipes', label: '菜谱总数', value: 0, icon: Food, color: '#1f8a65', change: 0, period: '月' },
-  { key: 'feedbacks', label: '反馈总数', value: 0, icon: ChatDotRound, color: '#d4880e', change: 0, period: '月' },
+  { key: 'users', label: '用户总数', value: 0, icon: User, color: '#f54e00', change: 0, period: '月', showChange: false },
+  { key: 'recipes', label: '菜谱总数', value: 0, icon: Food, color: '#1f8a65', change: 0, period: '月', showChange: false },
+  { key: 'feedbacks', label: '反馈总数', value: 0, icon: ChatDotRound, color: '#d4880e', change: 0, period: '月', showChange: false },
 ]);
 
 const isRefreshing = ref(false);
@@ -395,10 +396,11 @@ async function fetchStats() {
     const data = dashRes.data as any;
     const catData = catRes.data?.data ?? [];
 
+    const todayNew = data?.todayNewUsers ?? 0;
     statCards.value = [
-      { key: 'users', label: '用户总数', value: data?.totalUsers ?? 0, icon: User, color: '#f54e00', change: 0, period: '月' },
-      { key: 'recipes', label: '菜谱总数', value: data?.totalRecipes ?? 0, icon: Food, color: '#1f8a65', change: 0, period: '月' },
-      { key: 'feedbacks', label: '反馈总数', value: data?.totalFeedbacks ?? 0, icon: ChatDotRound, color: '#d4880e', change: 0, period: '月' },
+      { key: 'users', label: '用户总数', value: data?.totalUsers ?? 0, icon: User, color: '#f54e00', change: todayNew, period: '今日新增', showChange: todayNew > 0 },
+      { key: 'recipes', label: '菜谱总数', value: data?.totalRecipes ?? 0, icon: Food, color: '#1f8a65', change: 0, period: '', showChange: false },
+      { key: 'feedbacks', label: '反馈总数', value: data?.totalFeedbacks ?? 0, icon: ChatDotRound, color: '#d4880e', change: 0, period: '', showChange: false },
     ];
 
     // AI Token 数据

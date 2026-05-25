@@ -32,9 +32,9 @@ function mapDifficulty(d: string): string {
 function mapDishType(t: string): string {
   const map: Record<string, string> = {
     staple: '主食', stir_fry: '小炒菜', soup: '汤品', boiled: '煮食',
-    fried: '炒食', cold: '凉菜', porridge: '粥', noodles: '面食',
+    stir_fried_staple: '炒食', cold: '凉菜', porridge: '粥', noodles: '面食',
     dessert: '甜品', drink: '饮品', braised: '卤味', bbq: '烧烤',
-    hotpot: '火锅', deep_fried: '油炸', baked: '烘焙', sashimi: '刺身',
+    hotpot: '火锅', fried: '油炸', baked: '烘焙', sashimi: '刺身',
     western: '西餐', diet: '减脂餐', children: '儿童餐',
   };
   return map[t] || t;
@@ -70,13 +70,13 @@ export function normalizeRecipe(raw: RecipeRow): Recipe {
     cuisine: '',
     category: raw.dishTypes?.[0] ? mapDishType(raw.dishTypes[0]) : '',
     isAiGenerated: false,
-    viewCount: raw.viewCount ?? Math.floor(Math.random() * 5000),
-    collectCount: raw.collectCount ?? Math.floor(Math.random() * 500),
-    shareCount: Math.floor(Math.random() * 200),
+    viewCount: raw.viewCount ?? 0,
+    collectCount: raw.collectCount ?? 0,
+    shareCount: raw.shareCount ?? 0,
     status: 'PUBLISHED' as any,
     isFeatured: false,
     publishedAt: '',
-    createdAt: new Date(Date.now() - Math.random() * 90 * 86400000).toISOString().split('T')[0],
+    createdAt: raw.createdAt || new Date().toISOString().split('T')[0],
     updatedAt: new Date().toISOString().split('T')[0],
   };
 }
@@ -84,9 +84,9 @@ export function normalizeRecipe(raw: RecipeRow): Recipe {
 export function normalizeDishType(t: string): string {
   const map: Record<string, string> = {
     staple: '主食', stir_fry: '小炒菜', soup: '汤品', boiled: '煮食',
-    fried: '炒食', cold: '凉菜', porridge: '粥', noodles: '面食',
+    stir_fried_staple: '炒食', cold: '凉菜', porridge: '粥', noodles: '面食',
     dessert: '甜品', drink: '饮品', braised: '卤味', bbq: '烧烤',
-    hotpot: '火锅', deep_fried: '油炸', baked: '烘焙', sashimi: '刺身',
+    hotpot: '火锅', fried: '油炸', baked: '烘焙', sashimi: '刺身',
     western: '西餐', diet: '减脂餐', children: '儿童餐',
   };
   return map[t] || t;
@@ -112,7 +112,7 @@ export const DISH_TYPE_OPTIONS = [
   { value: 'stir_fry', label: '小炒菜' },
   { value: 'soup', label: '汤品' },
   { value: 'boiled', label: '煮食' },
-  { value: 'fried', label: '炒食' },
+  { value: 'stir_fried_staple', label: '炒食' },
   { value: 'cold', label: '凉菜' },
   { value: 'porridge', label: '粥' },
   { value: 'noodles', label: '面食' },
@@ -121,7 +121,7 @@ export const DISH_TYPE_OPTIONS = [
   { value: 'braised', label: '卤味' },
   { value: 'bbq', label: '烧烤' },
   { value: 'hotpot', label: '火锅' },
-  { value: 'deep_fried', label: '油炸' },
+  { value: 'fried', label: '油炸' },
   { value: 'baked', label: '烘焙' },
   { value: 'sashimi', label: '刺身' },
   { value: 'western', label: '西餐' },

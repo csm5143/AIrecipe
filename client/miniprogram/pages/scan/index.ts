@@ -3,6 +3,7 @@ import { uploadAndRecognize, IngredientRecognitionResult } from '../../utils/ing
 import { getAppIngredientsList } from '../../utils/httpApi/ingredient.js'
 import { saveAiScan } from '../../utils/httpApi/aiScan.js'
 import { authService } from '../../utils/services/authService.js'
+import { buildIngredientIndex, normalizeName, getAllNames, getAllData } from '../../utils/ingredientIndex.js'
 
 Component({
   data: {
@@ -34,16 +35,25 @@ Component({
   },
 
   methods: {
-    // 初始化食材库（首次使用时加载）
+    // 初始化食材库（首次使用时加载，构建 O(1) 索引）
     async ensureIngredientsLoaded(): Promise<void> {
       if ((this as any).privateData && (this as any).privateData.ingredientsLoaded) return;
       if (!(this as any).privateData) (this as any).privateData = {};
       (this as any).privateData.ingredientsLoaded = true;
-      const names = await this.getAllIngredientNames();
-      const data = await this.getAllIngredientData();
-      await new Promise<void>((resolve) => {
-        this.setData({ ingredientNames: names, ingredientData: data }, () => resolve());
-      });
+
+      try {
+        const res = await getAppIngredientsList({ pageSize: 1000 });
+        if (res.success && res.data && res.data.length > 0) {
+          buildIngredientIndex(res.data.map(item => ({ name: item.name, category: item.category || '' })));
+          const names = getAllNames();
+          const data = getAllData();
+          await new Promise<void>((resolve) => {
+            this.setData({ ingredientNames: names, ingredientData: data }, () => resolve());
+          });
+        }
+      } catch (e) {
+        console.error('[Scan] 加载食材库失败', e);
+      }
     },
 
     // 从相册选择多张图片（一次选完）
@@ -591,47 +601,12 @@ Component({
       });
     },
 
-    // 规范化食材名称（直接映射）
+    // 规范化食材名称（O(1) 索引查找）
     normalizeIngredientName(name: string): string | null {
-      const allIngredients = this.data.ingredientNames
-      if (!allIngredients.length) return null
-      const normalized = name.trim().toLowerCase()
-
-      // 1. 精确匹配
-      for (const ing of allIngredients) {
-        if (ing.toLowerCase() === normalized) return ing
-      }
-
-      // 2. 别名映射（先执行，让"长茄子" → "茄子"，避免被"长茄子"占坑）
-      const mapped = this.mapAliasToStandard(normalized)
-      if (mapped) return mapped
-
-      // 3. 包含匹配（较短名称优先，避免"长茄子"优先于"茄子"）
-      let bestMatch: string | null = null
-      let shortestLen = Infinity
-      for (const ing of allIngredients) {
-        const ingLower = ing.toLowerCase()
-        // 食材名包含识别结果
-        if (ingLower.includes(normalized)) {
-          if (ingLower.length < shortestLen) {
-            shortestLen = ingLower.length
-            bestMatch = ing
-          }
-        }
-        // 识别结果包含食材名
-        if (normalized.includes(ingLower)) {
-          if (ingLower.length < shortestLen) {
-            shortestLen = ingLower.length
-            bestMatch = ing
-          }
-        }
-      }
-      if (bestMatch) return bestMatch
-
-      return null
+      return normalizeName(name);
     },
 
-    // 别名 → 标准食材名称
+    // 别名 → 标准食材名称（由 ingredientIndex 统一处理）
     mapAliasToStandard(name: string): string | null {
       const aliasMap: Record<string, string[]> = {
         '猪肉': ['猪肉末', '肉末', '绞肉', '肉糜', '猪肉糜', '猪肉馅', '肉馅', '猪肉碎'],

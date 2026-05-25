@@ -128,9 +128,10 @@
               v-loading="loading"
               :data="tableData"
               row-key="id"
-              style="width: 1200px"
               :header-cell-style="{ background: 'var(--surface-300)', color: 'var(--cursor-dark)' }"
+              highlight-current-row
               @selection-change="handleSelectionChange"
+              @row-click="handlePreview"
           >
         <el-table-column type="selection" width="45" />
         <el-table-column prop="id" label="ID" width="80" min-width="80" />
@@ -318,77 +319,120 @@
     </el-dialog>
 
     <!-- 导出弹窗 -->
-    <el-dialog v-model="exportDialogVisible" title="导出菜谱" width="480px" :close-on-click-modal="false">
-      <div class="export-dialog-body">
-        <p class="export-tip">
-          共 <strong>{{ pagination.total }}</strong> 条菜谱数据，将按照当前筛选条件导出
-        </p>
-        <div class="export-format-list">
-          <label
-            class="export-format-item"
-            :class="{ active: exportFormat === 'xlsx' }"
-            @click="exportFormat = 'xlsx'"
-          >
-            <input type="radio" name="exportFormat" value="xlsx" v-model="exportFormat" hidden />
-            <div class="format-icon xlsx-icon">
-              <span>Excel</span>
-            </div>
-            <div class="format-info">
-              <span class="format-name">Excel 格式</span>
-              <span class="format-ext">.xlsx</span>
-              <span class="format-desc">支持公式、筛选，适合数据分析</span>
-            </div>
-            <div class="format-check" v-if="exportFormat === 'xlsx'">
-              <el-icon><Check /></el-icon>
-            </div>
-          </label>
+    <ExportDialog
+      v-model="exportDialogVisible"
+      name="菜谱"
+      :total="pagination.total"
+      :exporting="exporting"
+      @confirm="onExportConfirm"
+    />
 
-          <label
-            class="export-format-item"
-            :class="{ active: exportFormat === 'csv' }"
-            @click="exportFormat = 'csv'"
-          >
-            <input type="radio" name="exportFormat" value="csv" v-model="exportFormat" hidden />
-            <div class="format-icon csv-icon">
-              <span>CSV</span>
-            </div>
-            <div class="format-info">
-              <span class="format-name">CSV 格式</span>
-              <span class="format-ext">.csv</span>
-              <span class="format-desc">体积更小，兼容所有编辑器</span>
-            </div>
-            <div class="format-check" v-if="exportFormat === 'csv'">
-              <el-icon><Check /></el-icon>
-            </div>
-          </label>
+    <!-- 预览抽屉 -->
+    <el-drawer
+      v-model="previewVisible"
+      title="菜谱预览"
+      direction="rtl"
+      size="680px"
+      :show-close="true"
+    >
+      <div v-if="previewLoading" class="preview-loading">
+        <el-icon class="is-loading" :size="32"><Loading /></el-icon>
+        <span>加载中...</span>
+      </div>
+      <div v-else-if="previewData" class="preview-body">
+        <!-- 封面 -->
+        <div class="preview-cover" v-if="previewData.coverImage">
+          <img :src="previewData.coverImage" />
+        </div>
 
-          <label
-            class="export-format-item"
-            :class="{ active: exportFormat === 'json' }"
-            @click="exportFormat = 'json'"
-          >
-            <input type="radio" name="exportFormat" value="json" v-model="exportFormat" hidden />
-            <div class="format-icon json-icon">
-              <span>JSON</span>
+        <!-- 标题和简介 -->
+        <div class="preview-header">
+          <h2 class="preview-title">{{ previewData.title }}</h2>
+          <p class="preview-desc" v-if="previewData.description">{{ previewData.description }}</p>
+        </div>
+
+        <!-- 元信息 -->
+        <div class="preview-meta">
+          <span class="preview-meta-item" v-if="previewData.difficulty">
+            <el-tag size="small" :type="previewData.difficulty === 'EASY' ? 'success' : previewData.difficulty === 'MEDIUM' ? 'warning' : 'danger'">
+              {{ previewData.difficulty === 'EASY' ? '简单' : previewData.difficulty === 'MEDIUM' ? '中等' : '困难' }}
+            </el-tag>
+          </span>
+          <span class="preview-meta-item" v-if="previewData.cookingTime">
+            ⏱ {{ previewData.cookingTime }} 分钟
+          </span>
+          <span class="preview-meta-item" v-if="previewData.calories">
+            🔥 {{ previewData.calories }} kcal
+          </span>
+          <span class="preview-meta-item" v-if="previewData.servings">
+            🍽 {{ previewData.servings }} 人份
+          </span>
+        </div>
+
+        <!-- 标签 -->
+        <div class="preview-tags" v-if="previewData.tags && previewData.tags.length">
+          <el-tag v-for="tag in previewData.tags" :key="tag" size="small" type="info">{{ tagLabel(tag) }}</el-tag>
+        </div>
+
+        <!-- 食材清单 -->
+        <div class="preview-section" v-if="previewData.ingredients && previewData.ingredients.length">
+          <h3>🥬 食材清单</h3>
+          <div class="preview-ingredients">
+            <div v-for="ing in previewData.ingredients" :key="ing.name" class="preview-ingredient">
+              <span class="ing-name">{{ ing.name }}</span>
+              <span class="ing-amount">{{ ing.amount }}</span>
             </div>
-            <div class="format-info">
-              <span class="format-name">JSON 数据</span>
-              <span class="format-ext">.json</span>
-              <span class="format-desc">保留完整结构，适合程序导入</span>
+          </div>
+        </div>
+
+        <!-- 烹饪步骤 -->
+        <div class="preview-section" v-if="previewData.steps && previewData.steps.length">
+          <h3>📝 烹饪步骤</h3>
+          <div class="preview-steps">
+            <div v-for="(step, index) in previewData.steps" :key="index" class="preview-step">
+              <div class="step-index">{{ index + 1 }}</div>
+              <div class="step-body">
+                <p class="step-text">{{ typeof step === 'string' ? step : (step.content || step.description || '') }}</p>
+                <img v-if="typeof step === 'object' && step.image" :src="step.image" class="step-image" />
+              </div>
             </div>
-            <div class="format-check" v-if="exportFormat === 'json'">
-              <el-icon><Check /></el-icon>
+          </div>
+        </div>
+
+        <!-- 小贴士 -->
+        <div class="preview-section" v-if="previewData.tips">
+          <h3>💡 小贴士</h3>
+          <p class="preview-tips">{{ previewData.tips }}</p>
+        </div>
+
+        <!-- 营养信息 -->
+        <div class="preview-section" v-if="previewData.nutrition && (previewData.nutrition.calories || previewData.nutrition.protein)">
+          <h3>📊 营养信息</h3>
+          <div class="preview-nutrition">
+            <div class="nutrition-item" v-if="previewData.nutrition.calories">
+              <span class="nutrition-label">热量</span>
+              <span class="nutrition-value">{{ previewData.nutrition.calories }} kcal</span>
             </div>
-          </label>
+            <div class="nutrition-item" v-if="previewData.nutrition.protein">
+              <span class="nutrition-label">蛋白质</span>
+              <span class="nutrition-value">{{ previewData.nutrition.protein }}g</span>
+            </div>
+            <div class="nutrition-item" v-if="previewData.nutrition.fat">
+              <span class="nutrition-label">脂肪</span>
+              <span class="nutrition-value">{{ previewData.nutrition.fat }}g</span>
+            </div>
+            <div class="nutrition-item" v-if="previewData.nutrition.carbs">
+              <span class="nutrition-label">碳水</span>
+              <span class="nutrition-value">{{ previewData.nutrition.carbs }}g</span>
+            </div>
+            <div class="nutrition-item" v-if="previewData.nutrition.fiber">
+              <span class="nutrition-label">纤维</span>
+              <span class="nutrition-value">{{ previewData.nutrition.fiber }}g</span>
+            </div>
+          </div>
         </div>
       </div>
-      <template #footer>
-        <el-button @click="exportDialogVisible = false" :disabled="exporting">取消</el-button>
-        <el-button type="primary" :loading="exporting" @click="handleConfirm">
-          确认导出
-        </el-button>
-      </template>
-    </el-dialog>
+    </el-drawer>
   </div>
 </template>
 
@@ -409,7 +453,8 @@ import {
   type RecipeRow,
 } from './data';
 import { recipeApi } from '@/api/recipe';
-import { useExport, downloadFile } from '@/composables/useExport';
+import { useExport, downloadFile, type ExportFormat } from '@/composables/useExport';
+import ExportDialog from '@/components/common/ExportDialog.vue';
 
 const router = useRouter();
 const { defaultPageSize } = usePreferences();
@@ -493,10 +538,43 @@ function handleSelectionChange(rows: any[]) {
   selectedRows.value = rows;
 }
 
+const previewVisible = ref(false);
+const previewLoading = ref(false);
+const previewData = ref<any>(null);
+
+const TAG_LABEL_MAP: Record<string, string> = {
+  children: '儿童餐', diet: '减脂餐', noodles: '面食', drink: '饮品',
+  breakfast: '早餐', lunch: '午餐', dinner: '晚餐', late_night: '夜宵',
+  stir_fry: '小炒菜', soup: '汤品', cold: '凉菜', dessert: '甜品',
+  staple: '主食', hotpot: '火锅', bbq: '烧烤', western: '西餐',
+  seafood: '海鲜', meat: '肉类', vegetarian: '素食', vegan: '纯素',
+  fitness: '健身', quick: '快手', home: '家常', new: '新品',
+  solo: '一人食', spicy: '辣味', light: '清淡',
+};
+
+function tagLabel(tag: string): string {
+  return TAG_LABEL_MAP[tag] || tag;
+}
+
+async function handlePreview(row: any) {
+  previewVisible.value = true;
+  previewLoading.value = true;
+  previewData.value = null;
+  try {
+    const res = await recipeApi.detail(row.id);
+    previewData.value = res.data || res;
+  } catch {
+    ElMessage.error('加载菜谱详情失败');
+    previewVisible.value = false;
+  } finally {
+    previewLoading.value = false;
+  }
+}
+
 async function handleCommand(command: string, row: any) {
   switch (command) {
     case 'preview':
-      ElMessage.info('预览功能开发中');
+      handlePreview(row);
       break;
     case 'publish':
       await recipeApi.publish(row.id);
@@ -558,6 +636,11 @@ function handleExport() {
     total: pagination.total,
     exportFn: (format) => downloadFile('/recipes/export', params, format),
   });
+}
+
+function onExportConfirm(format: ExportFormat) {
+  exportFormat.value = format;
+  handleConfirm();
 }
 
 function handleFileChange(file: UploadFile) {
@@ -831,8 +914,11 @@ function onBodyScroll(e: Event) {
 
 /* 内层容器 */
 .table-container {
-  /* table 本身已设 width: 1200px，这里让它占满外层宽度 */
   width: 100%;
+
+  :deep(.el-table__row) {
+    cursor: pointer;
+  }
 }
 
 /* 自定义横向滚动条——VS Code 风格（滑动时出现，不滑动时渐隐） */
@@ -1122,102 +1208,191 @@ function onBodyScroll(e: Event) {
   line-height: 1;
 }
 
-// 导出弹窗
-.export-dialog-body {
-  padding: 8px 4px;
-}
-
-.export-tip {
-  color: rgba(38, 37, 30, 0.6);
-  font-size: 13px;
-  margin-bottom: 20px;
-
-  strong {
-    color: var(--cursor-orange);
-    font-weight: 600;
-  }
-}
-
-.export-format-list {
+// ================================================
+// 预览抽屉
+// ================================================
+.preview-loading {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.export-format-item {
-  display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
-  border: 1.5px solid var(--border-primary);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-  user-select: none;
+  gap: 12px;
+  padding: 80px 0;
+  color: var(--muted, #7a6a58);
+  font-size: 14px;
+}
 
-  &:hover {
-    border-color: var(--cursor-orange);
-    background: rgba(245, 111, 32, 0.04);
-  }
+.preview-body {
+  padding: 0 4px;
+}
 
-  &.active {
-    border-color: var(--cursor-orange);
-    background: rgba(245, 111, 32, 0.06);
-
-    .format-icon {
-      opacity: 1;
-    }
+.preview-cover {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  img {
+    width: 100%;
+    max-height: 360px;
+    object-fit: cover;
+    display: block;
   }
 }
 
-.format-icon {
-  width: 44px;
-  height: 44px;
+.preview-header {
+  margin-bottom: 20px;
+}
+
+.preview-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--cursor-dark);
+  margin: 0 0 10px;
+}
+
+.preview-desc {
+  font-size: 14px;
+  color: var(--muted, #7a6a58);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.preview-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.preview-meta-item {
+  font-size: 13px;
+  color: var(--text, #4a3b2a);
+}
+
+.preview-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.preview-section {
+  margin-bottom: 28px;
+  h3 {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--cursor-dark);
+    margin: 0 0 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-primary);
+  }
+}
+
+.preview-ingredients {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.preview-ingredient {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--surface-200, #f6e8d6);
   border-radius: 8px;
+  font-size: 14px;
+
+  .ing-name {
+    color: var(--text, #4a3b2a);
+    font-weight: 500;
+  }
+
+  .ing-amount {
+    color: var(--muted, #7a6a58);
+    font-family: var(--font-mono);
+  }
+}
+
+.preview-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.preview-step {
+  display: flex;
+  gap: 14px;
+}
+
+.step-index {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary, #e2a650);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  font-size: 13px;
-  flex-shrink: 0;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-  color: #fff;
-
-  &.xlsx-icon { background: #1d7a3d; }
-  &.csv-icon { background: #3a6e38; }
-  &.json-icon { background: #c47f17; }
-}
-
-.format-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.format-name {
-  font-weight: 600;
   font-size: 14px;
-  color: var(--cursor-dark);
-  font-family: var(--font-display);
-}
-
-.format-ext {
-  font-size: 11px;
-  color: rgba(38, 37, 30, 0.4);
-  font-family: monospace;
-}
-
-.format-desc {
-  font-size: 12px;
-  color: rgba(38, 37, 30, 0.5);
+  font-weight: 600;
+  flex-shrink: 0;
   margin-top: 2px;
 }
 
-.format-check {
-  color: var(--cursor-orange);
-  font-size: 18px;
-  flex-shrink: 0;
+.step-body {
+  flex: 1;
+  min-width: 0;
 }
+
+.step-text {
+  font-size: 14px;
+  color: var(--text, #4a3b2a);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.step-image {
+  width: 100%;
+  max-width: 320px;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.preview-tips {
+  font-size: 14px;
+  color: var(--text, #4a3b2a);
+  line-height: 1.7;
+  padding: 12px 16px;
+  background: var(--surface-200, #f6e8d6);
+  border-radius: 10px;
+  margin: 0;
+}
+
+.preview-nutrition {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.nutrition-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--surface-200, #f6e8d6);
+  border-radius: 8px;
+
+  .nutrition-label {
+    font-size: 13px;
+    color: var(--muted, #7a6a58);
+  }
+
+  .nutrition-value {
+    font-size: 13px;
+    color: var(--text-strong, #2d241b);
+    font-weight: 600;
+    font-family: var(--font-mono);
+  }
+}
+
 </style>

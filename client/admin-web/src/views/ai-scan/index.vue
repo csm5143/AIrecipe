@@ -285,7 +285,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   Search, Refresh, Loading, CircleCheck,
@@ -310,10 +310,20 @@ const pagination = reactive({
 
 const tableData = ref<AiScanItem[]>([]);
 
-const stats = computed(() => ({
-  success: tableData.value.filter(s => s.status === 'success').length,
-  failed: tableData.value.filter(s => s.status === 'failed').length,
-}));
+const stats = reactive({ success: 0, failed: 0 });
+
+async function fetchStatsCounts() {
+  try {
+    const [successRes, failedRes] = await Promise.all([
+      aiScanApi.getList({ page: 1, pageSize: 1, status: 'success' }),
+      aiScanApi.getList({ page: 1, pageSize: 1, status: 'failed' }),
+    ]);
+    stats.success = successRes.data?.total || 0;
+    stats.failed = failedRes.data?.total || 0;
+  } catch {
+    // stats are non-critical; leave at 0
+  }
+}
 
 function getStatusType(status: string) {
   return { success: 'success', failed: 'danger' }[status] || 'warning';
@@ -412,6 +422,7 @@ watch([() => filters.status, () => pagination.page, () => pagination.pageSize], 
 
 onMounted(() => {
   fetchScans();
+  fetchStatsCounts();
 });
 </script>
 

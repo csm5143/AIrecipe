@@ -30,10 +30,11 @@ export function getUserInfo(): UserInfo {
 }
 
 /**
- * 是否为正式用户（stub - 云开发已移除）
- * 原逻辑：通过微信云开发判断是否绑定手机/正式注册
- * 现在：只要本地有用户信息就视为正式用户
+ * 是否为正式用户
+ * 已登录 + 已绑定手机号
  */
 export function isFormalUser(): boolean {
-  return isLoggedIn();
+  if (!isLoggedIn()) return false;
+  const info = storageGetUserInfo();
+  return !!(info && info.phone);
 }

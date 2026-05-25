@@ -30,6 +30,7 @@ export type PermissionModule =
   | 'collection'
   | 'user'
   | 'feedback'
+  | 'ai-scan'
   | 'content'
   | 'recipe-audit'
   | 'recycle'
@@ -43,13 +44,18 @@ export const ROUTE_MODULE_MAP: Record<string, PermissionModule> = {
   '/recipes': 'recipe',
   '/recipes/create': 'recipe',
   '/recipes/:id/edit': 'recipe',
+  '/recipes/featured': 'recipe',
+  '/recipes/hot': 'recipe',
   '/ingredients': 'ingredient',
   '/collections': 'collection',
   '/users': 'user',
   '/feedbacks': 'feedback',
+  '/ai-scans': 'ai-scan',
   '/content': 'content',
+  '/image-create': 'content',
   '/recipe-audit': 'recipe-audit',
   '/recycle': 'recycle',
+  '/system': 'ALL',
   '/system/settings': 'settings',
   '/system/admin': 'admin-manage',
   '/system/operation-logs': 'admin-manage',
@@ -59,12 +65,12 @@ export const ROUTE_MODULE_MAP: Record<string, PermissionModule> = {
 export const ROLE_PERMISSION_MAP: Record<Role, PermissionModule[]> = {
   SUPER_ADMIN: [
     'ALL', 'recipe', 'ingredient', 'collection',
-    'user', 'feedback', 'content', 'recipe-audit',
+    'user', 'feedback', 'ai-scan', 'content', 'recipe-audit',
     'recycle', 'admin-manage', 'settings',
   ],
   ADMIN: [
     'ALL', 'recipe', 'ingredient', 'collection',
-    'feedback', 'content',
+    'feedback', 'ai-scan', 'content',
   ],
   EDITOR: [
     'ALL', 'recipe', 'ingredient', 'collection',
@@ -107,8 +113,8 @@ export function canAccessRoute(role: Role | undefined, path: string): boolean {
     }
   }
 
-  // 未匹配任何已知路径，默认允许（已有 token 校验兜底）
-  return true;
+  // 未匹配任何已知路径，默认拒绝（新路由需要显式配置权限）
+  return false;
 }
 
 /**

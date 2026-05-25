@@ -92,18 +92,60 @@ export async function getDashboardStats(req: Request, res: Response) {
 
 export async function getUserStats(req: Request, res: Response) {
   const now = new Date();
-  const monthLabels: string[] = [];
-  const userData: number[] = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = subDays(now, i * 5);
-    monthLabels.push(`${d.getMonth() + 1}月${d.getDate()}日`);
-    userData.push(0);
+  const daysAgo = parseInt(req.query.days as string) || 30;
+  const start = subDays(now, daysAgo);
+
+  const dailyUsers = await prisma.user.groupBy({
+    by: ['createdAt'],
+    where: { createdAt: { gte: start }, deletedAt: null },
+    _count: { id: true },
+  });
+
+  const labels: string[] = [];
+  const dataMap: Record<string, number> = {};
+  for (let i = daysAgo; i >= 0; i--) {
+    const d = subDays(now, i);
+    const key = `${d.getMonth() + 1}/${d.getDate()}`;
+    labels.push(key);
+    dataMap[key] = 0;
   }
-  res.json(success({ labels: monthLabels, datasets: [{ label: '用户增长', data: userData }] }));
+
+  dailyUsers.forEach(u => {
+    const d = new Date(u.createdAt);
+    const key = `${d.getMonth() + 1}/${d.getDate()}`;
+    if (key in dataMap) dataMap[key] += u._count.id;
+  });
+
+  res.json(success({ labels, datasets: [{ label: '用户增长', data: labels.map(l => dataMap[l]) }] }));
 }
 
 export async function getRecipeStats(req: Request, res: Response) {
-  res.json(success({ labels: [], datasets: [] }));
+  const now = new Date();
+  const daysAgo = parseInt(req.query.days as string) || 30;
+  const start = subDays(now, daysAgo);
+
+  const dailyRecipes = await prisma.recipe.groupBy({
+    by: ['createdAt'],
+    where: { createdAt: { gte: start }, isDeleted: false },
+    _count: { id: true },
+  });
+
+  const labels: string[] = [];
+  const dataMap: Record<string, number> = {};
+  for (let i = daysAgo; i >= 0; i--) {
+    const d = subDays(now, i);
+    const key = `${d.getMonth() + 1}/${d.getDate()}`;
+    labels.push(key);
+    dataMap[key] = 0;
+  }
+
+  dailyRecipes.forEach(r => {
+    const d = new Date(r.createdAt);
+    const key = `${d.getMonth() + 1}/${d.getDate()}`;
+    if (key in dataMap) dataMap[key] += r._count.id;
+  });
+
+  res.json(success({ labels, datasets: [{ label: '菜谱发布', data: labels.map(l => dataMap[l]) }] }));
 }
 
 export async function getFeedbackStats(req: Request, res: Response) {

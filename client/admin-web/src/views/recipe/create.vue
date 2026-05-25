@@ -237,10 +237,10 @@
           </el-form>
 
           <div class="action-buttons">
-            <el-button type="primary" size="large" @click="handleSubmit">
+            <el-button type="primary" size="large" :loading="saving" @click="handleSubmit">
               {{ form.status === 'PUBLISHED' ? '发布菜谱' : '保存草稿' }}
             </el-button>
-            <el-button size="large" @click="router.back()">取消</el-button>
+            <el-button size="large" @click="handleCancel">取消</el-button>
           </div>
         </div>
 
@@ -270,7 +270,9 @@
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { Plus, Delete, Picture, ArrowLeft } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { recipeApi } from '@/api/recipe';
+import { uploadFile } from '@/api/upload';
 import {
   DISH_TYPE_OPTIONS, MEAL_TIME_OPTIONS, DIFFICULTY_OPTIONS,
   AGE_BAND_OPTIONS, FITNESS_CATEGORY_OPTIONS, GOAL_OPTIONS, STATUS_OPTIONS,
@@ -282,6 +284,7 @@ const coverPreview = ref('');
 const showTagInput = ref(false);
 const newTag = ref('');
 const tagInputRef = ref();
+const saving = ref(false);
 
 const form = reactive({
   title: '',
@@ -316,9 +319,14 @@ const rules = {
   dishType: [{ required: true, message: '请选择菜品类型', trigger: 'change' }],
 };
 
-function handleCoverChange(file: any) {
+async function handleCoverChange(file: any) {
   coverPreview.value = URL.createObjectURL(file.raw);
-  form.coverImage = file.raw;
+  try {
+    const result = await uploadFile(file.raw, 'RECIPE_COVER');
+    form.coverImage = result.url || (result.data as any)?.url || '';
+  } catch {
+    ElMessage.error('封面上传失败');
+  }
 }
 
 function addIngredient() {
@@ -337,8 +345,15 @@ function removeStep(index: number) {
   form.steps.splice(index, 1);
 }
 
-function handleStepImageChange(file: any, index: number) {
-  form.steps[index].image = URL.createObjectURL(file.raw);
+async function handleStepImageChange(file: any, index: number) {
+  const blobUrl = URL.createObjectURL(file.raw);
+  form.steps[index].image = blobUrl;
+  try {
+    const result = await uploadFile(file.raw, 'RECIPE_STEPS');
+    form.steps[index].image = result.url || (result.data as any)?.url || blobUrl;
+  } catch {
+    ElMessage.error('步骤图上传失败');
+  }
 }
 
 async function addTag() {
@@ -358,8 +373,42 @@ async function handleSubmit() {
   const valid = await formRef.value?.validate().catch(() => false);
   if (!valid) return;
 
-  ElMessage.success(form.status === 'PUBLISHED' ? '发布成功' : '保存成功');
-  router.push('/recipes');
+  saving.value = true;
+  try {
+    const payload: any = {
+      title: form.title,
+      description: form.description || undefined,
+      dishType: form.dishType,
+      difficulty: form.difficulty,
+      cookingTime: form.cookingTime,
+      coverImage: form.coverImage || undefined,
+      ingredients: form.ingredients.filter(i => i.name.trim()),
+      steps: form.steps.filter(s => s.content.trim()),
+      tags: form.tags.length > 0 ? form.tags : undefined,
+      tips: form.tips || undefined,
+      status: form.status,
+      mealTimes: form.mealTimes.length > 0 ? form.mealTimes : undefined,
+      fitnessMeal: form.fitnessMeal || undefined,
+      childrenMeal: form.childrenMeal || undefined,
+      ageBand: form.childrenMeal ? form.ageBand : undefined,
+      fitnessCategory: form.fitnessMeal ? form.fitnessCategory : undefined,
+      goal: form.fitnessMeal ? form.goal : undefined,
+      nutrition: form.nutrition.calories > 0 || form.nutrition.protein > 0 ? form.nutrition : undefined,
+    };
+    await recipeApi.create(payload);
+    ElMessage.success(form.status === 'PUBLISHED' ? '发布成功' : '保存成功');
+    router.push('/recipes');
+  } catch (e: any) {
+    ElMessage.error(e?.message || '创建失败');
+  } finally {
+    saving.value = false;
+  }
+}
+
+function handleCancel() {
+  ElMessageBox.confirm('未保存的数据将丢失，确定要取消吗？', '确认', {
+    confirmText: '确定离开', cancelText: '继续编辑', type: 'warning',
+  }).then(() => router.push('/recipes')).catch(() => {});
 }
 </script>
 

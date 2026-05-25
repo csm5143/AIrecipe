@@ -10,9 +10,9 @@
         <el-tag :type="getStatusType(form.status)" size="small">{{ getStatusText(form.status) }}</el-tag>
       </div>
       <div class="header-actions">
-        <el-button @click="handleSave">保存</el-button>
+        <el-button :loading="saving" @click="handleSave">保存</el-button>
         <el-dropdown trigger="click" @command="handlePublish">
-          <el-button type="primary">
+          <el-button type="primary" :loading="saving">
             发布
             <el-icon><ArrowDown /></el-icon>
           </el-button>
@@ -299,6 +299,7 @@ const router = useRouter();
 const route = useRoute();
 const formRef = ref();
 const coverPreview = ref('');
+const saving = ref(false);
 
 const form = reactive({
   id: 0,
@@ -391,7 +392,9 @@ async function handleSave() {
   const valid = await formRef.value?.validate().catch(() => false);
   if (!valid) return;
 
-  const payload = {
+  saving.value = true;
+  try {
+    const payload = {
     title: form.title,
     description: form.description,
     coverImage: form.coverImage,
@@ -432,7 +435,6 @@ async function handleSave() {
     },
   };
 
-  try {
     if (form.id) {
       await recipeApi.update(form.id, payload);
     } else {
@@ -443,13 +445,20 @@ async function handleSave() {
   } catch (error) {
     console.error('保存失败:', error);
     ElMessage.error('保存失败，请重试');
+  } finally {
+    saving.value = false;
   }
 }
 
 async function handlePublish(command: string) {
+  const prevStatus = form.status;
   form.status = command;
-  ElMessage.success(`状态已更新为：${getStatusText(command)}`);
-  await handleSave();
+  try {
+    await handleSave();
+    ElMessage.success(`状态已更新为：${getStatusText(command)}`);
+  } catch {
+    form.status = prevStatus;
+  }
 }
 
 onMounted(async () => {

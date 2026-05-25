@@ -110,17 +110,11 @@ export async function updateCollectionCached(id: number, params: {
   return res;
 }
 
-/** 检查菜谱是否已被收藏 */
+/** 检查菜谱是否已被收藏（单次查询，避免 N+1） */
 export async function isRecipeCollected(recipeId: number): Promise<boolean> {
-  const collections = await getCollectionsWithCache();
-  for (const collection of collections) {
-    const detail = await getCollectionDetailCached(Number(collection.id));
-    const recipes = (detail as any)?.recipes || [];
-    if (recipes.some((item: any) => Number(item.recipeId || item.id || item.recipe?.id) === recipeId)) {
-      return true;
-    }
-  }
-  return false;
+  const res = await collectionApi.getCollectedRecipeIds();
+  if (!res.success || !res.data) return false;
+  return res.data.includes(recipeId);
 }
 
 /** 统一导出的 collectionService 对象 */
@@ -134,4 +128,5 @@ export const collectionService = {
   getCollectionDetailCached,
   updateCollectionCached,
   isRecipeCollected,
+  getCollectedRecipeIds: collectionApi.getCollectedRecipeIds,
 };

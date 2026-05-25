@@ -286,4 +286,117 @@ router.get('/feedback/:id', asyncHandler(async (req, res) => {
   }));
 }));
 
+/** 批量获取用户所有收藏夹中的菜谱 ID（避免 N+1 查询） */
+router.get('/collected-recipe-ids', asyncHandler(async (req, res) => {
+  const userId = (req as any).userId;
+  const items = await prisma.collectionItem.findMany({
+    where: { collection: { userId } },
+    select: { recipeId: true },
+  });
+  res.json(success(items.map(i => i.recipeId)));
+}));
+
+// ============ 小菜篮 ============
+
+/** 获取用户的购物清单列表 */
+router.get('/shopping-lists', asyncHandler(async (req, res) => {
+  const userId = (req as any).userId;
+  const lists = await prisma.shoppingList.findMany({
+    where: { userId },
+    orderBy: { updatedAt: 'desc' },
+    include: { items: { orderBy: { createdAt: 'asc' } } },
+  });
+  res.json(success(lists));
+}));
+
+/** 创建/更新购物清单（同一菜谱同名清单 => upsert） */
+router.post('/shopping-lists', asyncHandler(async (req, res) => {
+  const userId = (req as any).userId;
+  const { name, recipeId, items } = req.body;
+  if (!name || !items || !Array.isArray(items)) {
+    res.status(400).json(badRequest('缺少必填字段'));
+    return;
+  }
+
+  // 查找是否已有同名清单
+  let list = await prisma.shoppingList.findFirst({
+    where: { userId, name },
+  });
+
+  if (list) {
+    // 更新已有清单
+    list = await prisma.shoppingList.update({
+      where: { id: list.id },
+      data: {
+        recipeId: recipeId || null,
+        updatedAt: new Date(),
+        items: {
+          deleteMany: {},
+          create: items.map((i: any) => ({
+            name: i.name || '',
+            amount: i.amount || '',
+            unit: i.unit || '',
+            category: i.category || '',
+            isChecked: false,
+          })),
+        },
+      },
+      include: { items: true },
+    });
+  } else {
+    // 新建清单
+    list = await prisma.shoppingList.create({
+      data: {
+        userId,
+        name,
+        recipeId: recipeId || null,
+        items: {
+          create: items.map((i: any) => ({
+            name: i.name || '',
+            amount: i.amount || '',
+            unit: i.unit || '',
+            category: i.category || '',
+            isChecked: false,
+          })),
+        },
+      },
+      include: { items: true },
+    });
+  }
+  res.json(success(list, '保存成功'));
+}));
+
+/** 删除购物清单 */
+router.delete('/shopping-lists/:id', asyncHandler(async (req, res) => {
+  const userId = (req as any).userId;
+  const id = parseInt(req.params.id);
+  const list = await prisma.shoppingList.findFirst({ where: { id, userId } });
+  if (!list) {
+    res.status(404).json({ code: 404, message: '清单不存在', timestamp: Date.now() });
+    return;
+  }
+  await prisma.shoppingList.delete({ where: { id } });
+  res.json(success(null, '已删除'));
+}));
+
+// ============ 浏览历史 ============
+
+/** 记录浏览历史 */
+router.post('/browse-history', asyncHandler(async (req, res) => {
+  const userId = (req as any).userId;
+  const { recipeId } = req.body;
+  if (!recipeId) {
+    res.status(400).json(badRequest('缺少 recipeId'));
+    return;
+  }
+  await prisma.browseHistory.create({
+    data: {
+      userId,
+      recipeId: parseInt(recipeId),
+      source: req.body.source || 'detail',
+    },
+  });
+  res.json(success(null, '已记录'));
+}));
+
 export default router;

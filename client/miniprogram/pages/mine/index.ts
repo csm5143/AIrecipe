@@ -1,16 +1,16 @@
-// 我的页面：用户信息、功能菜单
+// 我的页面：用户信息 + 功能菜单
 
-import { getCurrentUser, authService } from '../../utils/services/authService.js';
+import { getCurrentUser, authService, updateProfile } from '../../utils/services/authService.js';
 import { collectionService } from '../../utils/services/collectionService.js';
 import { getPreferenceStats } from '../../utils/preferenceStore.js';
+import { upload } from '../../utils/httpApi/request.js';
 
-// 获取冰箱食材数量
 function getFridgeItemCount(): number {
   try {
-    const items = wx.getStorageSync('littleFridgeV2') || '[]';
-    const data = JSON.parse(items);
+    const raw = wx.getStorageSync('littleFridgeV2') || '[]';
+    const data = JSON.parse(raw);
     return Array.isArray(data) ? data.length : 0;
-  } catch (e) {
+  } catch (_) {
     return 0;
   }
 }
@@ -18,13 +18,10 @@ function getFridgeItemCount(): number {
 Page({
   data: {
     hasLogin: false,
-    userInfo: {
-      nickname: '',
-      avatar: ''
-    },
+    userInfo: { nickname: '', avatar: '' },
     favoriteCount: 0,
     fridgeItemCount: 0,
-    preferenceCount: 0
+    preferenceCount: 0,
   },
 
   onLoad() {
@@ -33,13 +30,10 @@ Page({
 
   onShow() {
     const tab = typeof this.getTabBar === 'function' && this.getTabBar();
-    if (tab) {
-      tab.setData({ selected: 3 });
-    }
+    if (tab) tab.setData({ selected: 3 });
     this.loadUserInfo();
   },
 
-  // 加载用户信息
   async loadUserInfo() {
     const hasLogin = authService.isLoggedIn();
     const info = getCurrentUser();
@@ -49,69 +43,95 @@ Page({
     let favoriteCount = 0;
     if (hasLogin) {
       try {
-        const collections = await collectionService?.getCollectionsWithCache?.();
-        favoriteCount = collections?.reduce?.((sum: number, item: any) => sum + (item.itemCount || item.recipeCount || 0), 0) || 0;
-      } catch (e) {
-        console.warn('[Mine] 获取收藏数量失败', e);
-      }
+        const cols = await collectionService?.getCollectionsWithCache?.();
+        favoriteCount = cols?.reduce?.((sum: number, c: any) => sum + (c.itemCount || c.recipeCount || 0), 0) || 0;
+      } catch (_) {}
     }
 
     this.setData({
       hasLogin,
       userInfo: {
         nickname: info?.nickname || '',
-        avatar: info?.avatar || ''
+        avatar: info?.avatar || '',
       },
       favoriteCount,
       fridgeItemCount,
-      preferenceCount: stats.total
+      preferenceCount: stats.total,
     });
   },
 
-  // 跳转到登录页面
+  // ============ 用户的头像 / 资料交互 ============
+
+  // 更换头像（仅登录后可用）
+  async onChangeAvatar() {
+    if (!this.data.hasLogin) {
+      this.onGoToLogin();
+      return;
+    }
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      success: async (res) => {
+        const tempPath = res.tempFiles[0].tempFilePath;
+        this.setData({ 'userInfo.avatar': tempPath });
+        wx.showLoading({ title: '上传中...', mask: true });
+        try {
+          const uploadRes = await upload('/v1/upload/wx-avatar', tempPath, 'file', { folder: 'avatars' });
+          if (!uploadRes.success || !uploadRes.data?.url) {
+            throw new Error('上传失败');
+          }
+          const cosUrl = uploadRes.data.url;
+          await updateProfile({ avatar: cosUrl });
+          wx.hideLoading();
+          this.loadUserInfo();
+          wx.showToast({ title: '头像已更新', icon: 'success' });
+        } catch {
+          wx.hideLoading();
+          wx.showToast({ title: '上传失败，请重试', icon: 'none' });
+        }
+      },
+    });
+  },
+
+  // 点击昵称/箭头 → 跳登录页查看完整资料
+  onGoToProfile() {
+    wx.navigateTo({ url: '/subpackages/lowfreq/login/index' });
+  },
+
+  // 未登录 → 跳登录
   onGoToLogin() {
     wx.navigateTo({ url: '/subpackages/lowfreq/login/index' });
   },
 
-  // 编辑用户信息（跳转到登录页）
-  onEditUserInfo() {
-    wx.navigateTo({ url: '/subpackages/lowfreq/login/index' });
-  },
+  // ============ 菜单入口 ============
 
-  // 跳转到收藏页面
-  onGoToFavorites() {
-    wx.switchTab({
-      url: '/pages/collections/index'
-    });
-  },
-
-  // 跳转到小冰箱页面
   onGoToFridge() {
     wx.navigateTo({ url: '/pages/fridge/index' });
   },
 
-  // 跳转到小菜篮页面
   onGoToBasket() {
     wx.navigateTo({ url: '/pages/basket/index' });
   },
 
-  // 跳转到偏好设置页面
+  onGoToFavorites() {
+    wx.switchTab({ url: '/pages/collections/index' });
+  },
+
   onGoToPreference() {
     wx.navigateTo({ url: '/pages/preference/index' });
   },
 
-  // 问题反馈
   onFeedback() {
     wx.navigateTo({ url: '/subpackages/lowfreq/feedback/index' });
   },
 
-  // 关于我们
   onAbout() {
     wx.showModal({
       title: '关于我们',
-      content: 'AI 智能菜谱\n\n让厨房里的食材，都有做法。\n\n我们致力于用AI技术，帮助用户发现食材的无限可能，做出美味佳肴。\n\n版本：v1.0.0',
+      content: 'AI 智能菜谱\n\n让厨房里的食材，都有做法。\n\n版本：v1.0.0',
       showCancel: false,
-      confirmText: '了解了'
+      confirmText: '了解了',
     });
-  }
+  },
 });

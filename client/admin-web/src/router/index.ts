@@ -101,6 +101,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '内容运营', icon: 'TrendCharts' },
       },
       {
+        path: 'image-create',
+        name: 'ImageCreate',
+        component: () => import('@/views/content/ImageCreate.vue'),
+        meta: { title: '图片创作', icon: 'Picture' },
+      },
+      {
         path: 'system',
         name: 'System',
         redirect: 'system/settings',
@@ -148,12 +154,15 @@ router.beforeEach(async (to, _from, next) => {
       return;
     }
 
-    // token 存在但 profile 未加载时，先拉取 profile 再做权限判断
-    if (!userStore.profile) {
+    // profile 未加载成功时先拉取（用 profileLoaded 防止重复请求）
+    if (!userStore.profileLoaded) {
       try {
         await userStore.fetchProfile();
       } catch {
-        // 拉取失败说明 token 可能已失效，退回登录
+        // fetchProfile 内部已设置 profileLoaded
+      }
+      // 拉取后仍无 profile 说明 token 无效，退回登录
+      if (!userStore.profile) {
         next({ name: 'Login' });
         return;
       }

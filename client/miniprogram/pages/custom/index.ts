@@ -2,6 +2,7 @@
 
 import { getTotalIngredientCount, getRecipeCount } from '../../utils/shoppingList.js';
 import { authService } from '../../utils/services/authService.js';
+import { get } from '../../utils/httpApi/request.js';
 
 interface MenuCard {
   id: string;
@@ -40,16 +41,39 @@ Page({
     this.setData({ basketCount, basketRecipeCount });
   },
 
-  initMenuCards() {
+  async initMenuCards() {
+    try {
+      const res = await get<any[]>('/v1/app/content/cards', { platform: 'MINIPROGRAM' });
+      if (res.success && res.data && res.data.length > 0) {
+        const cards: MenuCard[] = (res.data as any[]).map(c => ({
+          id: String(c.id),
+          cover: c.cover || c.imageUrl || '',
+          labelTitle: c.title,
+          labelExtra: c.subtitle || '',
+          showCalendarBadge: false,
+          description: c.subtitle || '',
+          navType: c.navType || 'list',
+          navValue: c.navValue || '',
+        }));
+        this.setData({ menuCards: cards });
+        return;
+      }
+    } catch (e) {
+      console.warn('[Custom] 加载卡片失败，使用默认数据', e);
+    }
+    this._initDefaultCards();
+  },
+
+  _initDefaultCards() {
     const menuCards: MenuCard[] = [
       {
         id: 'm2',
         cover: 'https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/%E8%8F%9C%E5%93%81/%E5%AE%AB%E4%BF%9D%E9%B8%A1%E4%B8%81.png',
-        labelTitle: '本周热门',
+        labelTitle: '每日推荐',
         labelExtra: '',
         showCalendarBadge: false,
-        description: '热门爆款 · 跟做不踩雷',
-        navType: 'hot',
+        description: '精选好菜 · 每日不重样',
+        navType: 'daily',
         navValue: ''
       },
       {
@@ -176,7 +200,7 @@ Page({
     }
     if (navType === 'discover') {
       const titleMap: Record<string, string> = {
-        internet: '本周热门',
+        internet: '每日推荐',
         new: '新菜首发',
         home: '家常菜',
         solo: '一人食谱'

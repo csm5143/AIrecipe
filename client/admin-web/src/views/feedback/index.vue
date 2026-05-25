@@ -222,6 +222,8 @@
           :page-sizes="[10, 20, 50]"
           layout="sizes, prev, pager, next"
           background
+          @size-change="handlePageSizeChange"
+          @current-change="handlePageChange"
         />
       </div>
     </div>
@@ -390,7 +392,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import {
   Search,
   Refresh,
@@ -629,10 +631,16 @@ async function handleDelete(row: FeedbackItem) {
   }
 }
 
-watch(
-  () => [pagination.page, pagination.pageSize],
-  () => fetchFeedbacks()
-);
+function handlePageChange(page: number) {
+  pagination.page = page;
+  fetchFeedbacks();
+}
+
+function handlePageSizeChange(size: number) {
+  pagination.pageSize = size;
+  pagination.page = 1;
+  fetchFeedbacks();
+}
 
 onMounted(() => fetchFeedbacks());
 </script>

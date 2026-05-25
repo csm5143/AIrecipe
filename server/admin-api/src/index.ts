@@ -32,6 +32,8 @@ import recycleBinRoutes from './modules/recycle-bin/routes/recycle-bin.routes';
 import featuredRoutes from './modules/featured/routes/featured.routes';
 import aiScanRoutes from './modules/ai-scan/routes/ai-scan.routes';
 import aiKeyRoutes, { aiKeyPublicRoutes } from './modules/ai-key/routes/ai-key.routes';
+import aiRoutes from './modules/ai/routes/ai.routes';
+import devRoutes from './modules/dev/routes/dev.routes';
 
 const app: Express = express();
 
@@ -106,6 +108,8 @@ app.use(`${config.app.apiPrefix}/admins`, adminRoutes);
 app.use(`${config.app.apiPrefix}/content`, contentRoutes);
 app.use(`${config.app.apiPrefix}/app`, appRoutes);
 app.use(`${config.app.apiPrefix}/ai-scans`, aiScanRoutes);
+app.use(`${config.app.apiPrefix}/ai`, aiRoutes);
+app.use(`${config.app.apiPrefix}/dev`, devRoutes);
 app.use(`${config.app.apiPrefix}/ai-keys`, aiKeyRoutes);
 app.use(`${config.app.apiPrefix}/ai-keys/active`, aiKeyPublicRoutes);
 app.use(`${config.app.apiPrefix}/wx`, wxRoutes);

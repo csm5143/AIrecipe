@@ -49,8 +49,10 @@ export const featuredApi = {
     return request.delete(`/featured-recipes/${id}`);
   },
 
-  updateWeight(id: number, weight: number) {
-    return request.put(`/featured-recipes/${id}/weight`, { weight });
+  updateWeight(id: number, weight: number, note?: string) {
+    const data: any = { weight };
+    if (note !== undefined) data.note = note;
+    return request.put(`/featured-recipes/${id}/weight`, data);
   },
 
   batchUpdate(data: { id: number; weight: number }[]) {

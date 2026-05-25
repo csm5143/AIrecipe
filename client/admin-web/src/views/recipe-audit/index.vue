@@ -249,7 +249,7 @@
           <div class="step-list">
             <div v-for="(step, idx) in currentRecipe.steps" :key="idx" class="step-item">
               <span class="step-num">{{ idx + 1 }}</span>
-              <span class="step-desc">{{ step.description }}</span>
+              <span class="step-desc">{{ step.content || step.description }}</span>
             </div>
           </div>
         </div>

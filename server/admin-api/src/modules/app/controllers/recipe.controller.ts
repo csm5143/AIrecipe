@@ -20,27 +20,33 @@ export function buildWhereClause(query: any): any {
     where.category = query.category;
   }
 
+  // Collect all tag requirements to avoid overwrite (P0 bug fix)
+  const tagValues: string[] = [];
   if (query.dishType) {
-    where.tags = { has: query.dishType };
+    tagValues.push(query.dishType);
   }
-
   if (query.mealTime) {
-    where.tags = { has: query.mealTime };
+    tagValues.push(query.mealTime);
   }
-
   if (query.fitnessMeal === 'true' || query.fitnessMeal === '1') {
-    where.tags = { has: 'diet' };
+    tagValues.push('diet');
   }
-
   if (query.childrenMeal === 'true' || query.childrenMeal === '1') {
-    where.tags = { has: 'children' };
+    tagValues.push('children');
+  }
+  if (tagValues.length === 1) {
+    where.tags = { has: tagValues[0] };
+  } else if (tagValues.length > 1) {
+    where.tags = { hasEvery: tagValues };
   }
 
+  // Collect OR conditions to avoid overwrite (P0 bug fix)
+  const orGroups: any[] = [];
   if (query.goal) {
-    where.OR = [
+    orGroups.push([
       { goal: query.goal },
       { tags: { has: query.goal } },
-    ];
+    ]);
   }
 
   if (query.ageBand) {
@@ -49,12 +55,18 @@ export function buildWhereClause(query: any): any {
 
   if (query.keyword) {
     const keyword = query.keyword as string;
-    where.OR = [
+    orGroups.push([
       { title: { contains: keyword, mode: 'insensitive' } },
       { description: { contains: keyword, mode: 'insensitive' } },
       { tags: { has: keyword } },
       { cuisine: { contains: keyword, mode: 'insensitive' } },
-    ];
+    ]);
+  }
+
+  if (orGroups.length === 1) {
+    where.OR = orGroups[0];
+  } else if (orGroups.length > 1) {
+    where.AND = orGroups.map(or => ({ OR: or }));
   }
 
   if (query.ids) {
@@ -205,21 +217,29 @@ export async function getRecipesByIngredients(req: Request, res: Response) {
       cacheKeys.appRecipesByIngredients(queryKey),
       60,
       async () => {
+        // DB-level filtering: only fetch recipes that have at least one matching ingredient
         const recipes = await prisma.recipe.findMany({
           where: {
             isDeleted: false,
             status: 'PUBLISHED',
+            recipeIngredients: {
+              some: {
+                name: { in: ingredientList, mode: 'insensitive' },
+              },
+            },
           },
           include: {
             recipeIngredients: true,
           },
+          orderBy: { collectCount: 'desc' },
+          take: 20,
         });
 
         return recipes
           .map(recipe => {
-            const recipeIngredients = recipe.recipeIngredients.map(ri => ri.name.toLowerCase());
+            const recipeIngredientNames = recipe.recipeIngredients.map(ri => ri.name.toLowerCase());
             const matched = ingredientList.filter(ing =>
-              recipeIngredients.some(ri => ri.includes(ing.toLowerCase()))
+              recipeIngredientNames.some(ri => ri.includes(ing.toLowerCase()))
             );
             return {
               recipe: mapRecipeToAppFormat(recipe),
@@ -227,9 +247,7 @@ export async function getRecipesByIngredients(req: Request, res: Response) {
               matchedIngredients: matched,
             };
           })
-          .filter(item => item.matchedCount > 0)
-          .sort((a, b) => b.matchedCount - a.matchedCount)
-          .slice(0, 20);
+          .sort((a, b) => b.matchedCount - a.matchedCount);
       }
     );
 

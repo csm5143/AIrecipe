@@ -47,6 +47,9 @@ function isExpired(meta: CacheMeta): boolean {
   return Date.now() - meta.timestamp > meta.ttl;
 }
 
+/** 并发请求去重：同一 key 的飞行中请求共享一个 Promise */
+const inFlight = new Map<string, Promise<any>>();
+
 /**
  * 获取数据，优先缓存，未过期直接返回，过期则静默刷新
  * @param key Storage key
@@ -59,6 +62,11 @@ export async function getOrFetch<T>(
   source: () => Promise<T>,
   ttl: number = DEFAULT_TTL
 ): Promise<T | null> {
+  // 并发去重：如果同一个 key 已有进行中的请求，直接复用
+  if (inFlight.has(key)) {
+    return inFlight.get(key) as Promise<T | null>;
+  }
+
   const cached = getCache<T>(key);
 
   if (cached && !isExpired(cached.meta)) {
@@ -66,17 +74,27 @@ export async function getOrFetch<T>(
   }
 
   // 已过期或无缓存，尝试刷新
-  try {
-    const fresh = await source();
-    setCache(key, fresh, ttl);
-    return fresh;
-  } catch (e) {
-    // API 失败，降级返回已过期缓存（如果有）
-    if (cached) {
-      console.warn(`[CacheService] API 失败，降级返回过期缓存 key=${key}`);
-      return cached.data;
+  const promise = (async (): Promise<T | null> => {
+    try {
+      const fresh = await source();
+      setCache(key, fresh, ttl);
+      return fresh;
+    } catch (e) {
+      // API 失败，降级返回已过期缓存（如果有）
+      if (cached) {
+        console.warn(`[CacheService] API 失败，降级返回过期缓存 key=${key}`);
+        return cached.data;
+      }
+      return null;
     }
-    return null;
+  })();
+
+  inFlight.set(key, promise);
+
+  try {
+    return await promise;
+  } finally {
+    inFlight.delete(key);
   }
 }
 

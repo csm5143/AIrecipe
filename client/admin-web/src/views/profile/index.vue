@@ -373,6 +373,7 @@ const roleText = computed(() => {
     SUPER_ADMIN: '超级管理员',
     ADMIN: '管理员',
     EDITOR: '编辑',
+    AUDITOR: '审计员',
   };
   return roleMap[userStore.profile?.role || ''] || '管理员';
 });

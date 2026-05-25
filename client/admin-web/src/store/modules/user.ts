@@ -6,12 +6,14 @@ import type { AdminUser, LoginDto } from '@airecipe/shared-types';
 export const useUserStore = defineStore('user', () => {
   const token = ref<string>(localStorage.getItem('token') || '');
   const profile = ref<AdminUser | null>(null);
+  const profileLoaded = ref<boolean>(false);
 
   async function login(credentials: LoginDto) {
     const res = await authApi.login(credentials);
     const data = res.data as any;
     token.value = data.token;
     profile.value = data.admin;
+    profileLoaded.value = true;
     localStorage.setItem('token', data.token);
     localStorage.setItem('refreshToken', data.refreshToken);
   }
@@ -22,6 +24,7 @@ export const useUserStore = defineStore('user', () => {
     } finally {
       token.value = '';
       profile.value = null;
+      profileLoaded.value = false;
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
     }
@@ -32,6 +35,7 @@ export const useUserStore = defineStore('user', () => {
     try {
       const res = await authApi.getProfile();
       profile.value = res.data as AdminUser;
+      profileLoaded.value = true;
     } catch {
       // 网络不可用时静默降级，不中断业务流程
     }
@@ -62,6 +66,7 @@ export const useUserStore = defineStore('user', () => {
   return {
     token,
     profile,
+    profileLoaded,
     login,
     logout,
     fetchProfile,

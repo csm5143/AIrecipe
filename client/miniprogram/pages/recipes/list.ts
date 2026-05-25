@@ -24,7 +24,26 @@ import * as recipeApi from '../../utils/httpApi/recipe.js';
 // 实际上哪些调料是"关键"会因菜而异，这里先按日常直觉做一层通用弱区分
 const LIST_OPTIONAL_SEASONING_INGREDIENTS: readonly string[] = [];
 
+// 辣椒家族：用于在"只勾选青椒"时，优先展示用青椒的菜
+const PEPPER_INGREDIENTS: readonly string[] = [
+  '青椒', '红椒', '彩椒', '小米辣', '灯笼椒', '尖椒', '螺丝椒'
+];
+
+// 虾类筛选分组
+const WHOLE_SHRIMP_GROUP: readonly string[] = ['基围虾', '大虾'];
+const ALL_SHRIMP_GROUP: readonly string[] = ['基围虾', '大虾', '虾仁'];
+
+// 蜂蜜与甜味饮品的关联
+const HONEY_INGREDIENTS: readonly string[] = ['柠檬', '柚子', '百香果', '金桔'];
+
+// 葱类关联：小葱/香葱/葱/细葱 → 葱花
+const SCALLION_INGREDIENTS: readonly string[] = ['小葱', '香葱', '葱', '细葱', '细香葱'];
+
 Page({
+  // 菜谱完整列表（不参与 setData，避免 ~100KB 序列化开销）
+  _allRecipes: [] as Array<
+    Recipe & { owned: number; total: number; missing: number; difficultyLabel: string; mealTimeLabel: string; primaryCategoryLabel: string; secondaryCategoryLabels: string[]; matchedMealTimes: string[]; matchedDishTypes: string[]; calories: string | null; isFavorite: boolean; steps: string[] }
+  >,
   data: {
     // 搜索关键词
     searchKeyword: '',
@@ -41,10 +60,6 @@ Page({
     isHotMode: false,
     isNewMode: false,
     rawRecipes: [] as Recipe[],
-    // 经过筛选 + 打分排序后的完整结果（用于"显示更多/收起"）
-    allRecipes: [] as Array<
-      Recipe & { owned: number; total: number; missing: number; difficultyLabel: string; mealTimeLabel: string; primaryCategoryLabel: string; secondaryCategoryLabels: string[]; matchedMealTimes: string[]; matchedDishTypes: string[]; calories: string | null; isFavorite: boolean; steps: string[] }
-    >,
     displayRecipes: [] as Array<
       Recipe & { owned: number; total: number; missing: number; difficultyLabel: string; mealTimeLabel: string; primaryCategoryLabel: string; secondaryCategoryLabels: string[]; matchedMealTimes: string[]; matchedDishTypes: string[]; calories: string | null; isFavorite: boolean; steps: string[] }
     >,
@@ -104,23 +119,8 @@ Page({
 
   // 滑到底自动"加载更多"（只增不减，避免触发"收起"造成误解）
   onRecipesScrollToLower() {
-    const { allRecipes, recipeDisplayCount, recipePageSize } = this.data as {
-      allRecipes: Array<
-        Recipe & {
-          owned: number;
-          total: number;
-          missing: number;
-          difficultyLabel: string;
-          mealTimeLabel: string;
-          primaryCategoryLabel: string;
-          secondaryCategoryLabels: string[];
-          matchedMealTimes: string[];
-          matchedDishTypes: string[];
-          calories: string | null;
-          isFavorite: boolean;
-          steps: string[];
-        }
-      >;
+    const allRecipes = this._allRecipes;
+    const { recipeDisplayCount, recipePageSize } = this.data as {
       recipeDisplayCount: number;
       recipePageSize: number;
     };
@@ -439,25 +439,6 @@ Page({
 
     const expandedUserIngredients = expandUserIngredients(baseForExpansion);
 
-    // 辣椒家族：用于在"只勾选青椒"时，优先展示用青椒的菜
-    const PEPPER_INGREDIENTS: readonly string[] = [
-      '青椒',
-      '红椒',
-      '彩椒',
-      '小米辣',
-      '灯笼椒',
-      '尖椒',
-      '螺丝椒'
-    ];
-
-    // 虾类筛选：用于在用户勾选基围虾/大虾/虾仁时，确保能匹配到虾类菜品
-    // 严格匹配逻辑在 isIngredientOwnedWithChickenExceptions 中处理
-    const SHRIMP_INGREDIENTS: readonly string[] = [
-      '基围虾',
-      '大虾',
-      '虾仁'
-    ];
-
     const selectedPeppers = userIngredientsArray.filter((name) =>
       PEPPER_INGREDIENTS.includes(name)
     );
@@ -469,8 +450,8 @@ Page({
 
     // 如果用户勾选的全是调味料（盐、糖、酱油等），则视为没有有效食材：不返回任何菜品，并展示趣味彩蛋
     if (userIngredientsArray.length > 0 && !hasRealIngredientSelected) {
+      this._allRecipes = [];
       this.setData({
-        allRecipes: [],
         displayRecipes: [],
         recipesMoreVisible: false,
         recipesMoreText: '显示更多',
@@ -588,12 +569,6 @@ Page({
       // 虾类单向兼容：整虾（基围虾/大虾）可以做虾仁菜，但虾仁不能做整虾菜
       // 用户有整虾 → 可以看虾仁菜和整虾菜
       // 用户只有虾仁 → 只能看虾仁菜
-      const WHOLE_SHRIMP_GROUP = ['基围虾', '大虾'];
-      const ALL_SHRIMP_GROUP = ['基围虾', '大虾', '虾仁'];
-      // 蜂蜜与甜味饮品的关联
-      const HONEY_INGREDIENTS = ['柠檬', '柚子', '百香果', '金桔'];
-      // 葱类关联：小葱/香葱/葱/细葱 → 葱花
-      const SCALLION_INGREDIENTS = ['小葱', '香葱', '葱', '细葱', '细香葱'];
       // 检查蜂蜜是否与菜谱中的甜味饮品原料匹配
       const userHasHoney = mainUserIngredients.includes('蜂蜜');
       const recipeHasHoneyRelated = coreIngredients.some((ri) => HONEY_INGREDIENTS.includes(ri as string));
@@ -730,13 +705,6 @@ Page({
 
       // 核心食材命中判定：必须至少包含用户选择的1个核心食材
       // 使用用户原始选择（不含扩展），避免"扩展命中但原始没选"的情况
-      // 虾类单向兼容：整虾可以做虾仁菜，但虾仁不能做整虾菜
-      const WHOLE_SHRIMP_GROUP = ['基围虾', '大虾'];
-      const ALL_SHRIMP_GROUP = ['基围虾', '大虾', '虾仁'];
-      // 蜂蜜可以与甜味饮品原料关联：蜂蜜 + 柠檬 = 蜂蜜柠檬水，蜂蜜 + 柚子 = 蜂蜜柚子茶
-      const HONEY_INGREDIENTS = ['柠檬', '柚子', '百香果', '金桔'];
-      // 葱类关联：小葱/香葱/葱/细葱 → 葱花
-      const SCALLION_INGREDIENTS = ['小葱', '香葱', '葱', '细葱', '细香葱'];
       const hasExplicitCoreMatch = (item: typeof scored[0]): boolean => {
         if (userMainCount <= 0) return true; // 无主食材用户，全部通过
         const recipeCoreIngredients = item.ingredients.filter((ing: string) => {
@@ -949,8 +917,8 @@ Page({
     const hasMore = nextCount < all.length;
     const moreText = hasMore ? '显示更多' : '收起';
 
+    this._allRecipes = all;
     this.setData({
-      allRecipes: all,
       recipeDisplayCount: nextCount,
       displayRecipes: all.slice(0, nextCount),
       recipesMoreVisible: moreVisible,
@@ -960,23 +928,8 @@ Page({
   },
 
   onToggleRecipeMore() {
-    const { allRecipes, recipeDisplayCount, recipePageSize } = this.data as {
-      allRecipes: Array<
-        Recipe & {
-          owned: number;
-          total: number;
-          missing: number;
-          difficultyLabel: string;
-          mealTimeLabel: string;
-          primaryCategoryLabel: string;
-          secondaryCategoryLabels: string[];
-          matchedMealTimes: string[];
-          matchedDishTypes: string[];
-          calories: string | null;
-          isFavorite: boolean;
-          steps: string[];
-        }
-      >;
+    const allRecipes = this._allRecipes;
+    const { recipeDisplayCount, recipePageSize, recipeStep } = this.data as {
       recipeDisplayCount: number;
       recipePageSize: number;
       recipeStep: number;
@@ -1033,27 +986,27 @@ Page({
     if (!authService.isLoggedIn()) return;
     try {
       const ids = await this.loadCollectedRecipeIds();
-      const { allRecipes, displayRecipes } = this.data as {
-        allRecipes: Array<Recipe & { owned: number; total: number; missing: number; difficultyLabel: string; mealTimeLabel: string; primaryCategoryLabel: string; secondaryCategoryLabels: string[]; matchedMealTimes: string[]; matchedDishTypes: string[]; calories: string | null; isFavorite: boolean; steps: string[] }>;
+      const { displayRecipes } = this.data as {
         displayRecipes: Array<Recipe & { owned: number; total: number; missing: number; difficultyLabel: string; mealTimeLabel: string; primaryCategoryLabel: string; secondaryCategoryLabels: string[]; matchedMealTimes: string[]; matchedDishTypes: string[]; calories: string | null; isFavorite: boolean; steps: string[] }>;
       };
+      const allRecipes = this._allRecipes;
       const updatedAllRecipes = allRecipes.map((recipe) => ({ ...recipe, isFavorite: ids.has(recipe.id) }));
       const updatedDisplayRecipes = displayRecipes.map((recipe) => ({ ...recipe, isFavorite: ids.has(recipe.id) }));
-      this.setData({ allRecipes: updatedAllRecipes, displayRecipes: updatedDisplayRecipes });
+      this._allRecipes = updatedAllRecipes;
+      this.setData({ displayRecipes: updatedDisplayRecipes });
     } catch (e) {
       console.warn('[RecipeList] 更新收藏状态失败', e);
     }
   },
 
-  // 加载所有已收藏的菜谱 ID
+  // 加载所有已收藏的菜谱 ID（单次聚合接口，避免 N+1）
   async loadCollectedRecipeIds(): Promise<Set<string>> {
     const ids = new Set<string>();
     try {
-      const collections = await collectionService.getCollectionsWithCache();
-      for (const collection of collections as any[]) {
-        const detail = await collectionService.getCollectionDetailCached(Number(collection.id));
-        const recipes = (detail as any)?.recipes || [];
-        recipes.forEach((recipe: any) => ids.add(String(recipe.id || recipe.recipeId || recipe.recipe?.id)));
+      const res = await collectionService.getCollectedRecipeIds();
+      const data = res as number[] | undefined;
+      if (data && data.length > 0) {
+        data.forEach(id => ids.add(String(id)));
       }
     } catch (e) {
       console.warn('[RecipeList] 加载收藏状态失败', e);
@@ -1115,10 +1068,10 @@ Page({
 
   // 从当前显示数据中读取收藏状态
   _getRecipeFavoriteState(recipeId: string): boolean {
-    const { displayRecipes, allRecipes } = this.data as any;
+    const { displayRecipes } = this.data as any;
     const inDisplay = (displayRecipes || []).find((r: any) => r.id === recipeId);
     if (inDisplay) return !!inDisplay.isFavorite;
-    const inAll = (allRecipes || []).find((r: any) => r.id === recipeId);
+    const inAll = (this._allRecipes || []).find((r: any) => r.id === recipeId);
     return inAll ? !!inAll.isFavorite : false;
   },
 
@@ -1206,7 +1159,7 @@ Page({
 
   // 更新菜谱的收藏状态
   updateRecipeFavoriteStatus(recipeId: string, isFavorite: boolean) {
-    const { displayRecipes, allRecipes } = this.data as any;
+    const { displayRecipes } = this.data as any;
 
     // 更新 displayRecipes
     const updatedDisplayRecipes = displayRecipes.map((recipe: any) => {
@@ -1216,17 +1169,17 @@ Page({
       return recipe;
     });
 
-    // 更新 allRecipes
-    const updatedAllRecipes = allRecipes.map((recipe: any) => {
+    // 更新 _allRecipes
+    const updatedAllRecipes = this._allRecipes.map((recipe: any) => {
       if (recipe.id === recipeId) {
         return { ...recipe, isFavorite };
       }
       return recipe;
     });
+    this._allRecipes = updatedAllRecipes;
 
     this.setData({
-      displayRecipes: updatedDisplayRecipes,
-      allRecipes: updatedAllRecipes
+      displayRecipes: updatedDisplayRecipes
     });
   },
 
@@ -1241,9 +1194,9 @@ Page({
         }
         return r;
       });
+    this._allRecipes = clear(this._allRecipes);
     this.setData({
-      displayRecipes: clear(this.data.displayRecipes),
-      allRecipes: clear(this.data.allRecipes)
+      displayRecipes: clear(this.data.displayRecipes)
     } as any);
   },
 

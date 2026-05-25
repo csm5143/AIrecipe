@@ -65,6 +65,10 @@
             <el-icon><TrendCharts /></el-icon>
             <template #title>内容运营</template>
           </el-menu-item>
+          <el-menu-item v-if="canAccess('/image-create')" index="/image-create">
+            <el-icon><Picture /></el-icon>
+            <template #title>图片创作</template>
+          </el-menu-item>
         </el-menu>
       </div>
 

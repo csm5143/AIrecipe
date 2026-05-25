@@ -41,6 +41,7 @@ function transformApiRecipe(apiRecipe: recipeApi.Recipe): Recipe {
     timeCost: api.timeCost ?? api.cookingTime ?? null,
     difficulty,
     isHot: apiRecipe.isHot ?? false,
+    isFeatured: api.isFeatured ?? false,
     isNew: api.isNew ?? false,
     steps: api.steps || [],
     usage: api.usage || {},
