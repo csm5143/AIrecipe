@@ -79,5 +79,7 @@ onMounted(() => {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  // 底部留出玻璃导航栏空间（100rpx + 底部圆角 + 安全区）
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
 </style>

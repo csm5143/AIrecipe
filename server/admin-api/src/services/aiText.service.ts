@@ -8,8 +8,8 @@ import { prisma } from '../lib/prisma';
  * 生成公告文案
  */
 export async function generateNoticeContent(topic: string, length: 'short' | 'medium' = 'medium'): Promise<string> {
-  const key = await prisma.aiApiKey.findFirst({ where: { isActive: true } });
-  if (!key) throw new Error('没有激活的 AI Key');
+  const key = await prisma.aiApiKey.findFirst({ where: { isActive: true, keyType: { in: ['text', 'multimodal'] } } });
+  if (!key) throw new Error('没有激活的 AI Key（需要 keyType=text 或 multimodal）');
 
   const lengthHint = length === 'short' ? '80-120字' : '150-250字';
   const systemPrompt = `你是一个美食类小程序的运营编辑。你的任务是撰写适合推送的公告文案。

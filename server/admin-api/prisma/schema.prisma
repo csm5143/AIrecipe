@@ -430,6 +430,7 @@ model AiApiKey {
   apiKey       String   // 实际 API Key
   baseUrl      String   // API Base URL
   model        String   // 模型名称，如 gpt-4o-mini
+  keyType      String?  // 'image' | 'text' | 'multimodal' — null=兼容旧数据
   totalTokens  Int      // 用户填写的总量上限
   usedTokens   Int      @default(0)  // 累计已消耗
   isActive     Boolean  @default(false)
@@ -437,6 +438,22 @@ model AiApiKey {
   updatedAt    DateTime @updatedAt
 
   @@map("ai_api_keys")
+}
+
+// AI 生图 Prompt 模板
+model PromptTemplate {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  scene       String   // cover | step | banner | card | icon
+  template    String   // prompt 模板文本，{{var}} 占位
+  size        String   @default("1024x1024")
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("prompt_templates")
 }
 
 // =====================================================

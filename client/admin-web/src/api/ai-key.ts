@@ -6,6 +6,7 @@ export interface AiKeyItem {
   apiKey: string;       // masked: 前4后4
   baseUrl: string;
   model: string;
+  keyType: string | null;  // 'image' | 'text' | 'multimodal' | null
   totalTokens: number;
   usedTokens: number;
   remaining: number;
@@ -21,6 +22,7 @@ export const aiKeyApi = {
     apiKey: string;
     baseUrl: string;
     model: string;
+    keyType?: string;
     totalTokens: number;
   }) => request.post('/ai-keys', data),
 
@@ -29,6 +31,7 @@ export const aiKeyApi = {
     apiKey: string;
     baseUrl: string;
     model: string;
+    keyType: string;
     totalTokens: number;
   }>) => request.put(`/ai-keys/${id}`, data),
 

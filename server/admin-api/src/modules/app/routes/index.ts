@@ -82,9 +82,10 @@ router.post('/recognize', wxAuthenticate, asyncHandler(async (req, res) => {
     return;
   }
 
-  // 获取激活的 AI Key
+  // 获取激活的 AI Key（优先多模态，其次文本）
   const activeKey = await prisma.aiApiKey.findFirst({
-    where: { isActive: true },
+    where: { isActive: true, keyType: { in: ['multimodal', 'text'] } },
+    orderBy: [{ keyType: 'asc' }], // 'multimodal' < 'text', prefer multimodal
   });
 
   if (!activeKey) {

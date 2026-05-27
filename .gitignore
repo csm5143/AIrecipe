@@ -24,3 +24,39 @@ temp/
 .idea/
 .vscode/
 *.swp
+
+# TypeScript 增量编译缓存
+*.tsbuildinfo
+
+# 测试覆盖率
+coverage/
+
+# CodeGraph 索引缓存（本地生成，不同步）
+.codegraph/
+
+# HBuilderX IDE 配置（移动端开发工具）
+.hbuilderx/
+
+# Claude Code 本地配置（含本机路径和 Key）
+.claude/
+
+# Superpowers 脑暴会话临时文件
+.superpowers/
+
+# 缓存到项目中的 Codex 技能文件
+.agents/
+
+# npm 锁文件（本项目使用 pnpm）
+package-lock.json
+
+# 无前缀的 env 文件（如 server/admin-api/env）
+env
+
+# 小程序私有配置
+*.private.config.json
+
+# 本地配置文件
+*.local.*
+
+# 异常产物
+$null

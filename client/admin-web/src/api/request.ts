@@ -7,7 +7,7 @@ let refreshPromise: Promise<any> | null = null;
 
 const request: AxiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
+  timeout: 180000,
   headers: {
     'Content-Type': 'application/json',
   },

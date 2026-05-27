@@ -164,13 +164,18 @@ export async function updateRecipe(req: Request, res: Response) {
   const {
     title, description, coverImage, difficulty, cookingTime, servings,
     calories, cuisine, category, tips, status,
-    ingredients = [], steps = [], nutrition,
+    nutrition,
     isFeatured, isHot, isAiGenerated, aiPrompt,
-    dishType, dishTypes = [], mealTimes = [], fitnessMeal, childrenMeal,
+    dishType, fitnessMeal, childrenMeal,
   } = body;
+  const ingredients = body.ingredients;
+  const steps = body.steps;
+  const dishTypes = body.dishTypes;
+  const mealTimes = body.mealTimes;
 
-  const tags: string[] = [...(dishTypes || [])];
-  if (mealTimes?.length) tags.push(...mealTimes);
+  const tags: string[] = [];
+  if (body.hasOwnProperty('dishTypes')) tags.push(...(dishTypes || []));
+  if (body.hasOwnProperty('mealTimes')) tags.push(...(mealTimes || []));
   if (fitnessMeal) tags.push('diet');
   if (childrenMeal) tags.push('children');
 
@@ -192,21 +197,21 @@ export async function updateRecipe(req: Request, res: Response) {
       ...(isAiGenerated !== undefined && { isAiGenerated }),
       ...(aiPrompt !== undefined && { aiPrompt }),
       ...(category !== undefined && { category }),
-      ...(mealTimes !== undefined && { mealTimes }),
-      ...(dishTypes !== undefined && { dishTypes }),
+      ...(body.hasOwnProperty('mealTimes') && { mealTimes }),
+      ...(body.hasOwnProperty('dishTypes') && { dishTypes }),
       tags: tags.length ? tags : undefined,
-      nutrition: nutrition || undefined,
-      ingredients: ingredients.length > 0 ? ingredients.map((ing: any) => ({
+      ...(body.hasOwnProperty('nutrition') ? { nutrition: nutrition || undefined } : {}),
+      ...(body.hasOwnProperty('ingredients') ? { ingredients: ingredients?.length ? ingredients.map((ing: any) => ({
         name: ing.name || '',
         amount: ing.amount || '',
         unit: ing.unit || '',
         isOptional: ing.isOptional || false,
-      })) : undefined,
-      steps: steps.length > 0 ? steps.map((s: any, i: number) =>
+      })) : [] } : {}),
+      ...(body.hasOwnProperty('steps') ? { steps: steps?.length ? steps.map((s: any, i: number) =>
         typeof s === 'string'
           ? { order: i + 1, content: s, image: '' }
           : { order: s.order || i + 1, content: s.content || '', image: s.image || '' }
-      ) : undefined,
+      ) : [] } : {}),
     },
   });
 

@@ -21,6 +21,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.error(`[AUTH] 401 at ${req.method} ${req.path} — authHeader: ${authHeader ? authHeader.slice(0, 20) + '...' : 'MISSING'}`);
     throw new UnauthorizedException('未提供认证令牌');
   }
 
@@ -30,7 +31,8 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
     const payload = jwt.verify(token, config.jwt.secret) as JwtPayload;
     req.admin = payload;
     next();
-  } catch {
+  } catch (e: any) {
+    console.error(`[AUTH] 401 at ${req.method} ${req.path} — JWT verify failed: ${e.message}`);
     throw new UnauthorizedException('令牌无效或已过期');
   }
 }

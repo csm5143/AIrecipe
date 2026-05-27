@@ -1,88 +1,29 @@
 /**
  * AI 图片生成服务
- * 内置 Prompt 模板库 + 动态参数替换 + COS 上传
+ * 动态 Prompt 模板库（从数据库读取） + 动态参数替换 + COS 上传
  */
 import { prisma } from '../lib/prisma';
 import { COSService } from './cos.service';
 
-// ============ Prompt 模板库 ============
+// ============ 类型 ============
 
 export interface PromptTemplate {
-  id: string;
+  id: number;
   name: string;
-  description: string;
-  /** 适用场景 */
-  scene: 'cover' | 'step' | 'banner' | 'card' | 'icon';
-  /** 模板文本，用 {{key}} 做占位 */
+  description: string | null;
+  scene: string;
   template: string;
-  /** 推荐尺寸 */
   size: string;
+  sortOrder: number;
+  isActive: boolean;
 }
-
-export const PROMPT_TEMPLATES: PromptTemplate[] = [
-  {
-    id: 'cover_chinese_home',
-    name: '中式家常·俯拍暖光',
-    description: '适合小炒菜、家常菜的封面图，暖色调，俯拍视角',
-    scene: 'cover',
-    template: `professional Chinese food photography, overhead close-up shot of {{dishName}}, featuring {{ingredients}}, served on {{plateStyle}}, warm golden natural window light, steam rising, shallow depth of field, dark rustic wooden table, appetizing and vibrant colors, 4K ultra detailed, commercial food photo, no text no watermark`,
-    size: '1024x1024',
-  },
-  {
-    id: 'cover_japanese_clean',
-    name: '日系清新·自然光',
-    description: '适合轻食、饮品、甜品的封面图，明亮清新风格',
-    scene: 'cover',
-    template: `Japanese minimalist food photography, bright natural lighting, {{dishName}} with {{ingredients}}, on white ceramic plate, clean composition, soft shadows, light wood table, fresh and airy, 4K, no text`,
-    size: '1024x1024',
-  },
-  {
-    id: 'cover_soup_hotpot',
-    name: '汤品火锅·热气氛围',
-    description: '适合汤品、火锅、面食，突出热气腾腾的感觉',
-    scene: 'cover',
-    template: `steaming hot {{dishName}}, rich broth with {{ingredients}}, in traditional ceramic pot, dramatic warm lighting, steam visible, cozy atmosphere, Chinese cuisine, 4K food photography, no text`,
-    size: '1024x1024',
-  },
-  {
-    id: 'step_cooking',
-    name: '烹饪过程·厨房自然光',
-    description: '步骤图，展示烹饪动作',
-    scene: 'step',
-    template: `cooking process photo, {{stepDescription}}, hands preparing food, clean bright kitchen, natural daylight, top-down angle, sharp focus on the action, professional food photography, 4K`,
-    size: '1024x1024',
-  },
-  {
-    id: 'banner_atmospheric',
-    name: '轮播图·氛围横版',
-    description: '适合首页轮播，留白放文字, 横版',
-    scene: 'banner',
-    template: `atmospheric food scene, {{dishName}}, elegant restaurant atmosphere, warm golden hour light, horizontal composition, negative space on top for text overlay, shallow depth of field, 4K, commercial photography, no text overlay`,
-    size: '1920x800',
-  },
-  {
-    id: 'card_vertical',
-    name: '卡片·竖版特写',
-    description: '适合小卡片展示，竖版构图',
-    scene: 'card',
-    template: `close-up food shot, {{dishName}} with {{ingredients}}, rustic ceramic plate, warm lighting, vertical portrait composition, rich textures, 4K, appetizing, no text`,
-    size: '800x1200',
-  },
-  {
-    id: 'icon_flat',
-    name: '图标·扁平矢量',
-    description: '适合做图标，简约风格',
-    scene: 'icon',
-    template: `flat vector style icon of {{dishName}}, simple minimal design, transparent background, single object centered, warm color palette, clean lines, suitable for app icon`,
-    size: '512x512',
-  },
-];
 
 // ============ 内部函数 ============
 
-async function getActiveKey(type: 'image' | 'text' = 'image') {
+async function getActiveKey() {
   const key = await prisma.aiApiKey.findFirst({
-    where: { isActive: true },
+    where: { isActive: true, keyType: { in: ['image', 'multimodal'] } },
+    orderBy: [{ keyType: 'asc' }], // 'image' < 'multimodal' alphabetically, prefer dedicated image key
   });
   if (!key) return null;
   return { id: key.id, apiKey: key.apiKey, baseUrl: key.baseUrl, model: key.model };
@@ -95,31 +36,60 @@ async function consumeTokens(keyId: number, tokens: number) {
   }).catch(() => {});
 }
 
-async function callImageAPI(aiKey: NonNullable<Awaited<ReturnType<typeof getActiveKey>>>, prompt: string, size: string): Promise<string> {
+async function callImageAPI(aiKey: NonNullable<Awaited<ReturnType<typeof getActiveKey>>>, prompt: string, size: string, refImage?: string): Promise<string> {
   const base = aiKey.baseUrl.replace(/\/$/, '').replace(/\/images\/generations$/, '');
   const url = `${base}/images/generations`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${aiKey.apiKey}` },
-    body: JSON.stringify({ model: aiKey.model, prompt, n: 1, size }),
-  });
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`AI API [${res.status}]: ${err.slice(0, 200)}`);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 180000); // 3 分钟超时
+  try {
+    const body: any = { model: aiKey.model, prompt, n: 1, size };
+    // 图生图：传参考图
+    if (refImage) {
+      body.image = refImage;
+    }
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${aiKey.apiKey}` },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+
+    const ct = res.headers.get('content-type') || '';
+    if (!res.ok) {
+      const err = await res.text();
+      const preview = ct.includes('html') ? `[服务商返回了网页而非 API 响应，baseUrl 或 API Key 可能不对]` : err.slice(0, 200);
+      throw new Error(`AI API [${res.status}]: ${preview}`);
+    }
+
+    const text = await res.text();
+    let data: any;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      const preview = ct.includes('html') ? `服务商返回了网页而非 API 响应，请检查 baseUrl 和 API Key 是否有效` : text.slice(0, 200);
+      throw new Error(`AI 服务商响应异常: ${preview}`);
+    }
+    // 兼容多种返回格式
+    return data?.data?.[0]?.url
+      || data?.images?.[0]?.url
+      || data?.data?.[0]?.b64_json
+      || '';
+  } finally {
+    clearTimeout(timer);
   }
-
-  const data = await res.json() as any;
-  // 兼容多种返回格式
-  return data?.data?.[0]?.url
-    || data?.images?.[0]?.url
-    || data?.data?.[0]?.b64_json
-    || '';
 }
 
-async function downloadAndUpload(imageUrl: string, folder: string, name: string): Promise<string> {
-  const resp = await fetch(imageUrl);
-  const buf = Buffer.from(await resp.arrayBuffer());
+async function downloadAndUpload(imageData: string, folder: string, name: string): Promise<string> {
+  let buf: Buffer;
+  if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
+    const resp = await fetch(imageData);
+    buf = Buffer.from(await resp.arrayBuffer());
+  } else {
+    // base64 编码的图片数据
+    buf = Buffer.from(imageData, 'base64');
+  }
   const result = await COSService.uploadFile(buf, folder, `${name}.png`);
   return result.url;
 }
@@ -139,10 +109,11 @@ export interface GenerateImageParams {
   plateStyle?: string;
   stepDescription?: string;
   size?: string;
-  /** 用户自定义 prompt，传了则跳过模板 */
   prompt?: string;
-  /** 覆盖激活 Key 的 model */
   model?: string;
+  aiKeyId?: number;
+  /** 图生图参考图片（base64 或 URL） */
+  refImage?: string;
 }
 
 export interface GenerateImageResult {
@@ -154,7 +125,10 @@ export interface GenerateImageResult {
 // ============ 公开 API ============
 
 export async function getTemplates(): Promise<PromptTemplate[]> {
-  return PROMPT_TEMPLATES;
+  return prisma.promptTemplate.findMany({
+    where: { isActive: true },
+    orderBy: { sortOrder: 'asc' },
+  });
 }
 
 /**
@@ -162,24 +136,51 @@ export async function getTemplates(): Promise<PromptTemplate[]> {
  * 返回 COS URL，不更新数据库（由调用方决定）
  */
 export async function generateImage(params: GenerateImageParams): Promise<GenerateImageResult> {
-  const aiKey = await getActiveKey();
-  if (!aiKey) return { success: false, error: '没有激活的 AI Key，请在系统设置 → AI Key 管理中配置' };
+  let aiKey: { id: number; apiKey: string; baseUrl: string; model: string } | null = null;
 
-  const tmpl = PROMPT_TEMPLATES.find(t => t.id === params.templateId);
-  if (!tmpl) return { success: false, error: '模板不存在' };
+  // 优先使用指定 Key ID
+  if (params.aiKeyId) {
+    const key = await prisma.aiApiKey.findUnique({ where: { id: params.aiKeyId } });
+    if (key) {
+      aiKey = { id: key.id, apiKey: key.apiKey, baseUrl: key.baseUrl, model: key.model };
+    }
+  }
 
-  const prompt = params.prompt?.trim()
-    || fillTemplate(tmpl.template, {
-      dishName: params.dishName || 'Chinese dish',
-      ingredients: params.ingredients || 'fresh ingredients',
-      plateStyle: params.plateStyle || 'rustic ceramic plate',
-      stepDescription: params.stepDescription || 'cooking steps',
-    });
-  const size = params.size || tmpl.size;
+  // 没有指定或未找到，fallback 到激活的 Key
+  if (!aiKey) {
+    aiKey = await getActiveKey();
+  }
+
+  if (!aiKey) return { success: false, error: '没有可用的 AI Key，请在系统设置中配置并激活' };
+
+  let prompt: string;
+  let size: string;
+
+  // 支持数字 ID（DB）和字符串 ID（历史兼容）
+  const tid = parseInt(String(params.templateId || '0'));
+  const tmpl = !isNaN(tid) && tid > 0
+    ? await prisma.promptTemplate.findFirst({ where: { id: tid } })
+    : null;
+
+  if (tmpl) {
+    prompt = params.prompt?.trim()
+      || fillTemplate(tmpl.template, {
+        dishName: params.dishName || 'Chinese dish',
+        ingredients: params.ingredients || 'fresh ingredients',
+        plateStyle: params.plateStyle || 'rustic ceramic plate',
+        stepDescription: params.stepDescription || 'cooking steps',
+      });
+    size = params.size || tmpl.size;
+  } else {
+    // 自由创作模式：直接使用用户 prompt
+    if (!params.prompt?.trim()) return { success: false, error: '请提供提示词或选择模板' };
+    prompt = params.prompt.trim();
+    size = params.size || '1024x1024';
+  }
   if (params.model) aiKey.model = params.model;
 
   try {
-    const rawUrl = await callImageAPI(aiKey, prompt, size);
+    const rawUrl = await callImageAPI(aiKey, prompt, size, params.refImage);
     if (!rawUrl) return { success: false, error: 'AI 未返回图片' };
 
     const cosUrl = await downloadAndUpload(rawUrl, 'ai-generated', `img_${Date.now()}`);

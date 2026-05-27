@@ -300,6 +300,56 @@ export class COSService {
   }
 
   /**
+   * 生成不重复的 COS key：检查是否存在，存在则加 -2, -3...
+   */
+  static async uniqueKey(baseKey: string): Promise<string> {
+    const dir = baseKey.substring(0, baseKey.lastIndexOf('/'));
+    const name = baseKey.substring(baseKey.lastIndexOf('/') + 1);
+    const dotIdx = name.lastIndexOf('.');
+    const stem = dotIdx > 0 ? name.substring(0, dotIdx) : name;
+    const ext = dotIdx > 0 ? name.substring(dotIdx) : '.png';
+
+    let candidate = baseKey;
+    let n = 2;
+    while (true) {
+      const exists = await new Promise<boolean>((resolve) => {
+        cos.headObject(
+          { Bucket: cosConfig.Bucket, Region: cosConfig.Region, Key: candidate },
+          (err: any) => resolve(!err),
+        );
+      });
+      if (!exists) return candidate;
+      candidate = `${dir}/${stem}-${n}${ext}`;
+      n++;
+    }
+  }
+
+  /**
+   * 按指定 key 上传文件（保留自定义文件名）
+   */
+  static async uploadWithKey(buffer: Buffer, key: string): Promise<{ url: string; key: string }> {
+    return new Promise((resolve, reject) => {
+      cos.putObject(
+        {
+          Bucket: cosConfig.Bucket,
+          Region: cosConfig.Region,
+          Key: key,
+          Body: buffer,
+          ContentLength: buffer.length,
+        },
+        (err) => {
+          if (err) {
+            console.error('[COSService] 上传失败:', err);
+            reject(new Error('上传到云存储失败'));
+          } else {
+            resolve({ url: getCOSUrl(key), key });
+          }
+        }
+      );
+    });
+  }
+
+  /**
    * 删除文件
    */
   static async deleteFile(key: string): Promise<void> {

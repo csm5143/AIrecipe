@@ -77,7 +77,9 @@ function handleClick() {
       font-weight: bold;
       color: $text-color;
       margin-bottom: $spacing-xs;
-      @include text-ellipsis;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .recipe-meta {

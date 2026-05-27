@@ -217,10 +217,16 @@ async function upload(file: any) {
 
 // AI 图片
 const aiImgOpen = ref(false); const aiImgLoading = ref(false); const aiImgResult = ref('');
-const aiImg = reactive({ tid: 'cover_chinese_home', name: '', ing: '' });
+const aiImg = reactive({ tid: '' as string | number, name: '', ing: '' });
 const tpls = ref<any[]>([]);
-async function loadTpls() { try { const r: any = await request.get('/ai/templates'); tpls.value = r.data || []; } catch (e) {} }
-async function aiGenImg() { aiImgLoading.value = true; aiImgResult.value = ''; try { const r: any = await request.post('/ai/generate-image', { templateId: aiImg.tid, dishName: aiImg.name || sel.value?.title || '美食', ingredients: aiImg.ing || '新鲜食材' }); if (r.data?.url) aiImgResult.value = r.data.url; else ElMessage.error(r.message); } catch (e: any) { ElMessage.error(e?.message); } finally { aiImgLoading.value = false; } }
+async function loadTpls() {
+  try {
+    const r: any = await request.get('/ai/templates');
+    tpls.value = r.data || [];
+    if (tpls.value.length && !aiImg.tid) aiImg.tid = tpls.value[0].id;
+  } catch (e: any) { ElMessage.warning('加载模板失败: ' + (e?.message || '')); }
+}
+async function aiGenImg() { aiImgLoading.value = true; aiImgResult.value = ''; try { const r: any = await request.post('/ai/generate-image', { templateId: aiImg.tid, dishName: aiImg.name || sel.value?.title || '美食', ingredients: aiImg.ing || '新鲜食材' }); if (r.data?.url) aiImgResult.value = r.data.url; else ElMessage.error(r.message || '生成失败'); } catch (e: any) { const msg = e?.message || '生成失败'; if (msg.includes('401') || msg.includes('认证')) ElMessage.error('认证已过期，请刷新页面重新登录'); else ElMessage.error(msg); } finally { aiImgLoading.value = false; } }
 function aiImgAdopt() { if (sel.value?.imageUrl !== undefined) sel.value.imageUrl = aiImgResult.value; aiImgOpen.value = false; aiImgResult.value = ''; }
 function aiImgRetry() { aiImgResult.value = ''; aiGenImg(); }
 

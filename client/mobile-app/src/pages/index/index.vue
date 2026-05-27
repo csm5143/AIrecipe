@@ -238,7 +238,7 @@ onMounted(async () => {
 }
 
 .content {
-  height: calc(100vh - #{$nav-height});
+  height: calc(100vh - #{$nav-height} - 120rpx - env(safe-area-inset-bottom));
 }
 
 .banner-section {

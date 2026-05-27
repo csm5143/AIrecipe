@@ -20,6 +20,7 @@ export async function getAiKeys(req: Request, res: Response) {
     apiKeyRaw: k.apiKey,
     baseUrl: k.baseUrl,
     model: k.model,
+    keyType: k.keyType,
     totalTokens: k.totalTokens,
     usedTokens: k.usedTokens,
     remaining: Math.max(0, k.totalTokens - k.usedTokens),
@@ -31,15 +32,16 @@ export async function getAiKeys(req: Request, res: Response) {
 }
 
 export async function createAiKey(req: Request, res: Response) {
-  const { name, apiKey, baseUrl, model, totalTokens } = req.body;
+  const { name, apiKey, baseUrl, model, keyType, totalTokens } = req.body;
 
   if (!name || !apiKey || !baseUrl || !model || !totalTokens) {
     res.status(400).json({ code: 400, message: '缺少必填字段', timestamp: Date.now() });
     return;
   }
 
-  // 如果是第一个 Key，自动设为激活
-  const count = await prisma.aiApiKey.count();
+  // 如果是该类型的第一个 Key，自动设为激活
+  const where: any = keyType ? { keyType } : { keyType: null };
+  const count = await prisma.aiApiKey.count({ where });
   const isFirst = count === 0;
 
   const key = await prisma.aiApiKey.create({
@@ -48,6 +50,7 @@ export async function createAiKey(req: Request, res: Response) {
       apiKey,
       baseUrl,
       model,
+      keyType: keyType || null,
       totalTokens: Number(totalTokens),
       isActive: isFirst,
     },
@@ -61,7 +64,7 @@ export async function createAiKey(req: Request, res: Response) {
       'create',
       'aiKey',
       String(key.id),
-      `新增 AI Key「${name}」${isFirst ? '（设为当前使用）' : ''}`,
+      `新增 AI Key「${name}」${keyType ? `类型:${keyType} ` : ''}${isFirst ? '（自动激活）' : ''}`,
       req.ip || undefined
     );
   } catch (e) {
@@ -74,6 +77,7 @@ export async function createAiKey(req: Request, res: Response) {
     apiKey: maskKey(key.apiKey),
     baseUrl: key.baseUrl,
     model: key.model,
+    keyType: key.keyType,
     totalTokens: key.totalTokens,
     usedTokens: key.usedTokens,
     remaining: key.totalTokens,
@@ -84,7 +88,7 @@ export async function createAiKey(req: Request, res: Response) {
 
 export async function updateAiKey(req: Request, res: Response) {
   const id = parseInt(req.params.id);
-  const { name, apiKey, baseUrl, model, totalTokens } = req.body;
+  const { name, apiKey, baseUrl, model, keyType, totalTokens } = req.body;
 
   const existing = await prisma.aiApiKey.findUnique({ where: { id } });
   if (!existing) {
@@ -97,6 +101,7 @@ export async function updateAiKey(req: Request, res: Response) {
   if (apiKey !== undefined) updateData.apiKey = apiKey;
   if (baseUrl !== undefined) updateData.baseUrl = baseUrl;
   if (model !== undefined) updateData.model = model;
+  if (keyType !== undefined) updateData.keyType = keyType;
   if (totalTokens !== undefined) updateData.totalTokens = Number(totalTokens);
 
   const updated = await prisma.aiApiKey.update({
@@ -124,6 +129,7 @@ export async function updateAiKey(req: Request, res: Response) {
     apiKey: maskKey(updated.apiKey),
     baseUrl: updated.baseUrl,
     model: updated.model,
+    keyType: updated.keyType,
     totalTokens: updated.totalTokens,
     usedTokens: updated.usedTokens,
     remaining: Math.max(0, updated.totalTokens - updated.usedTokens),
@@ -167,15 +173,10 @@ export async function activateAiKey(req: Request, res: Response) {
     return;
   }
 
-  // 取消所有 Key 的激活状态
-  await prisma.aiApiKey.updateMany({
-    data: { isActive: false },
-  });
-
-  // 激活指定 Key
+  // 切换指定 Key 的激活状态（不再互斥，同类型允许多个激活）
   const updated = await prisma.aiApiKey.update({
     where: { id },
-    data: { isActive: true },
+    data: { isActive: !existing.isActive },
   });
 
   try {
@@ -185,14 +186,14 @@ export async function activateAiKey(req: Request, res: Response) {
       'update',
       'aiKey',
       String(id),
-      `切换 AI Key 为「${updated.name}」`,
+      `切换${existing.keyType ? `「${existing.keyType}类」` : ''}AI Key 为「${updated.name}」`,
       req.ip || undefined
     );
   } catch (e) {
     console.warn('[AI-Key] 操作日志写入失败:', e);
   }
 
-  res.json(success({ isActive: true }, `已切换为「${updated.name}」`));
+  res.json(success({ isActive: updated.isActive }, updated.isActive ? `已启用「${updated.name}」` : `已停用「${updated.name}」`));
 }
 
 export async function getActiveAiKey(req: Request, res: Response) {

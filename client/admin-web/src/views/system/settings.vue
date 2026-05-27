@@ -285,7 +285,7 @@
                 </div>
               </div>
 
-              <div class="key-model">{{ key.model }}</div>
+              <div class="key-model">{{ key.model }} <el-tag v-if="key.keyType" size="small" :type="key.keyType==='image'?'warning':key.keyType==='text'?'primary':'success'">{{ keyTypeLabel(key.keyType) }}</el-tag></div>
 
               <div class="key-url">{{ key.baseUrl }}</div>
 
@@ -315,11 +315,10 @@
               <div class="key-actions">
                 <el-button
                   size="small"
-                  :type="key.isActive ? 'default' : 'primary'"
-                  :disabled="key.isActive"
+                  :type="key.isActive ? 'warning' : 'primary'"
                   @click="handleActivate(key)"
                 >
-                  {{ key.isActive ? '当前使用' : '设为使用' }}
+                  {{ key.isActive ? '停用' : '启用' }}
                 </el-button>
                 <el-button size="small" type="primary" @click="openEditDialog(key)">编辑</el-button>
                 <el-button size="small" type="danger" plain @click="handleDelete(key)">删除</el-button>
@@ -341,9 +340,33 @@
     <el-dialog
       v-model="showDialog"
       :title="editingKey ? '编辑 AI Key' : '添加 AI Key'"
-      width="520px"
+      width="560px"
       destroy-on-close
     >
+      <!-- 识别粘贴 -->
+      <div v-if="!editingKey" style="margin-bottom:12px">
+        <el-button size="small" text type="primary" @click="smartPasteOpen=!smartPasteOpen">
+          {{ smartPasteOpen ? '收起' : '📋 识别粘贴（从API中转站复制连接信息）' }}
+        </el-button>
+        <div v-if="smartPasteOpen" style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+          <el-input
+            v-model="smartPasteRaw"
+            type="textarea"
+            :rows="5"
+            size="small"
+            placeholder="粘贴从 API 中转站复制的连接信息，支持多种格式：
+&#10;格式1（多行键值）：
+API Key: sk-xxx
+Base URL: https://xxx.com/v1
+Model: gpt-4o-mini
+&#10;格式2（紧凑）：sk-xxx@https://xxx.com/v1"
+          />
+          <div style="display:flex;gap:8px">
+            <el-button size="small" type="primary" @click="doSmartPaste" :disabled="!smartPasteRaw.trim()">识别并填充</el-button>
+            <el-button size="small" @click="smartPasteRaw='';smartPasteOpen=false">取消</el-button>
+          </div>
+        </div>
+      </div>
       <el-form :model="keyForm" label-position="top" style="max-width: 100%">
         <el-form-item label="Key 名称" required>
           <el-input v-model="keyForm.name" placeholder="如：GPT-4o-mini 官方Key" />
@@ -383,6 +406,14 @@
             <el-option label="custom..." value="" disabled style="display:none" />
           </el-select>
           <div class="input-hint">如未找到想要的模型，可直接输入自定义模型名称</div>
+        </el-form-item>
+        <el-form-item label="Key 类型" required>
+          <el-select v-model="keyForm.keyType" placeholder="选择此 Key 的用途" style="width: 100%">
+            <el-option label="生图（Image Generation）" value="image" />
+            <el-option label="识图/文本（Text & Vision）" value="text" />
+            <el-option label="多模态通用（Multimodal）" value="multimodal" />
+          </el-select>
+          <div class="input-hint">生图 Key 用于图片创作；识图/文本 Key 用于拍照识别和文案生成；多模态通用两者皆可。同类型内只能有一个激活。</div>
         </el-form-item>
         <el-form-item>
           <el-button
@@ -508,8 +539,140 @@ const keyForm = reactive({
   apiKey: '',
   baseUrl: 'https://api.openai.com/v1',
   model: 'gpt-4o-mini',
+  keyType: '' as string,
   totalTokens: 1000000,
 });
+
+// 识别粘贴
+const smartPasteOpen = ref(false);
+const smartPasteRaw = ref('');
+
+function doSmartPaste() {
+  const raw = smartPasteRaw.value.trim();
+  if (!raw) return;
+
+  let apiKey = '';
+  let baseUrl = '';
+  let model = '';
+  let name = '';
+  let keyType = '';
+
+  // ============ 格式0: JSON（API中转站/NewAPI/OneAPI 等） ============
+  if (raw.startsWith('{')) {
+    try {
+      const json = JSON.parse(raw);
+      // 提取 api key
+      apiKey = json.key || json.api_key || json.apiKey || json.sk || '';
+
+      // 提取 URL
+      baseUrl = json.url || json.base_url || json.baseUrl || json.api || json.address || json.host || '';
+
+      // 提取 model（可能是字符串或数组）
+      const m = json.model || json.models || '';
+      if (Array.isArray(m) && m.length) {
+        model = m[0];
+        // 如果数组有多项，优先选非 image 的作为默认
+        const textModel = m.find((x: string) => !/image|dall-e|flux|stable|midjourney/i.test(x));
+        if (textModel) model = textModel;
+      } else if (typeof m === 'string') {
+        model = m;
+      }
+
+      // 提取名称
+      name = json.name || json.remark || json.description || json.nickname || '';
+      if (json._type) name = name || json._type.replace(/_/g, ' ');
+
+      // 提取 keyType
+      const typeHint = json.type || json.keyType || json.mode || '';
+      if (/image|生图/i.test(typeHint)) keyType = 'image';
+      else if (/text|文本/i.test(typeHint)) keyType = 'text';
+      else if (/multimodal|多模态|vision/i.test(typeHint)) keyType = 'multimodal';
+    } catch (_) { /* 不是合法JSON, 继续尝试其他格式 */ }
+  }
+
+  // ============ 格式1: key@url 紧凑格式 ============
+  if (!apiKey) {
+    const compactMatch = raw.match(/(sk-[a-zA-Z0-9_-]{20,})\s*[@]\s*(https?:\/\/[^\s]+)/);
+    if (compactMatch) {
+      apiKey = compactMatch[1];
+      baseUrl = compactMatch[2];
+    }
+  }
+
+  // ============ 格式2: 多行键值对 ============
+  if (!apiKey) {
+    const lines = raw.split(/[\n\r]+/);
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || /^[=\-]{3,}$/.test(trimmed)) continue;
+
+      let match = trimmed.match(/^[【\[]?\s*(?:API[-\s]?)?key[】\]\s]*[：:=]\s*(sk-[^\s]+)/i);
+      if (match) apiKey = match[1];
+
+      match = trimmed.match(/^[【\[]?\s*(?:API[-\s]?)?[Kk]ey[】\]\s]*[：:=]\s*(.+)/i);
+      if (match && !apiKey) {
+        const val = match[1].trim();
+        if (val.startsWith('sk-') || val.length >= 20) apiKey = val;
+      }
+
+      match = trimmed.match(/^(?:Base[-\s]?)?\s*URL[：:=]\s*(https?:\/\/[^\s]+)/i);
+      if (match) baseUrl = match[1];
+
+      match = trimmed.match(/^(?:API[-\s]?)?\s*[Aa]ddress[：:=]\s*(https?:\/\/[^\s]+)/i);
+      if (match && !baseUrl) baseUrl = match[1];
+
+      match = trimmed.match(/^(?:Model|模型)[：:=]\s*(.+)/i);
+      if (match) model = match[1].trim();
+
+      match = trimmed.match(/^[Nn]ame[：:=]\s*(.+)/i);
+      if (match) name = match[1].trim();
+    }
+  }
+
+  // ============ 格式3: 无标签逐行解析 ============
+  if (!apiKey && !baseUrl) {
+    const lines = raw.split(/[\n\r]+/).map(l => l.trim()).filter(l => l && !/^[=\-]{3,}$/.test(l));
+    for (const line of lines) {
+      if (line.startsWith('sk-') && !apiKey) {
+        apiKey = line;
+      } else if (/^https?:\/\//.test(line) && !baseUrl) {
+        baseUrl = line;
+      } else if (!model && /^[a-zA-Z0-9][a-zA-Z0-9._-]{3,40}$/.test(line) && !line.startsWith('http')) {
+        model = line;
+      }
+    }
+  }
+
+  if (!apiKey) {
+    ElMessage.warning('未能识别 API Key，请检查粘贴内容');
+    return;
+  }
+
+  // 自动推断 keyType
+  if (!keyType) {
+    const combined = (model + baseUrl).toLowerCase();
+    if (/image|dall-e|flux|stable|midjourney|sdxl/i.test(combined)) {
+      keyType = 'image';
+    } else if (/vision|vl|多模态/i.test(combined)) {
+      keyType = 'multimodal';
+    }
+  }
+
+  // 自动生成名称
+  if (!name && model) name = model;
+  if (!name && apiKey) name = apiKey.slice(0, 8) + '...';
+
+  // 填充表单
+  keyForm.apiKey = apiKey;
+  if (baseUrl) keyForm.baseUrl = baseUrl;
+  if (model) keyForm.model = model;
+  if (keyType) keyForm.keyType = keyType;
+  if (name) keyForm.name = name;
+
+  smartPasteOpen.value = false;
+  smartPasteRaw.value = '';
+  ElMessage.success(`已识别：${name || ''} ${model || ''} ${baseUrl ? '· ' + new URL(baseUrl).hostname : ''}`);
+}
 
 const settingItems = [
   { key: 'site', label: '网站信息', icon: Link },
@@ -720,6 +883,7 @@ function openAddDialog() {
   keyForm.apiKey = '';
   keyForm.baseUrl = 'https://api.openai.com/v1';
   keyForm.model = 'gpt-4o-mini';
+  keyForm.keyType = '';
   keyForm.totalTokens = 1000000;
   testResult.value = null;
   showDialog.value = true;
@@ -731,6 +895,7 @@ function openEditDialog(key: AiKeyItem) {
   keyForm.apiKey = '';
   keyForm.baseUrl = key.baseUrl;
   keyForm.model = key.model;
+  keyForm.keyType = key.keyType || '';
   keyForm.totalTokens = key.totalTokens;
   testResult.value = null;
   showDialog.value = true;
@@ -773,10 +938,18 @@ async function handleSaveKey() {
         apiKey: keyForm.apiKey || undefined,
         baseUrl: keyForm.baseUrl,
         model: keyForm.model,
+        keyType: keyForm.keyType,
         totalTokens: keyForm.totalTokens,
       });
     } else {
-      await aiKeyApi.create(keyForm);
+      await aiKeyApi.create({
+        name: keyForm.name,
+        apiKey: keyForm.apiKey,
+        baseUrl: keyForm.baseUrl,
+        model: keyForm.model,
+        keyType: keyForm.keyType || undefined,
+        totalTokens: keyForm.totalTokens,
+      });
     }
     showDialog.value = false;
     await loadAiKeys();
@@ -818,6 +991,13 @@ function getProgressColor(key: AiKeyItem): string {
   if (pct >= 0.9) return '#f85149';
   if (pct >= 0.7) return '#f0883e';
   return '#3fb950';
+}
+
+function keyTypeLabel(kt: string | null): string {
+  if (kt === 'image') return '生图';
+  if (kt === 'text') return '识图';
+  if (kt === 'multimodal') return '多模态';
+  return '';
 }
 
 function formatToken(num: number): string {
