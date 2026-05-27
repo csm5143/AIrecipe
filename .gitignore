@@ -23,6 +23,7 @@ temp/
 # 其他常见忽略
 .idea/
 .vscode/
+.cursor/
 *.swp
 
 # TypeScript 增量编译缓存
