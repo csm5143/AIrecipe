@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Help &amp; Feedback - 吃了么</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-dim": "#d9dadc",
+                        "inverse-primary": "#c8c6c8",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed-variant": "#832600",
+                        "on-primary-container": "#858486",
+                        "on-surface": "#1a1c1d",
+                        "on-secondary-fixed": "#1a1b1f",
+                        "tertiary-fixed": "#ffdbd0",
+                        "on-tertiary-container": "#e25722",
+                        "error-container": "#ffdad6",
+                        "glass-surface": "rgba(255, 255, 255, 0.72)",
+                        "surface-tint": "#5f5e60",
+                        "on-secondary-fixed-variant": "#46464b",
+                        "primary-fixed": "#e4e2e4",
+                        "background": "#f9f9fb",
+                        "tertiary": "#040000",
+                        "surface-container": "#edeef0",
+                        "surface": "#f9f9fb",
+                        "on-primary": "#ffffff",
+                        "inverse-on-surface": "#f0f0f2",
+                        "primary-fixed-dim": "#c8c6c8",
+                        "tertiary-fixed-dim": "#ffb59d",
+                        "glass-stroke": "rgba(0, 0, 0, 0.04)",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-high": "#e8e8ea",
+                        "secondary-fixed": "#e3e2e7",
+                        "on-primary-fixed-variant": "#474649",
+                        "secondary-container": "#e0dfe4",
+                        "outline": "#77767b",
+                        "on-primary-fixed": "#1b1b1d",
+                        "surface-container-low": "#f3f3f5",
+                        "outline-variant": "#c7c6ca",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#46464a",
+                        "on-background": "#1a1c1d",
+                        "secondary": "#5e5e63",
+                        "on-secondary-container": "#626267",
+                        "placeholder-grey": "#AEAEB2",
+                        "on-secondary": "#ffffff",
+                        "surface-bright": "#f9f9fb",
+                        "on-error-container": "#93000a",
+                        "subtle-divider": "#E5E5EA",
+                        "on-error": "#ffffff",
+                        "primary": "#010102",
+                        "tertiary-container": "#3a0c00",
+                        "primary-container": "#1c1c1e",
+                        "surface-variant": "#e2e2e4",
+                        "glass-refraction": "rgba(255, 255, 255, 0.60)",
+                        "on-tertiary-fixed": "#390c00",
+                        "surface-container-highest": "#e2e2e4",
+                        "inverse-surface": "#2f3132",
+                        "secondary-fixed-dim": "#c7c6cb"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "section-gap": "1.5rem",
+                        "element-gap-comfortable": "0.75rem",
+                        "card-padding": "1rem",
+                        "gutter": "1rem",
+                        "element-gap-tight": "0.5rem",
+                        "page-margin": "1rem"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "display-lg-mobile": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "display-lg-mobile": ["28px", { "lineHeight": "34px", "fontWeight": "700" }],
+                        "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "display-lg": ["34px", { "lineHeight": "41px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-sm": ["11px", { "lineHeight": "13px", "fontWeight": "600" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["15px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen pb-[100px] antialiased">
+<!-- TopAppBar -->
+<header class="bg-glass-surface dark:bg-primary-container font-headline-md text-headline-md-mobile fixed top-0 w-full z-50 backdrop-blur-3xl border-b border-glass-stroke shadow-[0px_4px_24px_rgba(0,0,0,0.04)] flex items-center justify-between px-page-margin h-16 max-w-screen-xl mx-auto">
+<button class="flex items-center justify-center text-primary dark:text-on-primary active:scale-95 transition-transform duration-200">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-primary dark:text-on-primary">吃了么</span>
+<button class="flex items-center justify-center text-primary dark:text-on-primary active:scale-95 transition-transform duration-200">
+<span class="material-symbols-outlined">search</span>
+</button>
+</header>
+<!-- Main Content -->
+<main class="pt-24 px-page-margin max-w-screen-md mx-auto">
+<!-- Search Section -->
+<section class="mb-section-gap">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-secondary">search</span>
+<input class="w-full bg-surface-container-low border border-subtle-divider rounded-full py-4 pl-12 pr-4 font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary transition-colors placeholder:text-placeholder-grey" placeholder="Search FAQs..." type="text"/>
+</div>
+</section>
+<!-- Bento Grid: Common Issues -->
+<section class="mb-section-gap">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-element-gap-comfortable">How can we help?</h2>
+<div class="grid grid-cols-2 gap-4 md:gap-6">
+<!-- Card 1: Login & Account -->
+<div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_24px_rgba(0,0,0,0.04)] active:scale-[0.98] transition-transform cursor-pointer hover:shadow-md">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-primary">login</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface mb-1">Account &amp; Login</h3>
+<p class="font-body-md text-body-md text-secondary text-sm">Password reset, profile settings.</p>
+</div>
+<!-- Card 2: AI Chat -->
+<div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_24px_rgba(0,0,0,0.04)] active:scale-[0.98] transition-transform cursor-pointer hover:shadow-md">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-primary">smart_toy</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface mb-1">AI Assistant</h3>
+<p class="font-body-md text-body-md text-secondary text-sm">Troubleshooting recipe generation.</p>
+</div>
+<!-- Card 3: Publishing -->
+<div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_24px_rgba(0,0,0,0.04)] active:scale-[0.98] transition-transform cursor-pointer hover:shadow-md col-span-2 md:col-span-1">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-primary">publish</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface mb-1">Publishing Recipes</h3>
+<p class="font-body-md text-body-md text-secondary text-sm">Drafts, images, and sharing.</p>
+</div>
+<!-- Card 4: Billing -->
+<div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_24px_rgba(0,0,0,0.04)] active:scale-[0.98] transition-transform cursor-pointer hover:shadow-md col-span-2 md:col-span-1">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center mb-3">
+<span class="material-symbols-outlined text-primary">credit_card</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface mb-1">Billing &amp; Subscriptions</h3>
+<p class="font-body-md text-body-md text-secondary text-sm">Manage payment methods.</p>
+</div>
+</div>
+</section>
+<!-- FAQs Section -->
+<section>
+<h2 class="font-headline-md text-headline-md text-on-surface mb-element-gap-comfortable">Frequently Asked</h2>
+<div class="flex flex-col gap-3">
+<div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_24px_rgba(0,0,0,0.04)] border border-subtle-divider">
+<div class="flex justify-between items-center cursor-pointer">
+<h3 class="font-label-md text-label-md text-on-surface">How do I save a recipe?</h3>
+<span class="material-symbols-outlined text-secondary">expand_more</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_24px_rgba(0,0,0,0.04)] border border-subtle-divider">
+<div class="flex justify-between items-center cursor-pointer">
+<h3 class="font-label-md text-label-md text-on-surface">Why isn't the AI responding?</h3>
+<span class="material-symbols-outlined text-secondary">expand_more</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_24px_rgba(0,0,0,0.04)] border border-subtle-divider">
+<div class="flex justify-between items-center cursor-pointer">
+<h3 class="font-label-md text-label-md text-on-surface">Can I change my username?</h3>
+<span class="material-symbols-outlined text-secondary">expand_more</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating Contact Button -->
+<div class="fixed bottom-24 right-4 z-40 md:right-8 md:bottom-8">
+<button class="bg-glass-surface backdrop-blur-3xl border border-glass-stroke shadow-lg flex items-center gap-2 px-5 py-3 rounded-full active:scale-95 transition-all text-primary hover:bg-surface-variant">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">mail</span>
+<span class="font-label-md text-label-md">Contact Us</span>
+</button>
+</div>
+<!-- BottomNavBar (Suppressed based on instructions: this is a focused task/support page, not a main destination) -->
+</body></html>

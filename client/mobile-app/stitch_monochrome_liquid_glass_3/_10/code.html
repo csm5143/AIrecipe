@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Storage Management - 吃了么</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-dim": "#d9dadc",
+                        "inverse-primary": "#c8c6c8",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed-variant": "#832600",
+                        "on-primary-container": "#858486",
+                        "on-surface": "#1a1c1d",
+                        "on-secondary-fixed": "#1a1b1f",
+                        "tertiary-fixed": "#ffdbd0",
+                        "on-tertiary-container": "#e25722",
+                        "error-container": "#ffdad6",
+                        "glass-surface": "rgba(255, 255, 255, 0.72)",
+                        "surface-tint": "#5f5e60",
+                        "on-secondary-fixed-variant": "#46464b",
+                        "primary-fixed": "#e4e2e4",
+                        "background": "#f9f9fb",
+                        "tertiary": "#040000",
+                        "surface-container": "#edeef0",
+                        "surface": "#f9f9fb",
+                        "on-primary": "#ffffff",
+                        "inverse-on-surface": "#f0f0f2",
+                        "primary-fixed-dim": "#c8c6c8",
+                        "tertiary-fixed-dim": "#ffb59d",
+                        "glass-stroke": "rgba(0, 0, 0, 0.04)",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-high": "#e8e8ea",
+                        "secondary-fixed": "#e3e2e7",
+                        "on-primary-fixed-variant": "#474649",
+                        "secondary-container": "#e0dfe4",
+                        "outline": "#77767b",
+                        "on-primary-fixed": "#1b1b1d",
+                        "surface-container-low": "#f3f3f5",
+                        "outline-variant": "#c7c6ca",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#46464a",
+                        "on-background": "#1a1c1d",
+                        "secondary": "#5e5e63",
+                        "on-secondary-container": "#626267",
+                        "placeholder-grey": "#AEAEB2",
+                        "on-secondary": "#ffffff",
+                        "surface-bright": "#f9f9fb",
+                        "on-error-container": "#93000a",
+                        "subtle-divider": "#E5E5EA",
+                        "on-error": "#ffffff",
+                        "primary": "#010102",
+                        "tertiary-container": "#3a0c00",
+                        "primary-container": "#1c1c1e",
+                        "surface-variant": "#e2e2e4",
+                        "glass-refraction": "rgba(255, 255, 255, 0.60)",
+                        "on-tertiary-fixed": "#390c00",
+                        "surface-container-highest": "#e2e2e4",
+                        "inverse-surface": "#2f3132",
+                        "secondary-fixed-dim": "#c7c6cb"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "section-gap": "1.5rem",
+                        "element-gap-comfortable": "0.75rem",
+                        "card-padding": "1rem",
+                        "gutter": "1rem",
+                        "element-gap-tight": "0.5rem",
+                        "page-margin": "1rem"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "display-lg-mobile": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["22px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "display-lg-mobile": ["28px", {"lineHeight": "34px", "fontWeight": "700"}],
+                        "headline-lg": ["28px", {"lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "display-lg": ["34px", {"lineHeight": "41px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-sm": ["11px", {"lineHeight": "13px", "fontWeight": "600"}],
+                        "label-md": ["13px", {"lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                        "body-lg": ["17px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-md": ["15px", {"lineHeight": "20px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .liquid-glass-btn {
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0px 4px 24px rgba(0,0,0,0.04);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            border-radius: 14px;
+        }
+        
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background antialiased min-h-screen font-sans">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 backdrop-blur-3xl border-b border-glass-stroke shadow-[0px_4px_24px_rgba(0,0,0,0.04)] bg-glass-surface dark:bg-primary-container">
+<div class="flex items-center justify-between px-page-margin h-16 w-full max-w-screen-xl mx-auto">
+<button class="text-primary dark:text-on-primary hover:opacity-80 transition-opacity active:scale-95 transition-transform duration-200">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md-mobile text-primary dark:text-on-primary font-bold">吃了么</h1>
+<button class="text-primary dark:text-on-primary hover:opacity-80 transition-opacity active:scale-95 transition-transform duration-200">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="pt-24 pb-32 px-page-margin max-w-md mx-auto">
+<!-- Header -->
+<div class="mb-section-gap text-center">
+<h2 class="font-display-lg-mobile text-display-lg-mobile text-primary mb-2">Storage</h2>
+<p class="font-body-md text-body-md text-secondary">Manage your app data and cache.</p>
+</div>
+<!-- Storage Chart Card -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-[0px_4px_24px_rgba(0,0,0,0.04)] mb-section-gap flex flex-col items-center">
+<!-- Circular Progress Chart -->
+<div class="relative w-48 h-48 mb-6">
+<svg class="w-full h-full" viewbox="0 0 120 120">
+<!-- Background Circle -->
+<circle cx="60" cy="60" fill="none" r="50" stroke="#f3f3f5" stroke-width="12"></circle>
+<!-- Other (App Base) -->
+<circle class="progress-ring__circle" cx="60" cy="60" fill="none" r="50" stroke="#e0dfe4" stroke-dasharray="314" stroke-dashoffset="0" stroke-width="12"></circle>
+<!-- AI Cache -->
+<circle class="progress-ring__circle" cx="60" cy="60" fill="none" r="50" stroke="#5e5e63" stroke-dasharray="314" stroke-dashoffset="120" stroke-width="12"></circle>
+<!-- Images -->
+<circle class="progress-ring__circle" cx="60" cy="60" fill="none" r="50" stroke="#010102" stroke-dasharray="314" stroke-dashoffset="240" stroke-width="12"></circle>
+</svg>
+<!-- Center Text -->
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="font-headline-lg text-headline-lg text-primary">2.4</span>
+<span class="font-label-md text-label-md text-secondary">GB Used</span>
+</div>
+</div>
+<!-- Legend -->
+<div class="w-full space-y-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<span class="font-body-md text-body-md text-on-surface">Images &amp; Media</span>
+</div>
+<span class="font-label-md text-label-md text-secondary">1.2 GB</span>
+</div>
+<div class="w-full h-px bg-subtle-divider"></div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-secondary"></div>
+<span class="font-body-md text-body-md text-on-surface">AI Cache</span>
+</div>
+<span class="font-label-md text-label-md text-secondary">850 MB</span>
+</div>
+<div class="w-full h-px bg-subtle-divider"></div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-secondary-container"></div>
+<span class="font-body-md text-body-md text-on-surface">App Data</span>
+</div>
+<span class="font-label-md text-label-md text-secondary">350 MB</span>
+</div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="space-y-4">
+<button class="w-full liquid-glass-btn flex items-center justify-between p-4 active:scale-95 transition-transform duration-200">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" data-icon="image">image</span>
+</div>
+<div class="text-left">
+<p class="font-body-md text-body-md font-semibold text-primary">Clear Image Cache</p>
+<p class="font-label-sm text-label-sm text-secondary">Frees up ~1.2 GB</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary" data-icon="chevron_right">chevron_right</span>
+</button>
+<button class="w-full liquid-glass-btn flex items-center justify-between p-4 active:scale-95 transition-transform duration-200">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" data-icon="memory">memory</span>
+</div>
+<div class="text-left">
+<p class="font-body-md text-body-md font-semibold text-primary">Clear AI History</p>
+<p class="font-label-sm text-label-sm text-secondary">Frees up ~850 MB</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-secondary" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</main>
+</body></html>

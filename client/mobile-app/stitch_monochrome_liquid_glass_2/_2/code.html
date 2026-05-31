@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>吃了么 - Search Results</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-variant": "#e2e2e4",
+                      "surface": "#f9f9fb",
+                      "on-secondary-container": "#626267",
+                      "on-primary-container": "#858486",
+                      "on-tertiary-container": "#e25722",
+                      "primary-container": "#1c1c1e",
+                      "on-tertiary-fixed-variant": "#832600",
+                      "secondary": "#5e5e63",
+                      "tertiary-fixed-dim": "#ffb59d",
+                      "on-primary": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "placeholder-grey": "#AEAEB2",
+                      "on-error": "#ffffff",
+                      "outline-variant": "#c7c6ca",
+                      "inverse-primary": "#c8c6c8",
+                      "primary-fixed-dim": "#c8c6c8",
+                      "secondary-container": "#e0dfe4",
+                      "secondary-fixed-dim": "#c7c6cb",
+                      "surface-bright": "#f9f9fb",
+                      "on-surface": "#1a1c1d",
+                      "on-surface-variant": "#46464a",
+                      "surface-container-low": "#f3f3f5",
+                      "secondary-fixed": "#e3e2e7",
+                      "on-primary-fixed": "#1b1b1d",
+                      "glass-surface": "rgba(255, 255, 255, 0.72)",
+                      "error": "#ba1a1a",
+                      "on-tertiary": "#ffffff",
+                      "surface-tint": "#5f5e60",
+                      "primary": "#010102",
+                      "tertiary-container": "#3a0c00",
+                      "on-primary-fixed-variant": "#474649",
+                      "on-secondary-fixed": "#1a1b1f",
+                      "on-secondary-fixed-variant": "#46464b",
+                      "on-secondary": "#ffffff",
+                      "on-background": "#1a1c1d",
+                      "primary-fixed": "#e4e2e4",
+                      "surface-container": "#edeef0",
+                      "tertiary": "#040000",
+                      "tertiary-fixed": "#ffdbd0",
+                      "surface-container-highest": "#e2e2e4",
+                      "surface-container-high": "#e8e8ea",
+                      "inverse-on-surface": "#f0f0f2",
+                      "subtle-divider": "#E5E5EA",
+                      "glass-refraction": "rgba(255, 255, 255, 0.60)",
+                      "outline": "#77767b",
+                      "on-tertiary-fixed": "#390c00",
+                      "inverse-surface": "#2f3132",
+                      "error-container": "#ffdad6",
+                      "surface-dim": "#d9dadc",
+                      "glass-stroke": "rgba(0, 0, 0, 0.04)",
+                      "surface-container-lowest": "#ffffff",
+                      "background": "#f9f9fb"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "page-margin": "1rem",
+                      "element-gap-tight": "0.5rem",
+                      "element-gap-comfortable": "0.75rem",
+                      "gutter": "1rem",
+                      "section-gap": "1.5rem",
+                      "card-padding": "1rem"
+              },
+              "fontFamily": {
+                      "label-sm": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "body-md": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "display-lg": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "display-lg-mobile": ["Inter"],
+                      "label-md": ["Inter"]
+              },
+              "fontSize": {
+                      "label-sm": ["11px", {"lineHeight": "13px", "fontWeight": "600"}],
+                      "headline-md": ["22px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "body-md": ["15px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-lg": ["28px", {"lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                      "display-lg": ["34px", {"lineHeight": "41px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-lg": ["17px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "display-lg-mobile": ["28px", {"lineHeight": "34px", "fontWeight": "700"}],
+                      "label-md": ["13px", {"lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen pb-24">
+<!-- TopAppBar / Search Bar Integrated -->
+<header class="fixed top-0 w-full z-50 bg-glass-surface backdrop-blur-3xl border-b border-glass-stroke shadow-[0px_4px_24px_rgba(0,0,0,0.04)]">
+<div class="flex items-center justify-between px-page-margin h-16 w-full max-w-screen-xl mx-auto gap-4">
+<button aria-label="Go back" class="text-primary hover:opacity-80 transition-opacity active:scale-95 duration-200 flex-shrink-0">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">arrow_back</span>
+</button>
+<div class="flex-grow flex items-center bg-surface-container-highest rounded-full px-4 py-2 h-10 border border-glass-stroke shadow-inner">
+<span class="material-symbols-outlined text-secondary mr-2 text-[20px]" style="font-variation-settings: 'FILL' 0;">search</span>
+<input class="bg-transparent border-none outline-none w-full font-body-md text-body-md text-primary placeholder:text-placeholder-grey p-0 focus:ring-0" placeholder="Search recipes, users, posts..." type="text" value="Pasta"/>
+<button class="text-secondary hover:text-primary transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">cancel</span>
+</button>
+</div>
+</div>
+<!-- Filter Tabs (Segmented Control) -->
+<div class="w-full overflow-x-auto no-scrollbar px-page-margin pb-3 pt-1">
+<div class="flex space-x-2 max-w-screen-xl mx-auto">
+<button class="px-5 py-2 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-sm active:scale-95 transition-transform whitespace-nowrap">All</button>
+<button class="px-5 py-2 rounded-full bg-surface-container text-on-surface-variant font-label-md text-label-md hover:bg-surface-variant transition-colors whitespace-nowrap">Recipes</button>
+<button class="px-5 py-2 rounded-full bg-surface-container text-on-surface-variant font-label-md text-label-md hover:bg-surface-variant transition-colors whitespace-nowrap">Users</button>
+<button class="px-5 py-2 rounded-full bg-surface-container text-on-surface-variant font-label-md text-label-md hover:bg-surface-variant transition-colors whitespace-nowrap">Posts</button>
+</div>
+</div>
+</header>
+<main class="pt-[120px] px-page-margin max-w-screen-xl mx-auto space-y-section-gap">
+<!-- Users Section -->
+<section>
+<div class="flex items-center justify-between mb-element-gap-comfortable">
+<h2 class="font-headline-md text-headline-md text-primary">Users</h2>
+<button class="text-secondary font-label-md text-label-md flex items-center hover:text-primary transition-colors">
+                    See all <span class="material-symbols-outlined text-[16px] ml-1">chevron_right</span>
+</button>
+</div>
+<div class="flex space-x-element-gap-comfortable overflow-x-auto no-scrollbar pb-4 -mx-page-margin px-page-margin">
+<!-- User Card 1 -->
+<div class="flex-shrink-0 w-32 bg-surface-container-lowest rounded-xl p-3 flex flex-col items-center border border-subtle-divider shadow-[0px_4px_24px_rgba(0,0,0,0.04)]">
+<div class="w-16 h-16 rounded-full overflow-hidden mb-2 bg-surface-variant">
+<img class="w-full h-full object-cover" data-alt="A portrait photograph of a confident young chef standing in a well-lit, minimalist kitchen environment. The lighting is high-key and soft, emphasizing a modern, professional culinary aesthetic. The color palette features clean whites and subtle warm skin tones against a pristine background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHdvjfaU8eCvibRpD2NXNLOK8YimXnUI2J2UIrwqAjydZ-yxE_xjldyLp9zt_jSRkhyuSrbHlud0fyp-bWJ7hi1QjZpokTU1fxHXqqxZDhHaaJ1UnkHxV6F234RZS0QrrmIDDW_ecTVjA7XsvWfm2DQL82DYjFnX-i69fpyi1GCXYutyHbNS3vQXILxBnx1YTaxqZN9sFQxdRU9R2-jP6njgP-3nglzhGdNsfbHWWNSF_Kl4EU-TK6Bh6QL7BFUsg4SSgiFFQE2x8"/>
+</div>
+<span class="font-label-md text-label-md text-primary truncate w-full text-center mb-1">Mia Pasta</span>
+<span class="font-label-sm text-label-sm text-secondary mb-3">12k Followers</span>
+<button class="w-full py-1.5 bg-primary text-on-primary rounded-lg font-label-sm text-label-sm hover:opacity-90 transition-opacity">Follow</button>
+</div>
+<!-- User Card 2 -->
+<div class="flex-shrink-0 w-32 bg-surface-container-lowest rounded-xl p-3 flex flex-col items-center border border-subtle-divider shadow-[0px_4px_24px_rgba(0,0,0,0.04)]">
+<div class="w-16 h-16 rounded-full overflow-hidden mb-2 bg-surface-variant">
+<img class="w-full h-full object-cover" data-alt="A candid portrait of an Italian male chef smiling warmly while tossing pasta in a bright, contemporary restaurant setting. The scene uses natural daylight to highlight the organic textures of the food and the professional, high-end atmosphere. Colors are centered around crisp whites, warm woods, and neutral tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8DBGnF9FcMD4qb2S57bw-WmMLbw2v1ezUonvrA8WepyrQM65QKEz2VyV-tDNKjyIeulzZcRcsxW-zRfNy__2CwVj2abBUnTCky3sRrannFHd2gymkZ7F09GCbQjS7qsK9AHmBVlkAXdz-AKMbXy_oJXnqZqvoagHA_rDGZmI4rssb_i0n7iGJFLnAhwuLJSLtK9MfDLLAq6ONUD7WMiCFJhjmWGx71tM0QumC563ntom8vZ0JV_0bDeyG6KvhHIk3QS44peBlAr0"/>
+</div>
+<span class="font-label-md text-label-md text-primary truncate w-full text-center mb-1">Chef Luigi</span>
+<span class="font-label-sm text-label-sm text-secondary mb-3">8.4k Followers</span>
+<button class="w-full py-1.5 bg-primary text-on-primary rounded-lg font-label-sm text-label-sm hover:opacity-90 transition-opacity">Follow</button>
+</div>
+<!-- User Card 3 -->
+<div class="flex-shrink-0 w-32 bg-surface-container-lowest rounded-xl p-3 flex flex-col items-center border border-subtle-divider shadow-[0px_4px_24px_rgba(0,0,0,0.04)]">
+<div class="w-16 h-16 rounded-full overflow-hidden mb-2 bg-surface-variant">
+<img class="w-full h-full object-cover" data-alt="A stylish portrait of a female food blogger in a bright, modern cafe setting holding a fresh cup of coffee. The aesthetic is clean, minimalist, and deeply atmospheric, relying on high-key lighting to produce soft shadows. The visual tone is elegant, utilizing stark whites with a hint of warm organic colors." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsnmlLAyab8Y6dFATLCzuIK_3kO0kqRBJlZfM-sb8qT8VSTEz3Rqxp0iNdr7sDm3dab_DlU_s3lsROkBDYdhYTP1omh62_d4jGBxh3w_WyKNyN8K3PtktqOUfptzA4Z_4B3l461azYaQlMJ5a6h1YE1jm_aXwlao7g2qCLC_TCNdCzEvHOvx5dUxq-7XYxj5gKKhPtWfX_RzKy8sW8xHbQTOFmZ97mS-W45KEnctAQ0kPL8khzTL1lIbI__V0oovEfRKHM9PQRzMs"/>
+</div>
+<span class="font-label-md text-label-md text-primary truncate w-full text-center mb-1">Sarah Bakes</span>
+<span class="font-label-sm text-label-sm text-secondary mb-3">45k Followers</span>
+<button class="w-full py-1.5 bg-primary text-on-primary rounded-lg font-label-sm text-label-sm hover:opacity-90 transition-opacity">Follow</button>
+</div>
+<!-- User Card 4 -->
+<div class="flex-shrink-0 w-32 bg-surface-container-lowest rounded-xl p-3 flex flex-col items-center border border-subtle-divider shadow-[0px_4px_24px_rgba(0,0,0,0.04)]">
+<div class="w-16 h-16 rounded-full overflow-hidden mb-2 bg-surface-variant flex items-center justify-center bg-surface-container">
+<span class="material-symbols-outlined text-secondary text-[32px]">person</span>
+</div>
+<span class="font-label-md text-label-md text-primary truncate w-full text-center mb-1">Pasta Lover</span>
+<span class="font-label-sm text-label-sm text-secondary mb-3">1.2k Followers</span>
+<button class="w-full py-1.5 bg-primary text-on-primary rounded-lg font-label-sm text-label-sm hover:opacity-90 transition-opacity">Follow</button>
+</div>
+</div>
+</section>
+<!-- Recipes Section (2-Column Masonry) -->
+<section>
+<div class="flex items-center justify-between mb-element-gap-comfortable">
+<h2 class="font-headline-md text-headline-md text-primary">Recipes</h2>
+<button class="text-secondary font-label-md text-label-md flex items-center hover:text-primary transition-colors">
+                    See all <span class="material-symbols-outlined text-[16px] ml-1">chevron_right</span>
+</button>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<!-- Recipe Card 1 -->
+<div class="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-[0px_4px_24px_rgba(0,0,0,0.04)] border border-subtle-divider flex flex-col">
+<div class="aspect-[4/5] w-full bg-surface-variant relative overflow-hidden">
+<img class="w-full h-full object-cover transition-transform duration-500 hover:scale-105" data-alt="A top-down view of a beautifully plated serving of creamy carbonara pasta in a pristine white ceramic bowl. The lighting is bright and diffuse, casting very soft shadows that enhance the 'white plate' minimalist aesthetic. The rich, warm golden tones of the pasta pop brilliantly against the cold, high-end white background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGaX6I0vEy6WYF7enhG-H8HIlhDJTwRydKSpGjT1IPyGME5sXvYU4ty6f1VAmMkT3qTYWyCc3j61WZ4xGkZqHAs2MACAZiXUPXGPtGrJH1wijbl8TwMz8FdfP4i0QqZO5u6KRglII7LXm51QSlQFBIXamuDwf2eOOM-sfqNl4oo1CS8aZpY0F0GNcWKghadbK1m6szJuWKUoruljjpeitETzl-eoScCL76XTo01WRCWltqSINsXAfkSs_LG_h-fcCf7Ydc0Vqx-lg"/>
+<div class="absolute top-2 right-2 bg-glass-surface backdrop-blur-md rounded-full p-1.5 border border-glass-refraction shadow-sm">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: 'FILL' 0;">bookmark</span>
+</div>
+</div>
+<div class="p-3 flex flex-col gap-1">
+<h3 class="font-label-md text-label-md text-primary line-clamp-2">Classic Roman Carbonara</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-label-sm text-label-sm text-secondary flex items-center"><span class="material-symbols-outlined text-[14px] mr-0.5">schedule</span> 20m</span>
+<span class="font-label-sm text-label-sm text-secondary flex items-center"><span class="material-symbols-outlined text-[14px] mr-0.5">restaurant_menu</span> Medium</span>
+</div>
+</div>
+</div>
+<!-- Recipe Card 2 -->
+<div class="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-[0px_4px_24px_rgba(0,0,0,0.04)] border border-subtle-divider flex flex-col mt-4">
+<div class="aspect-square w-full bg-surface-variant relative overflow-hidden">
+<img class="w-full h-full object-cover transition-transform duration-500 hover:scale-105" data-alt="A close-up, high-resolution shot of fresh, handmade tagliatelle pasta dusted with flour resting on a clean, light marble countertop. The scene is illuminated by crisp, cold daylight, emphasizing the intricate textures of the raw ingredients. The composition is highly minimalist, keeping the focus entirely on the artisan food prep process." src="https://lh3.googleusercontent.com/aida-public/AB6AXuATGsvloJzgKUE2HMzZiMkO88zyftklY0RYynIOi8RnLjqHCgADdvOr-r8JGmAIHQorwD27fGZBn1qljU4t6VjMqba7vSOGyXNnBpT11b4CcVTBMih8TlghW3AjFyCOSQGr3vhn2l9BUoD9jXHehg7JMiq3F4faARMK_R2XCKGeHUtnWrG5nYnbypzhR9X-hWkykUzzaRhR9F1c4EssaGsI_7yt2WwGGFWxbaE6k0wJtn9gT_0D4RzYDHF9BPR39GMW_Tpk_XF6oGw"/>
+<div class="absolute top-2 right-2 bg-glass-surface backdrop-blur-md rounded-full p-1.5 border border-glass-refraction shadow-sm">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: 'FILL' 1;">bookmark</span>
+</div>
+</div>
+<div class="p-3 flex flex-col gap-1">
+<h3 class="font-label-md text-label-md text-primary line-clamp-2">Handmade Tagliatelle from scratch</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-label-sm text-label-sm text-secondary flex items-center"><span class="material-symbols-outlined text-[14px] mr-0.5">schedule</span> 1h 30m</span>
+<span class="font-label-sm text-label-sm text-secondary flex items-center"><span class="material-symbols-outlined text-[14px] mr-0.5">restaurant_menu</span> Hard</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Posts Section -->
+<section class="pb-8">
+<div class="flex items-center justify-between mb-element-gap-comfortable">
+<h2 class="font-headline-md text-headline-md text-primary">Community Posts</h2>
+</div>
+<div class="space-y-4">
+<!-- Post Item 1 -->
+<div class="bg-surface-container-lowest p-card-padding rounded-xl shadow-[0px_4px_24px_rgba(0,0,0,0.04)] border border-subtle-divider flex gap-4">
+<div class="flex-grow flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<div class="w-6 h-6 rounded-full bg-surface-variant overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A tiny avatar portrait of a modern, stylish woman against a completely pure white background. Soft, diffused lighting highlights her features cleanly, adhering to a strict minimalist visual style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCD4P2yj7MsMkNj3mF7cXvKfI4JHTfAigl7vK94n76PVvojXYE3lnpRaM4DZgCS4iHnyeS0He1pmR2uUtFMte6G48aPzguI19pbAFwqR6fzSovn9MFbJCL5zigVCRq9KvvYRMmuERBP9MhDXVzrUBuTReobuczSMDs4O7PnovFXu6D_Nozv1xL6EqhS7Ry5j7ZEEHVyh0bDdHV5Qd8BqSPRF-Qovm_GQRDcI49CO6xqlZozy7Zi5xZDZmU_PCxwVPXL9SzoYbbmG50"/>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">Elena R.</span>
+</div>
+<p class="font-body-md text-body-md text-primary line-clamp-2">Found this amazing hidden gem in Rome that serves the most authentic cacio e pepe! Highly recommend checking out...</p>
+</div>
+<div class="flex items-center gap-4 mt-3">
+<button class="flex items-center text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px] mr-1">favorite</span>
+<span class="font-label-sm text-label-sm">245</span>
+</button>
+<button class="flex items-center text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px] mr-1">mode_comment</span>
+<span class="font-label-sm text-label-sm">12</span>
+</button>
+</div>
+</div>
+<div class="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-surface-variant">
+<img class="w-full h-full object-cover" data-alt="A beautifully composed shot of creamy cacio e pepe pasta served on an elegant, matte white plate. The image embodies 'liquid minimalism', with bright, clean surroundings and shallow depth of field that subtly blurs the background. The visual focus is entirely on the rich texture of the pasta and black pepper." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4Yx6EGNu0rpoos6zeMgrljv1WWmp7jXymRMil5WX8SqgmtTYdwnLt3Zf6mUCAzlmmKbZ-htNo7pBe_dDlxpt7KJVJgx2ZDIK-uz0XU2_AtzVm4WVL8gZa1dbldt7BcogDMXH6MztxgFlKqCNo-ogknrdjYh7oOfY6_gs_3LNJuUqizIG2h_caBMM6gguFvcurb20yyZ340-iNkdzM3R6bcX2nRgKguvdjomqfQUy1D4U4T3FsD6PIHN3-AjkgHAdWykYNyT6eZSQ"/>
+</div>
+</div>
+<!-- Post Item 2 -->
+<div class="bg-surface-container-lowest p-card-padding rounded-xl shadow-[0px_4px_24px_rgba(0,0,0,0.04)] border border-subtle-divider flex gap-4">
+<div class="flex-grow flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<div class="w-6 h-6 rounded-full bg-surface-variant overflow-hidden flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px] text-secondary">person</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">PastaKing99</span>
+</div>
+<p class="font-body-md text-body-md text-primary line-clamp-2">What's everyone's secret ingredient for the perfect bolognese sauce? I've been experimenting with a splash of milk...</p>
+</div>
+<div class="flex items-center gap-4 mt-3">
+<button class="flex items-center text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px] mr-1">favorite</span>
+<span class="font-label-sm text-label-sm">89</span>
+</button>
+<button class="flex items-center text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px] mr-1">mode_comment</span>
+<span class="font-label-sm text-label-sm">45</span>
+</button>
+</div>
+</div>
+<!-- No image for this post to show variety -->
+</div>
+</div>
+</section>
+</main>
+</body></html>

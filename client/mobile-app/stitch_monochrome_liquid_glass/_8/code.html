@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>吃了么 · 我的</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary": "#040000",
+                      "surface-variant": "#e2e2e4",
+                      "surface-container-high": "#e8e8ea",
+                      "glass-stroke": "rgba(0, 0, 0, 0.04)",
+                      "on-tertiary-container": "#e25722",
+                      "tertiary-fixed": "#ffdbd0",
+                      "primary": "#010102",
+                      "on-background": "#1a1c1d",
+                      "on-primary-fixed-variant": "#474649",
+                      "subtle-divider": "#E5E5EA",
+                      "on-secondary-container": "#626267",
+                      "glass-refraction": "rgba(255, 255, 255, 0.60)",
+                      "tertiary-container": "#3a0c00",
+                      "surface-container-low": "#f3f3f5",
+                      "on-secondary-fixed-variant": "#46464b",
+                      "outline": "#77767b",
+                      "glass-surface": "rgba(255, 255, 255, 0.72)",
+                      "surface-dim": "#d9dadc",
+                      "error": "#ba1a1a",
+                      "on-tertiary-fixed-variant": "#832600",
+                      "on-primary-fixed": "#1b1b1d",
+                      "inverse-surface": "#2f3132",
+                      "inverse-primary": "#c8c6c8",
+                      "primary-fixed-dim": "#c8c6c8",
+                      "on-secondary": "#ffffff",
+                      "secondary-container": "#e0dfe4",
+                      "error-container": "#ffdad6",
+                      "inverse-on-surface": "#f0f0f2",
+                      "surface-bright": "#f9f9fb",
+                      "surface-tint": "#5f5e60",
+                      "tertiary-fixed-dim": "#ffb59d",
+                      "placeholder-grey": "#AEAEB2",
+                      "surface-container-lowest": "#ffffff",
+                      "on-error": "#ffffff",
+                      "on-tertiary-fixed": "#390c00",
+                      "primary-fixed": "#e4e2e4",
+                      "secondary-fixed": "#e3e2e7",
+                      "surface-container": "#edeef0",
+                      "on-secondary-fixed": "#1a1b1f",
+                      "outline-variant": "#c7c6ca",
+                      "on-tertiary": "#ffffff",
+                      "surface": "#f9f9fb",
+                      "primary-container": "#1c1c1e",
+                      "secondary": "#5e5e63",
+                      "surface-container-highest": "#e2e2e4",
+                      "on-primary": "#ffffff",
+                      "on-surface": "#1a1c1d",
+                      "on-error-container": "#93000a",
+                      "background": "#f9f9fb",
+                      "on-surface-variant": "#46464a",
+                      "secondary-fixed-dim": "#c7c6cb",
+                      "on-primary-container": "#858486"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "page-margin": "1rem",
+                      "element-gap-tight": "0.5rem",
+                      "card-padding": "1rem",
+                      "section-gap": "1.5rem",
+                      "element-gap-comfortable": "0.75rem",
+                      "gutter": "1rem"
+              },
+              "fontFamily": {
+                      "headline-lg": ["Inter"],
+                      "display-lg-mobile": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "display-lg": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "label-md": ["Inter"],
+                      "body-md": ["Inter"]
+              },
+              "fontSize": {
+                      "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                      "display-lg-mobile": ["28px", { "lineHeight": "34px", "fontWeight": "700" }],
+                      "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }],
+                      "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "600" }],
+                      "display-lg": ["34px", { "lineHeight": "41px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                      "label-sm": ["11px", { "lineHeight": "13px", "fontWeight": "600" }],
+                      "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                      "body-md": ["15px", { "lineHeight": "20px", "fontWeight": "400" }]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Hide scrollbar for clean look */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background antialiased pb-32">
+<!-- Top Actions Header -->
+<div class="fixed top-0 left-0 right-0 z-40 px-page-margin pt-12 pb-4 flex justify-end items-center gap-4 bg-gradient-to-b from-background to-transparent">
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-lowest/50 backdrop-blur-md shadow-[0_4px_24px_rgba(0,0,0,0.04)] ring-1 ring-glass-stroke text-primary hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings">settings</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-lowest/50 backdrop-blur-md shadow-[0_4px_24px_rgba(0,0,0,0.04)] ring-1 ring-glass-stroke text-primary hover:bg-surface-container-low transition-colors relative">
+<span class="material-symbols-outlined text-[20px]" data-icon="notifications">notifications</span>
+<span class="absolute top-2 right-2.5 w-2 h-2 bg-[#FF6B35] rounded-full ring-2 ring-white"></span>
+</button>
+</div>
+<!-- Main Content Canvas -->
+<main class="px-page-margin pt-24 max-w-2xl mx-auto flex flex-col gap-section-gap">
+<!-- Header & Stats Section -->
+<section class="flex flex-col items-center">
+<!-- Avatar -->
+<div class="relative mb-4">
+<div class="w-24 h-24 rounded-full overflow-hidden ring-4 ring-surface-container-lowest shadow-lg bg-surface-variant">
+<img alt="User profile picture" class="w-full h-full object-cover" data-alt="A clean, minimalist portrait photo of a stylish person, suitable for a high-end app profile avatar. Soft, bright, studio-like lighting highlighting features over a neutral cold-toned background, maintaining a professional yet approachable liquid minimalism aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCS9FqluTWqPEadQ-sRKSuq_XVv_bYX3tBCKYwIm63UY1y3e4n20YtJU2lgPShmGzbakVFAyYyGsSXgwEtWoANaRCP34oLQLoLTDf0__llqPhly1UdlXoNCPKBkww87A7bcj3zbKxDiknuXL_JxHk2Dh9hiTu8ZIrrpG-YgwNalHJgkMkhV28HrhLQ6o0rhyFL7Qzfohfz6x0yjZnaqdMSOMiwK-qID7vKfljvdITAqVcMZldLO5lyiOq-NcqL7Dc6MpDYrl4ofvfc"/>
+</div>
+<button class="absolute bottom-0 right-0 w-8 h-8 flex items-center justify-center rounded-full bg-primary text-on-primary shadow-md border-2 border-background">
+<span class="material-symbols-outlined text-[16px]" data-icon="add_a_photo">add_a_photo</span>
+</button>
+</div>
+<!-- Name -->
+<h1 class="font-headline-lg text-headline-lg text-primary mb-1">小食家</h1>
+<p class="font-body-md text-body-md text-secondary mb-6">Explore the world of flavors, one bite at a time.</p>
+<!-- Stats Row -->
+<div class="flex justify-around w-full max-w-sm mb-6 px-4">
+<div class="flex flex-col items-center cursor-pointer">
+<span class="font-headline-md text-headline-md text-primary">128</span>
+<span class="font-label-md text-label-md text-secondary mt-1">关注</span>
+</div>
+<div class="flex flex-col items-center cursor-pointer">
+<span class="font-headline-md text-headline-md text-primary">3.2k</span>
+<span class="font-label-md text-label-md text-secondary mt-1">粉丝</span>
+</div>
+<div class="flex flex-col items-center cursor-pointer">
+<span class="font-headline-md text-headline-md text-primary">42</span>
+<span class="font-label-md text-label-md text-secondary mt-1">作品</span>
+</div>
+<div class="flex flex-col items-center cursor-pointer">
+<span class="font-headline-md text-headline-md text-primary">560</span>
+<span class="font-label-md text-label-md text-secondary mt-1">收藏</span>
+</div>
+</div>
+<!-- Edit Profile Button -->
+<button class="px-8 py-2.5 rounded-full bg-surface-container-highest text-primary font-label-md text-label-md hover:bg-surface-variant transition-colors active:scale-95 duration-150">
+                编辑资料
+            </button>
+</section>
+<!-- Achievement Badges (Glassmorphism Card) -->
+<section class="bg-glass-surface backdrop-blur-[24px] rounded-[1.25rem] p-card-padding ring-1 ring-glass-stroke shadow-[0_4px_24px_rgba(0,0,0,0.04)] relative overflow-hidden">
+<!-- Glass highlight edge -->
+<div class="absolute inset-0 rounded-[1.25rem] pointer-events-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.60)]"></div>
+<div class="flex justify-between items-center mb-4 relative z-10">
+<h2 class="font-headline-md text-[18px] text-primary">我的勋章</h2>
+<button class="flex items-center text-secondary font-label-md text-label-md hover:text-primary transition-colors">
+                    查看全部 <span class="material-symbols-outlined text-[16px] ml-1">chevron_right</span>
+</button>
+</div>
+<div class="flex gap-4 overflow-x-auto pb-2 -mx-2 px-2 relative z-10">
+<!-- Badge 1 -->
+<div class="flex flex-col items-center flex-shrink-0 min-w-[72px]">
+<div class="w-14 h-14 rounded-full bg-gradient-to-br from-[#FFF5F0] to-[#FFE0D1] flex items-center justify-center mb-2 shadow-sm ring-1 ring-white">
+<span class="material-symbols-outlined text-[28px] text-[#FF6B35] icon-fill" data-icon="restaurant_menu">restaurant_menu</span>
+</div>
+<span class="font-label-sm text-label-sm text-primary">厨艺大师</span>
+</div>
+<!-- Badge 2 -->
+<div class="flex flex-col items-center flex-shrink-0 min-w-[72px]">
+<div class="w-14 h-14 rounded-full bg-gradient-to-br from-[#F0F5FF] to-[#D1E0FF] flex items-center justify-center mb-2 shadow-sm ring-1 ring-white">
+<span class="material-symbols-outlined text-[28px] text-[#3B82F6] icon-fill" data-icon="where_to_vote">where_to_vote</span>
+</div>
+<span class="font-label-sm text-label-sm text-primary">打卡达人</span>
+</div>
+<!-- Badge 3 -->
+<div class="flex flex-col items-center flex-shrink-0 min-w-[72px]">
+<div class="w-14 h-14 rounded-full bg-gradient-to-br from-[#F5F0FF] to-[#E0D1FF] flex items-center justify-center mb-2 shadow-sm ring-1 ring-white">
+<span class="material-symbols-outlined text-[28px] text-[#8B5CF6] icon-fill" data-icon="local_fire_department">local_fire_department</span>
+</div>
+<span class="font-label-sm text-label-sm text-primary">连续登陆</span>
+</div>
+<!-- Badge 4 (Empty/Locked State) -->
+<div class="flex flex-col items-center flex-shrink-0 min-w-[72px] opacity-50">
+<div class="w-14 h-14 rounded-full bg-surface-container-high flex items-center justify-center mb-2 border border-dashed border-outline">
+<span class="material-symbols-outlined text-[24px] text-secondary" data-icon="lock">lock</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">待解锁</span>
+</div>
+</div>
+</section>
+<!-- Functionality List/Cards -->
+<section class="bg-surface-container-lowest rounded-[1.25rem] p-2 ring-1 ring-glass-stroke shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
+<div class="flex justify-around items-center py-3">
+<button class="flex flex-col items-center gap-2 flex-1 hover:opacity-80 transition-opacity">
+<div class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]" data-icon="edit_document">edit_document</span>
+</div>
+<span class="font-label-md text-label-md text-primary">草稿箱</span>
+</button>
+<div class="w-[1px] h-8 bg-subtle-divider"></div>
+<button class="flex flex-col items-center gap-2 flex-1 hover:opacity-80 transition-opacity">
+<div class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]" data-icon="shopping_bag">shopping_bag</span>
+</div>
+<span class="font-label-md text-label-md text-primary">我的订单</span>
+</button>
+<div class="w-[1px] h-8 bg-subtle-divider"></div>
+<button class="flex flex-col items-center gap-2 flex-1 hover:opacity-80 transition-opacity">
+<div class="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]" data-icon="history">history</span>
+</div>
+<span class="font-label-md text-label-md text-primary">浏览历史</span>
+</button>
+</div>
+</section>
+<!-- Content Tabs -->
+<section class="mt-2">
+<!-- Tab Header -->
+<div class="flex gap-6 border-b border-subtle-divider mb-6 sticky top-[72px] bg-background/90 backdrop-blur-md z-30 pt-2">
+<button class="pb-3 px-1 border-b-2 border-primary text-primary font-headline-md text-[16px] relative">
+                    作品 <span class="font-label-sm text-secondary ml-1 font-normal">42</span>
+</button>
+<button class="pb-3 px-1 border-b-2 border-transparent text-secondary hover:text-primary transition-colors font-body-md text-[16px]">
+                    动态
+                </button>
+<button class="pb-3 px-1 border-b-2 border-transparent text-secondary hover:text-primary transition-colors font-body-md text-[16px]">
+                    收藏
+                </button>
+</div>
+<!-- Content Grid (Works) -->
+<div class="grid grid-cols-2 gap-4">
+<!-- Recipe Card 1 -->
+<div class="bg-surface-container-lowest rounded-[1rem] overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow cursor-pointer flex flex-col group">
+<div class="relative w-full aspect-[4/5] overflow-hidden bg-surface-variant">
+<img alt="Avocado Toast" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A close-up, high-end culinary photo of artisanal avocado toast on a minimalist white ceramic plate. The background is a clean, bright white table setting with soft, diffused natural light, emphasizing the fresh green of the avocado and the premium, airy aesthetic of the application." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCg8UUbGR3glgGuCV4KUzW9-9BL5WpQ3499-9eDYoRngyVxWH1C3lKgo0K0pmqjV--CwyB3d0-wJL2bgKSxSyeHJGowZmFMB3KpQqRyIkBuGnMGLIIDVomUxWZYNw_Zhm4FEi5NOm-OpY4jUsuMslnaXfT5wKYf3zF8HRUnQiJdymCd8W0UEw0hxlcA1B7t0lsTpJoP34JkXHXbX_xSWs90xS3Ti1fg1aTHrL2phvlYEInXbc-jiQtR0bAVLHwz4FcIZL6oB6SMBHo"/>
+</div>
+<div class="p-3">
+<h3 class="font-label-md text-[14px] text-primary line-clamp-2 leading-snug mb-1">Perfect Morning Avocado Toast</h3>
+<div class="flex items-center justify-between mt-2">
+<span class="flex items-center text-secondary font-label-sm">
+<span class="material-symbols-outlined text-[14px] mr-1">schedule</span> 10m
+                            </span>
+<span class="flex items-center text-secondary font-label-sm">
+<span class="material-symbols-outlined text-[14px] mr-1 icon-fill text-[#FF6B35]">favorite</span> 1.2k
+                            </span>
+</div>
+</div>
+</div>
+<!-- Recipe Card 2 -->
+<div class="bg-surface-container-lowest rounded-[1rem] overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow cursor-pointer flex flex-col group mt-6"> <!-- Offset for masonry feel -->
+<div class="relative w-full aspect-square overflow-hidden bg-surface-variant">
+<img alt="Healthy Salad Bowl" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A top-down view of a vibrant, healthy power bowl featuring fresh vegetables and grains. The bowl rests on a stark white surface. Lighting is cool and even, creating a highly polished, professional culinary image that aligns with a minimalist, content-forward UI design." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAN5s_9bRE9ANbcLucX-k5HZ5qxXec4N5v4Lmna023E3pvpumw-uDFphNSkrnxuloNYpXuEBa368kA2K2GXhg6HWRWxb5cmiAqBDopaC2N7Z8vro1vKzZC_71c-RGB5ILIgBFo2-zuOsMipzasLUyi8sG9h8LY2ZGwgE3lr6IHHc2fyidAmd4N7uaEQ4_UcNhYkQKcm2O8Y5Vc_RPW67zc7Jy2YnO6GarAZozrFQVc1TPuB7KkThDY9EGQwLFP40m68gC5-1cuzf_w"/>
+</div>
+<div class="p-3">
+<h3 class="font-label-md text-[14px] text-primary line-clamp-2 leading-snug mb-1">Summer Power Bowl</h3>
+<div class="flex items-center justify-between mt-2">
+<span class="flex items-center text-secondary font-label-sm">
+<span class="material-symbols-outlined text-[14px] mr-1">schedule</span> 15m
+                            </span>
+<span class="flex items-center text-secondary font-label-sm">
+<span class="material-symbols-outlined text-[14px] mr-1 icon-fill text-[#FF6B35]">favorite</span> 856
+                            </span>
+</div>
+</div>
+</div>
+<!-- Recipe Card 3 -->
+<div class="bg-surface-container-lowest rounded-[1rem] overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow cursor-pointer flex flex-col group -mt-6"> <!-- Adjusting margin for masonry -->
+<div class="relative w-full aspect-square overflow-hidden bg-surface-variant">
+<img alt="Pasta Dish" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="An elegant plate of handcrafted pasta shot in a bright, modern studio. The presentation is pristine, sitting against a pure white background. The image evokes a sense of high-end dining and clean design, perfectly fitting a liquid minimalist interface style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4k7StwU0SygyH0Lb_7R3AFx8QMjhgiWsJ96JsIYFtmeiUXyo6X-btCM8DO32bgab_g_behkHSpNbVvHV1a6BLkWrzSuoGQHZNjdV0wkQ0a2sRhw0IueTZqSd8O2MbeP2xlm74XoZH_gOl09Czqt3hZSdZ92mFTUB9BUnO5QkT4f-esmIG2wP56iOOVbHlcIOQNlYIzDTRNsxBVBHhryAm0sqngZ_c4JaTiI6zBInNYm_sKBWRNmZhyM9TGhGDnWUusUAuvkD_Tyk"/>
+</div>
+<div class="p-3">
+<h3 class="font-label-md text-[14px] text-primary line-clamp-2 leading-snug mb-1">Handcrafted Basil Pesto Pasta</h3>
+<div class="flex items-center justify-between mt-2">
+<span class="flex items-center text-secondary font-label-sm">
+<span class="material-symbols-outlined text-[14px] mr-1">schedule</span> 25m
+                            </span>
+<span class="flex items-center text-secondary font-label-sm">
+<span class="material-symbols-outlined text-[14px] mr-1 icon-fill text-[#FF6B35]">favorite</span> 2.1k
+                            </span>
+</div>
+</div>
+</div>
+<!-- Recipe Card 4 -->
+<div class="bg-surface-container-lowest rounded-[1rem] overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow cursor-pointer flex flex-col group">
+<div class="relative w-full aspect-[4/5] overflow-hidden bg-surface-variant">
+<img alt="Dessert" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A delicate, artisan dessert plated beautifully on a cold white background. The lighting is soft but precise, creating a clinical yet appetizing look. The vibrant colors of the dessert stand out vividly against the minimalist, high-end backdrop required by the overarching visual identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBf1F4P6jiObF3mRadbTXV3GCjK8KFunw7Av2ywTUVB-vTzteEW8q72PdMcDA6uA1vN9BNJedM-KMcKI8i2A2jHeBbbdqDi9-VkIjVUHGl8WjHI8LAESQkUS_amV7UNKLnDPoxDECk1-DaUG1JdD1L3gjbH6WQhVDctyk44zkDVMtiN_IOwvt0vJG8YN7_j0fQxEEKmyol7ApVa_hHvKI2uN5djd-pW69EH5W0P9GmcUWJrVzBABjl6okPRJ8UcdAWFjtxXbtY_4dM"/>
+</div>
+<div class="p-3">
+<h3 class="font-label-md text-[14px] text-primary line-clamp-2 leading-snug mb-1">Matcha Crepe Cake</h3>
+<div class="flex items-center justify-between mt-2">
+<span class="flex items-center text-secondary font-label-sm">
+<span class="material-symbols-outlined text-[14px] mr-1">schedule</span> 45m
+                            </span>
+<span class="flex items-center text-secondary font-label-sm">
+<span class="material-symbols-outlined text-[14px] mr-1 icon-fill text-[#FF6B35]">favorite</span> 3.4k
+                            </span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Shared Component implementation) -->
+<nav class="fixed bottom-8 left-0 right-0 z-50 flex justify-around items-center px-gutter py-2 mx-auto w-[90%] max-w-md rounded-full bg-glass-surface dark:bg-inverse-surface/72 backdrop-blur-[24px] border border-glass-stroke shadow-[0px_4px_24px_rgba(0,0,0,0.04)] ring-1 ring-glass-refraction/20">
+<!-- Inactive: home -->
+<a class="flex items-center justify-center text-secondary dark:text-secondary-fixed-dim w-12 h-12 hover:bg-surface-container-highest/50 dark:hover:bg-surface-container-highest/20 rounded-full transition-all duration-300 ease-out active:scale-90" href="#">
+<span class="material-symbols-outlined text-[24px]" data-icon="home">home</span>
+</a>
+<!-- Inactive: smart_toy -->
+<a class="flex items-center justify-center text-secondary dark:text-secondary-fixed-dim w-12 h-12 hover:bg-surface-container-highest/50 dark:hover:bg-surface-container-highest/20 rounded-full transition-all duration-300 ease-out active:scale-90" href="#">
+<span class="material-symbols-outlined text-[24px]" data-icon="smart_toy">smart_toy</span>
+</a>
+<!-- Publish Button -->
+<button class="flex items-center justify-center w-14 h-14 bg-primary text-on-primary rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.12)] transition-all duration-300 ease-out active:scale-90 relative z-[65]" id="publish-btn">
+<span class="material-symbols-outlined text-[28px] transition-transform duration-500 ease-in-out" data-icon="add" id="publish-icon">add</span>
+</button>
+<!-- Inactive: collections_bookmark -->
+<a class="flex items-center justify-center text-secondary dark:text-secondary-fixed-dim w-12 h-12 hover:bg-surface-container-highest/50 dark:hover:bg-surface-container-highest/20 rounded-full transition-all duration-300 ease-out active:scale-90" href="#">
+<span class="material-symbols-outlined text-[24px]" data-icon="collections_bookmark">collections_bookmark</span>
+</a>
+<!-- Active: person -->
+<a class="flex items-center justify-center text-primary dark:text-on-primary w-12 h-12 hover:bg-surface-container-highest/50 dark:hover:bg-surface-container-highest/20 rounded-full transition-all duration-300 ease-out active:scale-90" href="#">
+<span class="material-symbols-outlined text-[24px] icon-fill" data-icon="person">person</span>
+</a>
+</nav>
+<!-- Liquid Glass BottomSheet Overlay -->
+<div class="fixed inset-0 bg-inverse-surface/20 backdrop-blur-sm z-[55] opacity-0 pointer-events-none transition-opacity duration-300" id="publish-overlay"></div>
+<!-- Liquid Glass BottomSheet -->
+<div class="fixed bottom-0 left-0 right-0 z-[60] transform translate-y-full transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1) flex flex-col items-center pb-[100px] pt-8 rounded-t-[32px] bg-glass-surface/90 backdrop-blur-[24px] border-t border-glass-stroke shadow-[0_-8px_32px_rgba(0,0,0,0.08)] ring-1 ring-inset ring-glass-refraction/20" id="publish-sheet">
+<div class="w-12 h-1 bg-outline-variant/40 rounded-full mb-8"></div>
+<div class="flex justify-center items-end gap-6 px-8 w-full max-w-md">
+<!-- Action 1: Recipe -->
+<a class="flex flex-col items-center gap-3 transform translate-y-8 opacity-0 transition-all duration-500 delay-100" href="#" id="action-recipe">
+<div class="w-[60px] h-[60px] rounded-[20px] bg-surface-container-lowest shadow-[0_4px_20px_rgba(0,0,0,0.06)] flex items-center justify-center text-[#FF6B35] ring-1 ring-glass-stroke active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[28px] icon-fill">restaurant_menu</span>
+</div>
+<span class="font-label-md text-primary">菜谱</span>
+</a>
+<!-- Action 2: Post (Main) -->
+<a class="flex flex-col items-center gap-3 transform translate-y-8 opacity-0 transition-all duration-500 delay-150" href="#" id="action-post">
+<div class="w-[72px] h-[72px] rounded-[24px] bg-primary shadow-[0_8px_24px_rgba(0,0,0,0.12)] flex items-center justify-center text-on-primary ring-1 ring-primary/20 active:scale-95 transition-transform mb-1">
+<span class="material-symbols-outlined text-[32px] icon-fill">edit_document</span>
+</div>
+<span class="font-label-md text-primary font-semibold">发布图文</span>
+</a>
+<!-- Action 3: Scan -->
+<a class="flex flex-col items-center gap-3 transform translate-y-8 opacity-0 transition-all duration-500 delay-200" href="#" id="action-scan">
+<div class="w-[60px] h-[60px] rounded-[20px] bg-surface-container-lowest shadow-[0_4px_20px_rgba(0,0,0,0.06)] flex items-center justify-center text-[#3B82F6] ring-1 ring-glass-stroke active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[28px]">qr_code_scanner</span>
+</div>
+<span class="font-label-md text-primary">扫一扫</span>
+</a>
+</div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const publishBtn = document.getElementById('publish-btn');
+        const publishIcon = document.getElementById('publish-icon');
+        const overlay = document.getElementById('publish-overlay');
+        const sheet = document.getElementById('publish-sheet');
+        const actionRecipe = document.getElementById('action-recipe');
+        const actionPost = document.getElementById('action-post');
+        const actionScan = document.getElementById('action-scan');
+        
+        let isOpen = false;
+
+        function toggleSheet() {
+            isOpen = !isOpen;
+            
+            if (isOpen) {
+                // Open state
+                publishIcon.style.transform = 'rotate(45deg)';
+                overlay.classList.remove('opacity-0', 'pointer-events-none');
+                overlay.classList.add('opacity-100');
+                sheet.classList.remove('translate-y-full');
+                sheet.classList.add('translate-y-0');
+                
+                // Animate items in
+                setTimeout(() => {
+                    actionRecipe.classList.remove('translate-y-8', 'opacity-0');
+                    actionRecipe.classList.add('translate-y-0', 'opacity-100');
+                }, 50);
+                setTimeout(() => {
+                    actionPost.classList.remove('translate-y-8', 'opacity-0');
+                    actionPost.classList.add('translate-y-0', 'opacity-100');
+                }, 100);
+                setTimeout(() => {
+                    actionScan.classList.remove('translate-y-8', 'opacity-0');
+                    actionScan.classList.add('translate-y-0', 'opacity-100');
+                }, 150);
+            } else {
+                // Close state
+                publishIcon.style.transform = 'rotate(0deg)';
+                overlay.classList.remove('opacity-100');
+                overlay.classList.add('opacity-0', 'pointer-events-none');
+                
+                // Animate items out
+                actionRecipe.classList.remove('translate-y-0', 'opacity-100');
+                actionRecipe.classList.add('translate-y-8', 'opacity-0');
+                actionPost.classList.remove('translate-y-0', 'opacity-100');
+                actionPost.classList.add('translate-y-8', 'opacity-0');
+                actionScan.classList.remove('translate-y-0', 'opacity-100');
+                actionScan.classList.add('translate-y-8', 'opacity-0');
+                
+                sheet.classList.remove('translate-y-0');
+                sheet.classList.add('translate-y-full');
+            }
+        }
+
+        publishBtn.addEventListener('click', toggleSheet);
+        overlay.addEventListener('click', toggleSheet);
+    });
+</script>
+</body></html>

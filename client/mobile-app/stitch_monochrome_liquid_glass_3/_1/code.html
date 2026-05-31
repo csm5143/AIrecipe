@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Edit Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-dim": "#d9dadc",
+                    "inverse-primary": "#c8c6c8",
+                    "error": "#ba1a1a",
+                    "on-tertiary-fixed-variant": "#832600",
+                    "on-primary-container": "#858486",
+                    "on-surface": "#1a1c1d",
+                    "on-secondary-fixed": "#1a1b1f",
+                    "tertiary-fixed": "#ffdbd0",
+                    "on-tertiary-container": "#e25722",
+                    "error-container": "#ffdad6",
+                    "glass-surface": "rgba(255, 255, 255, 0.72)",
+                    "surface-tint": "#5f5e60",
+                    "on-secondary-fixed-variant": "#46464b",
+                    "primary-fixed": "#e4e2e4",
+                    "background": "#f9f9fb",
+                    "tertiary": "#040000",
+                    "surface-container": "#edeef0",
+                    "surface": "#f9f9fb",
+                    "on-primary": "#ffffff",
+                    "inverse-on-surface": "#f0f0f2",
+                    "primary-fixed-dim": "#c8c6c8",
+                    "tertiary-fixed-dim": "#ffb59d",
+                    "glass-stroke": "rgba(0, 0, 0, 0.04)",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container-high": "#e8e8ea",
+                    "secondary-fixed": "#e3e2e7",
+                    "on-primary-fixed-variant": "#474649",
+                    "secondary-container": "#e0dfe4",
+                    "outline": "#77767b",
+                    "on-primary-fixed": "#1b1b1d",
+                    "surface-container-low": "#f3f3f5",
+                    "outline-variant": "#c7c6ca",
+                    "on-tertiary": "#ffffff",
+                    "on-surface-variant": "#46464a",
+                    "on-background": "#1a1c1d",
+                    "secondary": "#5e5e63",
+                    "on-secondary-container": "#626267",
+                    "placeholder-grey": "#AEAEB2",
+                    "on-secondary": "#ffffff",
+                    "surface-bright": "#f9f9fb",
+                    "on-error-container": "#93000a",
+                    "subtle-divider": "#E5E5EA",
+                    "on-error": "#ffffff",
+                    "primary": "#010102",
+                    "tertiary-container": "#3a0c00",
+                    "primary-container": "#1c1c1e",
+                    "surface-variant": "#e2e2e4",
+                    "glass-refraction": "rgba(255, 255, 255, 0.60)",
+                    "on-tertiary-fixed": "#390c00",
+                    "surface-container-highest": "#e2e2e4",
+                    "inverse-surface": "#2f3132",
+                    "secondary-fixed-dim": "#c7c6cb"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "section-gap": "1.5rem",
+                    "element-gap-comfortable": "0.75rem",
+                    "card-padding": "1rem",
+                    "gutter": "1rem",
+                    "element-gap-tight": "0.5rem",
+                    "page-margin": "1rem"
+            },
+            "fontFamily": {
+                    "headline-md": ["Inter"],
+                    "display-lg-mobile": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "label-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-md": ["22px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "display-lg-mobile": ["28px", {"lineHeight": "34px", "fontWeight": "700"}],
+                    "headline-lg": ["28px", {"lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "display-lg": ["34px", {"lineHeight": "41px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-sm": ["11px", {"lineHeight": "13px", "fontWeight": "600"}],
+                    "label-md": ["13px", {"lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "body-lg": ["17px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-md": ["15px", {"lineHeight": "20px", "fontWeight": "400"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .liquid-glass {
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.60), 0px 4px 24px rgba(0,0,0,0.04);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background antialiased min-h-screen font-body-md">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-glass-surface backdrop-blur-3xl border-b border-glass-stroke shadow-[0px_4px_24px_rgba(0,0,0,0.04)]">
+<div class="flex items-center justify-between px-page-margin h-16 w-full max-w-screen-xl mx-auto">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined text-primary" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md-mobile text-primary font-bold">Edit Profile</h1>
+<button class="font-label-md text-label-md text-primary font-bold hover:opacity-80 transition-opacity active:scale-95 duration-200">
+                Save
+            </button>
+</div>
+</header>
+<main class="pt-24 pb-32 px-page-margin max-w-screen-md mx-auto">
+<!-- Profile Photo Upload -->
+<section class="flex flex-col items-center justify-center mb-section-gap">
+<div class="relative w-32 h-32 rounded-full mb-element-gap-comfortable group cursor-pointer">
+<div class="absolute inset-0 rounded-full overflow-hidden shadow-lg border border-glass-stroke">
+<img alt="Current Profile Photo" class="w-full h-full object-cover" data-alt="A close-up portrait of a professional individual in a minimalist, light-mode setting. The lighting is soft and diffused, highlighting natural skin tones against a pristine white background. The overall aesthetic is clean, high-end, and sophisticated, reflecting a modern and polished personal brand identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAk1KxBP5w43LD3ANb5j9HVm1-A_ogbpX0dNA9R2XT6_vqgTH9yJIcXyl0WLTmFeszPtJgDnwJmN1j1x35oilUH4HwyKvRN06QWQzmaZ2Qza0TFzxRFDzQyHqZ-X91SawKwIIXkewhGH3QeQReETgZiZMpm59ViOIWjsVfABGsU9BUr7sGYHqV7QftevdhXE70XJaHAtSVMCgRgsNmRiHwdp3PSZ_wQ6ZGLifJir48Xk6TpkrIL0Vk6HW0PCaF4iKkeYs03-AXpKYs"/>
+</div>
+<div class="absolute inset-0 rounded-full bg-primary/20 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+<div class="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-primary" data-icon="edit">edit</span>
+</div>
+</div>
+<!-- Edit Icon Overlay (Persistent) -->
+<div class="absolute bottom-0 right-0 w-10 h-10 rounded-full liquid-glass flex items-center justify-center shadow-md">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="photo_camera" data-weight="fill" style="font-variation-settings: 'FILL' 1;">photo_camera</span>
+</div>
+</div>
+<span class="font-label-md text-label-md text-secondary">Tap to change photo</span>
+</section>
+<!-- Form Fields -->
+<section class="flex flex-col gap-element-gap-comfortable">
+<!-- Nickname Input -->
+<div class="flex flex-col gap-element-gap-tight">
+<label class="font-label-sm text-label-sm text-secondary ml-1" for="nickname">Nickname</label>
+<div class="liquid-glass rounded-lg overflow-hidden flex items-center px-4 py-3 focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent transition-all">
+<input class="w-full bg-transparent border-none p-0 font-body-lg text-body-lg text-primary placeholder:text-placeholder-grey focus:ring-0" id="nickname" placeholder="Enter your nickname" type="text" value="Alex Design"/>
+</div>
+</div>
+<!-- Bio Input -->
+<div class="flex flex-col gap-element-gap-tight">
+<label class="font-label-sm text-label-sm text-secondary ml-1" for="bio">Bio</label>
+<div class="liquid-glass rounded-lg overflow-hidden flex items-start px-4 py-3 focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent transition-all">
+<textarea class="w-full bg-transparent border-none p-0 font-body-lg text-body-lg text-primary placeholder:text-placeholder-grey focus:ring-0 resize-none" id="bio" placeholder="Tell us a bit about yourself" rows="3">Food enthusiast. Lover of minimalist design and clean typography.</textarea>
+</div>
+</div>
+<!-- Gender Selection -->
+<div class="flex flex-col gap-element-gap-tight">
+<label class="font-label-sm text-label-sm text-secondary ml-1">Gender</label>
+<div class="grid grid-cols-3 gap-element-gap-tight">
+<button class="liquid-glass rounded-lg py-3 flex items-center justify-center hover:bg-surface-variant transition-colors group">
+<span class="font-body-md text-body-md text-primary">Female</span>
+</button>
+<button class="bg-primary text-on-primary rounded-lg py-3 flex items-center justify-center shadow-md transition-transform active:scale-95">
+<span class="font-body-md text-body-md font-medium">Male</span>
+</button>
+<button class="liquid-glass rounded-lg py-3 flex items-center justify-center hover:bg-surface-variant transition-colors group">
+<span class="font-body-md text-body-md text-primary">Other</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+</body></html>

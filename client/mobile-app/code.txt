@@ -1,0 +1,1040 @@
+<!-- 我的食材 - 布局精简重构 -->
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>吃了么 · AI Recipe - My Ingredients</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-background": "#1a1c1d",
+                        "on-secondary-fixed-variant": "#46464b",
+                        "on-primary-fixed": "#1b1b1d",
+                        "on-primary": "#ffffff",
+                        "inverse-primary": "#c8c6c8",
+                        "glass-stroke": "rgba(0, 0, 0, 0.04)",
+                        "tertiary-fixed": "#ffdbd0",
+                        "error": "#ba1a1a",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-tint": "#5f5e60",
+                        "on-secondary": "#ffffff",
+                        "surface-container-highest": "#e2e2e4",
+                        "tertiary-fixed-dim": "#ffb59d",
+                        "secondary-fixed": "#e3e2e7",
+                        "on-surface-variant": "#46464a",
+                        "error-container": "#ffdad6",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed-dim": "#c7c6cb",
+                        "on-error-container": "#93000a",
+                        "placeholder-grey": "#AEAEB2",
+                        "on-tertiary-fixed-variant": "#832600",
+                        "secondary-container": "#e0dfe4",
+                        "on-tertiary-fixed": "#390c00",
+                        "on-tertiary-container": "#e25722",
+                        "secondary": "#5e5e63",
+                        "on-secondary-fixed": "#1a1b1f",
+                        "primary-fixed-dim": "#c8c6c8",
+                        "surface-container": "#edeef0",
+                        "surface": "#f9f9fb",
+                        "on-primary-fixed-variant": "#474649",
+                        "glass-refraction": "rgba(255, 255, 255, 0.60)",
+                        "tertiary": "#040000",
+                        "subtle-divider": "#E5E5EA",
+                        "glass-surface": "rgba(255, 255, 255, 0.72)",
+                        "background": "#f9f9fb",
+                        "surface-dim": "#d9dadc",
+                        "primary": "#010102",
+                        "surface-container-high": "#e8e8ea",
+                        "on-surface": "#1a1c1d",
+                        "outline": "#77767b",
+                        "inverse-on-surface": "#f0f0f2",
+                        "primary-fixed": "#e4e2e4",
+                        "surface-variant": "#e2e2e4",
+                        "surface-container-low": "#f3f3f5",
+                        "inverse-surface": "#2f3132",
+                        "on-primary-container": "#858486",
+                        "tertiary-container": "#3a0c00",
+                        "on-secondary-container": "#626267",
+                        "outline-variant": "#c7c6ca",
+                        "surface-bright": "#f9f9fb",
+                        "on-error": "#ffffff",
+                        "primary-container": "#1c1c1e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "section-gap": "1.5rem",
+                        "gutter": "1rem",
+                        "card-padding": "1rem",
+                        "page-margin": "1rem",
+                        "element-gap-tight": "0.5rem",
+                        "element-gap-comfortable": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "display-lg-mobile": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "display-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-md": ["15px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display-lg-mobile": ["28px", { "lineHeight": "34px", "fontWeight": "700" }],
+                        "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "label-sm": ["11px", { "lineHeight": "13px", "fontWeight": "600" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "display-lg": ["34px", { "lineHeight": "41px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-[#F8F8FA] text-on-background font-body-md min-h-screen antialiased pb-[180px] overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-40 flex justify-between items-center px-page-margin py-element-gap-comfortable bg-glass-surface backdrop-blur-xl border-b border-glass-stroke transition-all"><button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container/50 transition-all active:scale-95 text-primary"><span class="material-symbols-outlined">arrow_back</span></button><h1 class="text-headline-md font-bold text-primary">我的食材</h1><button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container/50 transition-all active:scale-95 text-primary"><span class="material-symbols-outlined">notifications</span></button></header>
+<!-- Main Content Canvas -->
+<main class="pt-[90px] w-full max-w-4xl mx-auto relative z-10">
+<!-- Segmented Control (Tabs) -->
+<div class="px-page-margin mb-section-gap">
+<div class="flex p-1 bg-surface-variant/50 backdrop-blur-sm rounded-xl h-12 w-full relative border border-glass-stroke shadow-sm"><button class="flex-1 rounded-lg text-secondary font-label-md text-label-md transition-all z-10 flex items-center justify-center">小菜篮</button><button class="flex-1 rounded-lg bg-surface-container-lowest text-primary font-label-md text-label-md shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all z-10 flex items-center justify-center border border-glass-stroke">小冰箱</button></div>
+</div>
+<!-- Action Buttons -->
+<div class="px-page-margin mb-section-gap grid grid-cols-2 gap-2">
+<button class="flex items-center justify-center gap-2 w-full h-12 bg-[#1c1c1e] text-white rounded-[22px] shadow-md active:scale-[0.98] transition-transform">
+<span class="material-symbols-outlined text-[20px]">photo_camera</span>
+<span class="font-bold text-body-md">AI 拍照识别</span>
+</button>
+<button class="flex items-center justify-center gap-2 w-full h-12 bg-glass-surface backdrop-blur-xl border border-glass-stroke text-primary rounded-[22px] shadow-sm active:scale-[0.98] transition-transform">
+<span class="material-symbols-outlined text-[20px]">add</span>
+<span class="font-bold text-body-md">手动添加</span>
+</button>
+</div>
+<!-- Horizontal Scrollable Categories -->
+<!-- Ingredient Grid -->
+<div class="px-page-margin space-y-3"><!-- Item 1 --><div class="flex items-center bg-glass-surface backdrop-blur-xl border border-glass-stroke rounded-2xl p-4 shadow-sm cursor-pointer active:scale-[0.98] transition-transform" onclick="void(0)"><input checked="" class="w-5 h-5 rounded-full border-outline-variant text-primary focus:ring-primary" type="checkbox"/><div class="ml-4 flex-1 pointer-events-none"><h3 class="font-bold text-on-surface text-body-md">有机苹果</h3><p class="text-secondary text-label-sm">3个 · <span class="font-medium">10月24日 09:15</span></p></div><button class="text-outline-variant hover:text-error transition-colors"><span class="material-symbols-outlined">close</span></button></div><!-- Item 2 --><div class="flex items-center bg-glass-surface backdrop-blur-xl border border-glass-stroke rounded-2xl p-4 shadow-sm cursor-pointer active:scale-[0.98] transition-transform" onclick="void(0)"><input class="w-5 h-5 rounded-full border-outline-variant text-primary focus:ring-primary" type="checkbox"/><div class="ml-4 flex-1 pointer-events-none"><h3 class="font-bold text-on-surface text-body-md">大番茄</h3><p class="text-secondary text-label-sm">2个 · <span class="font-medium">10月23日 18:20</span></p></div><button class="text-outline-variant hover:text-error transition-colors"><span class="material-symbols-outlined">close</span></button></div><!-- Item 3 --><div class="flex items-center bg-glass-surface backdrop-blur-xl border border-glass-stroke rounded-2xl p-4 shadow-sm cursor-pointer active:scale-[0.98] transition-transform" onclick="void(0)"><input class="w-5 h-5 rounded-full border-outline-variant text-primary focus:ring-primary" type="checkbox"/><div class="ml-4 flex-1 pointer-events-none"><h3 class="font-bold text-on-surface text-body-md">胡萝卜</h3><p class="text-secondary text-label-sm">500g · <span class="font-medium">10月22日 11:45</span></p></div><button class="text-outline-variant hover:text-error transition-colors"><span class="material-symbols-outlined">close</span></button></div></div>
+</main>
+<!-- Publish Bottom Sheet Overlay -->
+<div class="fixed inset-0 bg-primary/20 backdrop-blur-sm z-[45] opacity-0 pointer-events-none transition-opacity duration-300 ease-in-out hidden" id="publish-overlay"></div>
+<!-- Publish Bottom Sheet -->
+<div class="fixed bottom-0 left-0 w-full z-[48] translate-y-full transition-transform duration-500 ease-out pb-[120px] pt-8 px-6 bg-glass-surface backdrop-blur-[40px] rounded-t-[32px] border-t border-glass-stroke shadow-[0_-8px_32px_rgba(0,0,0,0.08)]" id="publish-sheet">
+<div class="flex justify-around items-end w-full max-w-md mx-auto">
+<!-- Action 1: Recipe -->
+<button class="flex flex-col items-center gap-3 group translate-y-8 opacity-0 transition-all duration-500 delay-100 sheet-item">
+<div class="w-14 h-14 rounded-full bg-surface-container-lowest border border-glass-stroke shadow-md flex items-center justify-center group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-primary text-[28px]" style="font-variation-settings: 'FILL' 1;">menu_book</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">Recipe</span>
+</button>
+<!-- Action 2: Post -->
+<button class="flex flex-col items-center gap-3 group translate-y-8 opacity-0 transition-all duration-500 delay-150 sheet-item">
+<div class="w-14 h-14 rounded-full bg-surface-container-lowest border border-glass-stroke shadow-md flex items-center justify-center group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-primary text-[28px]" style="font-variation-settings: 'FILL' 1;">edit_document</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">Post</span>
+</button>
+<!-- Action 3: Scan -->
+<button class="flex flex-col items-center gap-3 group translate-y-8 opacity-0 transition-all duration-500 delay-200 sheet-item">
+<div class="w-14 h-14 rounded-full bg-surface-container-lowest border border-glass-stroke shadow-md flex items-center justify-center group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-primary text-[28px]" style="font-variation-settings: 'FILL' 1;">qr_code_scanner</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">Scan</span>
+</button>
+</div>
+</div>
+<!-- BottomNavBar -->
+<div class="fixed bottom-[100px] left-1/2 -translate-x-1/2 w-[90%] max-w-md bg-primary text-on-primary rounded-full px-6 py-3 flex items-center justify-between shadow-2xl z-40 animate-bounce-in"><div class="flex flex-col"><span class="text-label-sm opacity-80">已选中</span><span class="font-bold">1 项食材</span></div><button class="bg-white text-primary px-6 py-2 rounded-full font-bold text-label-md flex items-center gap-2 transition-transform active:scale-95"><span class="material-symbols-outlined text-[18px]">auto_awesome</span>AI 菜谱</button></div><nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md rounded-[22px] bg-glass-surface backdrop-blur-[24px] border border-glass-stroke shadow-[0px_4px_24px_rgba(0,0,0,0.04)] ring-1 ring-glass-refraction/20 z-50 flex justify-between items-center px-4 py-2 mx-auto">
+<!-- Inactive: home -->
+<a class="flex items-center justify-center text-secondary w-12 h-12 hover:bg-surface-container-highest/50 rounded-full transition-all duration-300 ease-out active:scale-90" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">home</span>
+</a>
+<!-- Inactive: smart_toy -->
+<a class="flex items-center justify-center text-secondary w-12 h-12 hover:bg-surface-container-highest/50 rounded-full transition-all duration-300 ease-out active:scale-90" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">smart_toy</span>
+</a>
+<!-- Center Publish Button -->
+<button class="flex items-center justify-center bg-[#FF6B35] text-white rounded-full w-14 h-14 shadow-lg transition-transform duration-300 ease-out active:scale-90 z-[51] relative -top-1" id="fab-publish">
+<span class="material-symbols-outlined transition-transform duration-300 text-[28px]" id="fab-icon" style="font-variation-settings: 'FILL' 0;">add</span>
+</button>
+<!-- Active: auto_awesome_motion (Maps to Collection/Ingredients intent) -->
+<a class="flex items-center justify-center text-primary w-12 h-12 hover:bg-surface-container-highest/50 rounded-full transition-all duration-300 ease-out active:scale-90" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">auto_awesome_motion</span>
+</a>
+<!-- Inactive: person -->
+<a class="flex items-center justify-center text-secondary w-12 h-12 hover:bg-surface-container-highest/50 rounded-full transition-all duration-300 ease-out active:scale-90" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">person</span>
+</a>
+</nav>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const fab = document.getElementById('fab-publish');
+    const fabIcon = document.getElementById('fab-icon');
+    const overlay = document.getElementById('publish-overlay');
+    const sheet = document.getElementById('publish-sheet');
+    const sheetItems = document.querySelectorAll('.sheet-item');
+    let isSheetOpen = false;
+
+    function toggleSheet() {
+        isSheetOpen = !isSheetOpen;
+        
+        if (isSheetOpen) {
+            overlay.classList.remove('hidden');
+            // small delay to allow display:block to apply before animating opacity
+            setTimeout(() => {
+                overlay.classList.remove('opacity-0');
+                overlay.classList.add('opacity-100');
+                overlay.classList.remove('pointer-events-none');
+            }, 10);
+            
+            sheet.classList.remove('translate-y-full');
+            fabIcon.style.transform = 'rotate(45deg)';
+            
+            sheetItems.forEach(item => {
+                item.classList.remove('translate-y-8', 'opacity-0');
+            });
+        } else {
+            overlay.classList.remove('opacity-100');
+            overlay.classList.add('opacity-0');
+            overlay.classList.add('pointer-events-none');
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+            }, 300);
+            
+            sheet.classList.add('translate-y-full');
+            fabIcon.style.transform = 'rotate(0deg)';
+            
+            sheetItems.forEach(item => {
+                item.classList.add('translate-y-8', 'opacity-0');
+            });
+        }
+    }
+
+    fab.addEventListener('click', toggleSheet);
+    overlay.addEventListener('click', toggleSheet);
+});
+</script>
+</body></html>
+
+<!-- 小菜篮 - 交互重构与手动添加 -->
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>吃了么 - 小菜篮</title>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-high": "#e8e8ea",
+                        "glass-stroke": "rgba(0, 0, 0, 0.04)",
+                        "primary-fixed": "#e4e2e4",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed-dim": "#c8c6c8",
+                        "surface-container": "#edeef0",
+                        "on-tertiary-container": "#e25722",
+                        "on-background": "#1a1c1d",
+                        "surface-container-highest": "#e2e2e4",
+                        "subtle-divider": "#E5E5EA",
+                        "on-primary-fixed": "#1b1b1d",
+                        "glass-surface": "rgba(255, 255, 255, 0.72)",
+                        "primary-container": "#1c1c1e",
+                        "inverse-surface": "#2f3132",
+                        "background": "#f9f9fb",
+                        "surface-bright": "#f9f9fb",
+                        "placeholder-grey": "#AEAEB2",
+                        "outline-variant": "#c7c6ca",
+                        "on-error-container": "#93000a",
+                        "error-container": "#ffdad6",
+                        "error": "#ba1a1a",
+                        "on-secondary-container": "#626267",
+                        "surface-dim": "#d9dadc",
+                        "inverse-primary": "#c8c6c8",
+                        "on-tertiary-fixed": "#390c00",
+                        "on-tertiary-fixed-variant": "#832600",
+                        "on-error": "#ffffff",
+                        "surface-container-low": "#f3f3f5",
+                        "on-secondary-fixed": "#1a1b1f",
+                        "outline": "#77767b",
+                        "on-primary-container": "#858486",
+                        "glass-refraction": "rgba(255, 255, 255, 0.60)",
+                        "on-surface-variant": "#46464a",
+                        "tertiary-fixed-dim": "#ffb59d",
+                        "secondary-fixed-dim": "#c7c6cb",
+                        "tertiary-container": "#3a0c00",
+                        "on-secondary": "#ffffff",
+                        "tertiary": "#040000",
+                        "inverse-on-surface": "#f0f0f2",
+                        "tertiary-fixed": "#ffdbd0",
+                        "secondary": "#5e5e63",
+                        "secondary-container": "#e0dfe4",
+                        "surface-variant": "#e2e2e4",
+                        "on-primary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface": "#1a1c1d",
+                        "secondary-fixed": "#e3e2e7",
+                        "on-primary-fixed-variant": "#474649",
+                        "surface": "#f9f9fb",
+                        "on-secondary-fixed-variant": "#46464b",
+                        "primary": "#010102",
+                        "surface-tint": "#5f5e60"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "card-padding": "1rem",
+                        "section-gap": "1.5rem",
+                        "element-gap-tight": "0.5rem",
+                        "gutter": "1rem",
+                        "element-gap-comfortable": "0.75rem",
+                        "page-margin": "1rem"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "display-lg-mobile": ["Inter"],
+                        "label-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "body-md": ["15px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "display-lg": ["34px", { "lineHeight": "41px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "display-lg-mobile": ["28px", { "lineHeight": "34px", "fontWeight": "700" }],
+                        "label-sm": ["11px", { "lineHeight": "13px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .custom-scrollbar::-webkit-scrollbar { display: none; }
+        .custom-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Custom Checkbox styles for Liquid Glass feel */
+        .glass-checkbox {
+            appearance: none;
+            background-color: transparent;
+            margin: 0;
+            font: inherit;
+            color: currentColor;
+            width: 1.25em;
+            height: 1.25em;
+            border: 1.5px solid var(--tw-colors-outline-variant);
+            border-radius: 50%;
+            display: grid;
+            place-content: center;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+
+        .glass-checkbox::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            border-radius: 50%;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em var(--tw-colors-primary);
+            background-color: var(--tw-colors-primary);
+        }
+
+        .glass-checkbox:checked {
+            border-color: var(--tw-colors-primary);
+        }
+
+        .glass-checkbox:checked::before {
+            transform: scale(1);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md antialiased min-h-screen relative pb-[160px]">
+<!-- TopAppBar -->
+<header class="bg-glass-surface/72 backdrop-blur-2xl border-b border-glass-stroke flex justify-between items-center w-full px-page-margin h-16 sticky top-0 z-50">
+<button class="text-secondary hover:opacity-80 transition-opacity p-2 -ml-2 rounded-full flex items-center justify-center active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<h1 class="text-headline-md font-headline-md text-primary tracking-tight">我的食材</h1>
+<button class="text-secondary hover:opacity-80 transition-opacity p-2 -mr-2 rounded-full flex items-center justify-center active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</header>
+<main class="px-page-margin mt-6 max-w-2xl mx-auto">
+<!-- Title & Segmented Control -->
+<div class="mb-6">
+<div class="bg-surface-container-highest/40 p-1 rounded-full flex relative">
+<button class="flex-1 py-2 text-center rounded-full text-secondary font-label-md transition-all duration-300">
+                    小冰箱
+                </button>
+<button class="flex-1 py-2 text-center rounded-full bg-surface-container-lowest shadow-sm text-primary font-label-md transition-all duration-300">
+                    小菜篮
+                </button>
+</div>
+</div>
+<!-- Action Bar -->
+<div class="flex gap-3 mb-6">
+<button class="flex-1 py-2.5 px-2 bg-glass-surface/50 backdrop-blur-md border border-glass-refraction rounded-[16px] shadow-[0px_4px_16px_rgba(0,0,0,0.02)] text-primary flex justify-center items-center active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[18px]">merge</span>
+<span class="ml-1 text-label-md font-label-md">合并</span>
+</button>
+<button class="flex-1 py-2.5 px-2 bg-glass-surface/50 backdrop-blur-md border border-glass-refraction rounded-[16px] shadow-[0px_4px_16px_rgba(0,0,0,0.02)] text-primary flex justify-center items-center active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+<span class="ml-1 text-label-md font-label-md">复制</span>
+</button>
+<button class="flex-1 py-2.5 px-2 bg-glass-surface/50 backdrop-blur-md border border-glass-refraction rounded-[16px] shadow-[0px_4px_16px_rgba(0,0,0,0.02)] text-primary flex justify-center items-center active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span class="ml-1 text-label-md font-label-md">手动添加</span>
+</button>
+</div>
+<!-- Search Bar -->
+<!-- Basket List -->
+<div class="space-y-section-gap">
+<!-- Group 1 -->
+<section>
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-secondary text-sm">restaurant_menu</span>
+<h3 class="text-label-md font-label-md text-secondary">来源：川味担担面</h3>
+</div>
+<div class="bg-surface-container-lowest rounded-[16px] shadow-[0px_4px_24px_rgba(0,0,0,0.04)] overflow-hidden divide-y divide-subtle-divider">
+<!-- Item -->
+<label class="flex items-center p-4 cursor-pointer hover:bg-surface-container-low/50 transition-colors">
+<input checked="" class="glass-checkbox mr-4" type="checkbox"/>
+<div class="flex-1">
+<span class="text-body-md font-body-md text-primary">猪肉沫</span>
+</div>
+<span class="text-label-md font-label-md text-secondary mr-4">150g</span>
+<button aria-label="Delete" class="text-placeholder-grey hover:text-error transition-colors p-1">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</label>
+<!-- Item -->
+<label class="flex items-center p-4 cursor-pointer hover:bg-surface-container-low/50 transition-colors">
+<input checked="" class="glass-checkbox mr-4" type="checkbox"/>
+<div class="flex-1">
+<span class="text-body-md font-body-md text-primary">宜宾碎米芽菜</span>
+</div>
+<span class="text-label-md font-label-md text-secondary mr-4">50g</span>
+<button aria-label="Delete" class="text-placeholder-grey hover:text-error transition-colors p-1">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</label>
+<!-- Item -->
+<label class="flex items-center p-4 cursor-pointer hover:bg-surface-container-low/50 transition-colors">
+<input class="glass-checkbox mr-4" type="checkbox"/>
+<div class="flex-1">
+<span class="text-body-md font-body-md text-primary">鲜面条</span>
+</div>
+<span class="text-label-md font-label-md text-secondary mr-4">2人份</span>
+<button aria-label="Delete" class="text-placeholder-grey hover:text-error transition-colors p-1">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</label>
+</div>
+</section>
+<!-- Group 2 -->
+<section>
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-secondary text-sm">edit_note</span>
+<h3 class="text-label-md font-label-md text-secondary">手动添加</h3>
+</div>
+<div class="bg-surface-container-lowest rounded-[16px] shadow-[0px_4px_24px_rgba(0,0,0,0.04)] overflow-hidden divide-y divide-subtle-divider">
+<!-- Item -->
+<label class="flex items-center p-4 cursor-pointer hover:bg-surface-container-low/50 transition-colors">
+<input class="glass-checkbox mr-4" type="checkbox"/>
+<div class="flex-1">
+<span class="text-body-md font-body-md text-primary">大蒜</span>
+</div>
+<span class="text-label-md font-label-md text-secondary mr-4">2头</span>
+<button aria-label="Delete" class="text-placeholder-grey hover:text-error transition-colors p-1">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</label>
+</div>
+</section>
+</div>
+</main>
+<!-- Floating Summary Bar -->
+<div class="fixed bottom-[96px] left-1/2 -translate-x-1/2 w-[92%] max-w-lg z-40 bg-glass-surface/80 backdrop-blur-3xl border border-glass-refraction shadow-[0px_-8px_32px_rgba(0,0,0,0.06)] rounded-[20px] p-4 flex flex-col md:flex-row md:items-center justify-between"><div class="flex flex-col mb-4 md:mb-0">
+<span class="text-label-md font-label-md text-secondary">已选中</span>
+<span class="text-headline-md font-headline-md text-primary leading-tight">2 项食材</span>
+</div>
+<div class="flex items-center gap-2 md:mt-0 mt-2">
+<button class="bg-primary text-on-primary px-6 py-3 rounded-[14px] font-label-md text-label-md shadow-md active:scale-95 transition-transform w-full md:w-auto">
+        全部移入冰箱
+    </button>
+</div></div>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50 flex justify-around items-center px-4 py-3 bg-glass-surface/72 backdrop-blur-3xl border border-glass-refraction shadow-[0px_4px_24px_rgba(0,0,0,0.04)] rounded-full">
+<a class="flex flex-col items-center justify-center text-secondary hover:scale-110 transition-transform p-2" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="hidden">home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary bg-surface-container-highest/50 rounded-full p-2 hover:scale-110 transition-transform" href="#" style="font-variation-settings: 'FILL' 1;">
+<span class="material-symbols-outlined" data-icon="smart_toy">smart_toy</span>
+<span class="hidden">smart_toy</span>
+</a>
+<a class="hover:scale-110 transition-transform" href="#">
+<div class="bg-primary text-on-primary rounded-full shadow-lg h-12 w-12 flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</div>
+<span class="hidden">add_circle</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary hover:scale-110 transition-transform p-2" href="#">
+<span class="material-symbols-outlined" data-icon="bookmark">bookmark</span>
+<span class="hidden">bookmark</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary hover:scale-110 transition-transform p-2" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="hidden">person</span>
+</a>
+</nav>
+<!-- Modal: Add Ingredient -->
+<div class="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-primary/10 backdrop-blur-sm hidden" id="addIngredientModal">
+<div class="w-full max-w-sm bg-glass-surface/80 backdrop-blur-3xl border border-glass-refraction rounded-[24px] shadow-[0px_16px_48px_rgba(0,0,0,0.1)] p-6 flex flex-col">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-headline-md font-headline-md text-primary">手动添加食材</h3>
+<button class="text-secondary hover:text-primary transition-colors p-1" onclick="document.getElementById('addIngredientModal').classList.add('hidden')">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="space-y-4 mb-6">
+<div>
+<input class="w-full bg-surface-container-lowest/60 border border-outline-variant/50 rounded-[12px] px-4 py-3.5 text-body-md text-primary placeholder:text-placeholder-grey focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm" placeholder="食材名称 (如：西红柿)" type="text"/>
+</div>
+<div>
+<input class="w-full bg-surface-container-lowest/60 border border-outline-variant/50 rounded-[12px] px-4 py-3.5 text-body-md text-primary placeholder:text-placeholder-grey focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm" placeholder="数量/单位 (如：2个)" type="text"/>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary py-3.5 rounded-[16px] font-body-md shadow-lg active:scale-[0.98] transition-transform">
+            确认添加
+        </button>
+</div>
+</div>
+<script>
+    // Simple script to toggle the modal for demonstration
+    document.querySelectorAll('.material-symbols-outlined').forEach(icon => {
+        if(icon.textContent === 'add' && icon.parentElement.textContent.includes('手动添加')) {
+            icon.parentElement.addEventListener('click', () => {
+                document.getElementById('addIngredientModal').classList.remove('hidden');
+            });
+        }
+    });
+</script>
+</body></html>
+
+<!-- 编辑食材 - 弹窗重构 (吃了么) -->
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>编辑食材</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "glass-stroke": "rgba(0, 0, 0, 0.04)",
+                    "on-secondary": "#ffffff",
+                    "inverse-primary": "#c8c6c8",
+                    "tertiary-fixed": "#ffdbd0",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-fixed": "#1a1b1f",
+                    "placeholder-grey": "#AEAEB2",
+                    "secondary-fixed": "#e3e2e7",
+                    "surface-tint": "#5f5e60",
+                    "tertiary-fixed-dim": "#ffb59d",
+                    "on-primary": "#ffffff",
+                    "subtle-divider": "#E5E5EA",
+                    "inverse-surface": "#2f3132",
+                    "on-tertiary-fixed": "#390c00",
+                    "surface-container-highest": "#e2e2e4",
+                    "on-error-container": "#93000a",
+                    "outline": "#77767b",
+                    "inverse-on-surface": "#f0f0f2",
+                    "on-error": "#ffffff",
+                    "glass-surface": "rgba(255, 255, 255, 0.72)",
+                    "on-primary-fixed-variant": "#474649",
+                    "glass-refraction": "rgba(255, 255, 255, 0.60)",
+                    "on-tertiary-fixed-variant": "#832600",
+                    "surface-container-lowest": "#ffffff",
+                    "surface": "#f9f9fb",
+                    "surface-variant": "#e2e2e4",
+                    "error-container": "#ffdad6",
+                    "on-primary-fixed": "#1b1b1d",
+                    "tertiary": "#040000",
+                    "surface-container": "#edeef0",
+                    "surface-dim": "#d9dadc",
+                    "primary-fixed-dim": "#c8c6c8",
+                    "on-secondary-container": "#626267",
+                    "error": "#ba1a1a",
+                    "tertiary-container": "#3a0c00",
+                    "primary-container": "#1c1c1e",
+                    "surface-container-high": "#e8e8ea",
+                    "surface-bright": "#f9f9fb",
+                    "secondary": "#5e5e63",
+                    "on-surface-variant": "#46464a",
+                    "primary": "#010102",
+                    "on-primary-container": "#858486",
+                    "surface-container-low": "#f3f3f5",
+                    "secondary-fixed-dim": "#c7c6cb",
+                    "on-surface": "#1a1c1d",
+                    "on-background": "#1a1c1d",
+                    "outline-variant": "#c7c6ca",
+                    "background": "#f9f9fb",
+                    "secondary-container": "#e0dfe4",
+                    "on-tertiary-container": "#e25722",
+                    "on-secondary-fixed-variant": "#46464b",
+                    "primary-fixed": "#e4e2e4"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "card-padding": "1rem",
+                    "gutter": "1rem",
+                    "element-gap-tight": "0.5rem",
+                    "section-gap": "1.5rem",
+                    "page-margin": "1rem",
+                    "element-gap-comfortable": "0.75rem"
+            },
+            "fontFamily": {
+                    "label-sm": ["Inter"],
+                    "label-md": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "display-lg-mobile": ["Inter"]
+            },
+            "fontSize": {
+                    "label-sm": ["11px", {"lineHeight": "13px", "fontWeight": "600"}],
+                    "label-md": ["13px", {"lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "headline-md": ["22px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-lg": ["28px", {"lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "body-lg": ["17px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-md": ["15px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "display-lg": ["34px", {"lineHeight": "41px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "display-lg-mobile": ["28px", {"lineHeight": "34px", "fontWeight": "700"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>.material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24
+    }
+.material-symbols-outlined[data-weight="fill"] {
+    font-variation-settings: "FILL" 1
+    }
+/* Custom styles for Liquid Minimalism */
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale
+    }
+.liquid-glass {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6)
+    }
+.liquid-input {
+    background: #F0F0F5
+    }
+/* Background image container for blurring */
+.bg-blur-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuCb7PlMQLstlz2UTukziguD32F0ptmjIt6867rwvM9FqIPlX23meE3dGSLu8ov9C_HLT5ntVTVNaZWB0DY_XNSb36pEpmtDF6NvO7CAFoqSELJnUQTqjfHob1BXZliU_06GmG06Rp8HPS1wOLyWnfyFuK3IRufnShlRS-L38YMSD3y8FRnRXo3dG-51WovbNCXLN1C4jSvqWar6uggQ-haBuPJ2bBkfSaDbVprDcos92ZUXZXTw99vCcp_5hNtrSdRtAWmq4QZCV5I);
+    background-size: cover;
+    background-position: center;
+    filter: blur(24px);
+    transform: scale(1.1);
+    /* Prevent blur edges from showing */
+    }
+.bg-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    background-color: rgba(248, 248, 250, 0.6);
+    /* Layer 0 base color tint */
+    }</style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface antialiased min-h-screen relative overflow-hidden font-body-md">
+<!-- Blurred Background (simulating context) -->
+<div aria-hidden="true" class="bg-blur-container"></div>
+<div aria-hidden="true" class="bg-overlay"></div>
+<!-- Top App Bar (Shared Component Definition Mapped) -->
+<!-- Main Content Area - Form Modal -->
+<main class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-page-margin pointer-events-none">
+<!-- Liquid Glass Modal Container -->
+<div class="liquid-glass p-6 shadow-lg border border-glass-stroke mt-auto flex flex-col gap-section-gap w-full rounded-[22px] pointer-events-auto"><div class="w-12 h-1.5 bg-outline-variant/30 rounded-full mx-auto -mt-2 mb-4"></div><div class="flex items-center justify-between mb-2"><h2 class="font-headline-md text-primary font-bold">编辑食材</h2><button class="text-secondary hover:text-primary transition-colors"><span class="material-symbols-outlined">close</span></button></div>
+<!-- Ingredient Image Preview (Optional visual anchor) -->
+<div class="w-full flex justify-center -mt-16 mb-2">
+<div class="w-24 h-24 rounded-full bg-surface-container-lowest shadow-md flex items-center justify-center border-4 border-white overflow-hidden">
+<span class="text-4xl">🍎</span>
+</div>
+</div>
+<!-- Form Fields -->
+<div class="flex flex-col gap-element-gap-comfortable">
+<!-- Name Field -->
+<div class="flex flex-col gap-element-gap-tight">
+<label class="font-label-md text-label-md text-on-secondary-container ml-1" for="ingredient-name">食材名称</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-placeholder-grey text-[20px]" data-icon="restaurant">restaurant</span>
+<input class="liquid-input w-full rounded-[14px] py-3 pl-10 pr-4 font-body-md text-body-md text-primary border-none focus:ring-2 focus:ring-primary focus:outline-none transition-all placeholder:text-placeholder-grey" id="ingredient-name" type="text" value="Organic Apple"/>
+</div>
+</div>
+<!-- Quantity Field -->
+<div class="flex flex-col gap-element-gap-tight"><label class="font-label-md text-label-md text-on-secondary-container ml-1" for="ingredient-qty">数量</label><div class="flex gap-2 items-center"><div class="relative flex-1"><span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-placeholder-grey text-[20px]" data-icon="scale">scale</span><input class="liquid-input w-full rounded-[14px] py-3 pl-10 pr-4 font-body-md text-body-md text-primary border-none focus:ring-2 focus:ring-primary focus:outline-none transition-all placeholder:text-placeholder-grey" id="ingredient-qty" type="text" value="3"/></div><div class="relative min-w-[80px]"><select class="liquid-input w-full rounded-[14px] py-3 pl-3 pr-8 font-body-md text-body-md text-primary border-none focus:ring-2 focus:ring-primary focus:outline-none transition-all appearance-none"><option value="items">items</option><option value="kg">kg</option><option value="g">g</option><option value="pcs">pcs</option></select><span class="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-placeholder-grey pointer-events-none" data-icon="expand_more">expand_more</span></div></div></div>
+<!-- Expiry Date Field -->
+<div class="flex flex-col gap-element-gap-tight">
+<label class="font-label-md text-label-md text-on-secondary-container ml-1" for="ingredient-expiry">保质期至</label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-placeholder-grey text-[20px]" data-icon="event">event</span>
+<input class="liquid-input w-full rounded-[14px] py-3 pl-10 pr-4 font-body-md text-body-md text-error font-medium border-none focus:ring-2 focus:ring-primary focus:outline-none transition-all placeholder:text-placeholder-grey" id="ingredient-expiry" type="text" value="Expires in 2 days"/>
+<span class="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-error text-[20px]" data-icon="warning">warning</span>
+</div>
+</div>
+<!-- Category Select (Visual) -->
+</div>
+<!-- Divider -->
+<hr class="border-subtle-divider my-2"/>
+<!-- Action Buttons -->
+<div class="flex flex-col gap-3 mt-2">
+<button class="w-full bg-primary text-on-primary rounded-[14px] py-3.5 font-label-md text-label-md font-semibold active:scale-[0.98] transition-transform flex items-center justify-center gap-2" type="button"><span class="material-symbols-outlined text-[18px]" data-icon="check">check</span> 保存修改</button>
+<button class="w-full bg-transparent text-error border border-error-container rounded-[14px] py-3.5 font-label-md text-label-md font-medium active:scale-[0.98] transition-transform flex items-center justify-center gap-2 hover:bg-error-container/20" type="button"><span class="material-symbols-outlined text-[18px]" data-icon="delete">delete</span> 删除食材</button>
+</div>
+<!-- Bottom Safe Area Padding -->
+<div class="h-4"></div>
+</div>
+</main>
+<!-- Suppressed Bottom Navigation & FAB as this is a focused editing modal flow -->
+</body></html>
+
+<!-- 添加食材 - 交互优化 (保质期可选与识别优先) -->
+<!DOCTYPE html><html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>添加食材 - 吃了么</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "glass-stroke": "rgba(0, 0, 0, 0.04)",
+                        "on-secondary": "#ffffff",
+                        "inverse-primary": "#c8c6c8",
+                        "tertiary-fixed": "#ffdbd0",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed": "#1a1b1f",
+                        "placeholder-grey": "#AEAEB2",
+                        "secondary-fixed": "#e3e2e7",
+                        "surface-tint": "#5f5e60",
+                        "tertiary-fixed-dim": "#ffb59d",
+                        "on-primary": "#ffffff",
+                        "subtle-divider": "#E5E5EA",
+                        "inverse-surface": "#2f3132",
+                        "on-tertiary-fixed": "#390c00",
+                        "surface-container-highest": "#e2e2e4",
+                        "on-error-container": "#93000a",
+                        "outline": "#77767b",
+                        "inverse-on-surface": "#f0f0f2",
+                        "on-error": "#ffffff",
+                        "glass-surface": "rgba(255, 255, 255, 0.72)",
+                        "on-primary-fixed-variant": "#474649",
+                        "glass-refraction": "rgba(255, 255, 255, 0.60)",
+                        "on-tertiary-fixed-variant": "#832600",
+                        "surface-container-lowest": "#ffffff",
+                        "surface": "#f9f9fb",
+                        "surface-variant": "#e2e2e4",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed": "#1b1b1d",
+                        "tertiary": "#040000",
+                        "surface-container": "#edeef0",
+                        "surface-dim": "#d9dadc",
+                        "primary-fixed-dim": "#c8c6c8",
+                        "on-secondary-container": "#626267",
+                        "error": "#ba1a1a",
+                        "tertiary-container": "#3a0c00",
+                        "primary-container": "#1c1c1e",
+                        "surface-container-high": "#e8e8ea",
+                        "surface-bright": "#f9f9fb",
+                        "secondary": "#5e5e63",
+                        "on-surface-variant": "#46464a",
+                        "primary": "#010102",
+                        "on-primary-container": "#858486",
+                        "surface-container-low": "#f3f3f5",
+                        "secondary-fixed-dim": "#c7c6cb",
+                        "on-surface": "#1a1c1d",
+                        "on-background": "#1a1c1d",
+                        "outline-variant": "#c7c6ca",
+                        "background": "#f9f9fb",
+                        "secondary-container": "#e0dfe4",
+                        "on-tertiary-container": "#e25722",
+                        "on-secondary-fixed-variant": "#46464b",
+                        "primary-fixed": "#e4e2e4"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "card-padding": "1rem",
+                        "gutter": "1rem",
+                        "element-gap-tight": "0.5rem",
+                        "section-gap": "1.5rem",
+                        "page-margin": "1rem",
+                        "element-gap-comfortable": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "display-lg-mobile": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["11px", { "lineHeight": "13px", "fontWeight": "600" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["15px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display-lg": ["34px", { "lineHeight": "41px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "display-lg-mobile": ["28px", { "lineHeight": "34px", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom scrollbar hiding for clean UI */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background font-body-md antialiased overflow-hidden select-none">
+<!-- Background App Screen (Context Layer) -->
+<div class="fixed inset-0 z-0 flex flex-col pointer-events-none opacity-40 grayscale-[20%]">
+<!-- TopAppBar (JSON Component) -->
+<header class="bg-glass-surface dark:bg-primary-container fixed top-0 w-full z-50 backdrop-blur-3xl border-b border-glass-stroke shadow-[0px_4px_24px_rgba(0,0,0,0.04)]">
+<div class="flex items-center justify-between px-page-margin h-16 w-full max-w-screen-xl mx-auto">
+<button class="text-secondary dark:text-on-secondary-container hover:opacity-80 transition-opacity active:scale-95 duration-200 p-2 -ml-2 rounded-full">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md-mobile text-primary dark:text-on-primary font-bold tracking-tight">吃了么</h1>
+<button class="text-secondary dark:text-on-secondary-container hover:opacity-80 transition-opacity active:scale-95 duration-200 p-2 -mr-2 rounded-full">
+<span class="material-symbols-outlined text-[24px]">search</span>
+</button>
+</div>
+</header>
+<!-- Dummy Background Content -->
+<main class="flex-1 pt-24 px-page-margin pb-32 overflow-y-auto">
+<div class="w-full h-40 bg-surface-container rounded-[22px] mb-section-gap flex items-center justify-center border border-glass-stroke">
+<span class="material-symbols-outlined text-secondary opacity-50 text-[48px]">kitchen</span>
+</div>
+<div class="space-y-element-gap-comfortable">
+<div class="h-20 bg-surface-container-lowest rounded-[22px] border border-glass-stroke shadow-[0px_4px_24px_rgba(0,0,0,0.02)]"></div>
+<div class="h-20 bg-surface-container-lowest rounded-[22px] border border-glass-stroke shadow-[0px_4px_24px_rgba(0,0,0,0.02)]"></div>
+<div class="h-20 bg-surface-container-lowest rounded-[22px] border border-glass-stroke shadow-[0px_4px_24px_rgba(0,0,0,0.02)]"></div>
+</div>
+</main>
+<!-- BottomNavBar (JSON Component) -->
+<nav class="bg-glass-surface dark:bg-primary-container fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md rounded-full backdrop-blur-3xl border border-glass-stroke shadow-lg z-50">
+<div class="flex justify-around items-center py-2 px-4 z-50">
+<button class="flex items-center justify-center bg-primary dark:bg-on-primary text-on-primary dark:text-primary rounded-full w-12 h-12 active:scale-90 transition-all duration-300 ease-out">
+<span class="material-symbols-outlined fill">home</span>
+</button>
+<button class="flex items-center justify-center text-secondary dark:text-on-secondary-container w-12 h-12 hover:bg-surface-variant dark:hover:bg-on-surface-variant rounded-full active:scale-90 transition-all duration-300 ease-out">
+<span class="material-symbols-outlined">explore</span>
+</button>
+<button class="flex items-center justify-center text-secondary dark:text-on-secondary-container w-12 h-12 hover:bg-surface-variant dark:hover:bg-on-surface-variant rounded-full active:scale-90 transition-all duration-300 ease-out">
+<span class="material-symbols-outlined">chat_bubble</span>
+</button>
+<button class="flex items-center justify-center text-secondary dark:text-on-secondary-container w-12 h-12 hover:bg-surface-variant dark:hover:bg-on-surface-variant rounded-full active:scale-90 transition-all duration-300 ease-out">
+<span class="material-symbols-outlined">person</span>
+</button>
+</div>
+</nav>
+</div>
+<!-- Active Overlay: Modal/Bottom Sheet -->
+<div class="fixed inset-0 z-[100] flex flex-col justify-end">
+<!-- Backdrop -->
+<div aria-hidden="true" class="absolute inset-0 bg-primary/20 backdrop-blur-sm transition-opacity"></div>
+<!-- Bottom Sheet Content -->
+<div class="relative w-full bg-[#F8F8FA]/90 backdrop-blur-[24px] border-t border-white/50 rounded-t-[22px] pt-4 px-page-margin pb-[48px] shadow-[0px_-8px_32px_rgba(0,0,0,0.08)] transform transition-transform duration-300 ease-out flex flex-col max-h-[795px]">
+<!-- Drag Handle -->
+<div class="w-12 h-1.5 bg-outline-variant rounded-full mx-auto mb-6 opacity-60"></div>
+<!-- Header -->
+<div class="flex justify-between items-center mb-section-gap">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-primary font-bold tracking-tight">添加食材</h2>
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container-high text-secondary hover:bg-surface-variant transition-colors active:scale-95">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Scrollable Form Area -->
+<div class="flex-1 overflow-y-auto hide-scrollbar flex flex-col gap-section-gap pb-8">
+<!-- AI Recognition Section -->
+
+<!-- Ingredient Name -->
+<div class="flex flex-col gap-element-gap-tight">
+<label class="font-label-md text-label-md text-secondary ml-1">食材名称</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-4 text-placeholder-grey">restaurant</span>
+<input class="w-full h-14 bg-white/80 border border-white rounded-[22px] pl-12 pr-4 font-body-lg text-body-lg text-primary placeholder-placeholder-grey focus:outline-none focus:border-outline focus:ring-1 focus:ring-outline transition-all shadow-[0px_4px_24px_rgba(0,0,0,0.02)]" placeholder="例如：有机苹果" type="text">
+</div>
+</div>
+<!-- Quantity & Unit (Horizontal layout for space efficiency) -->
+<div class="flex flex-col gap-element-gap-tight">
+<label class="font-label-md text-label-md text-secondary ml-1">数量与单位</label>
+<div class="flex gap-element-gap-tight">
+<!-- Number Stepper -->
+<div class="flex-1 h-14 bg-white/80 border border-white rounded-[22px] flex items-center justify-between px-2 shadow-[0px_4px_24px_rgba(0,0,0,0.02)]">
+<button class="w-10 h-10 rounded-[14px] flex items-center justify-center text-secondary hover:bg-surface-container transition-colors active:scale-95">
+<span class="material-symbols-outlined">remove</span>
+</button>
+<input class="w-12 text-center font-headline-md text-headline-md text-primary bg-transparent border-none focus:outline-none p-0 appearance-none m-0" type="number" value="1">
+<button class="w-10 h-10 rounded-[14px] flex items-center justify-center text-primary bg-surface-container-low hover:bg-surface-container transition-colors active:scale-95">
+<span class="material-symbols-outlined">add</span>
+</button>
+</div>
+<!-- Unit Selector -->
+<div class="w-24 h-14 bg-white/80 border border-white rounded-[22px] flex items-center justify-center relative shadow-[0px_4px_24px_rgba(0,0,0,0.02)] active:scale-95 transition-transform cursor-pointer">
+<span class="font-body-lg text-body-lg text-primary">个</span>
+<span class="material-symbols-outlined text-[18px] text-secondary absolute right-2">arrow_drop_down</span>
+</div>
+</div>
+</div>
+<!-- Expiration Date -->
+<div class="flex flex-col gap-element-gap-tight">
+<label class="font-label-md text-label-md text-secondary ml-1">保质期</label>
+<div class="flex gap-element-gap-tight overflow-x-auto hide-scrollbar pb-2 -mx-page-margin px-page-margin">
+<!-- Default Active state representation -->
+<button class="whitespace-nowrap px-5 py-2.5 rounded-[22px] bg-white/80 border border-white text-primary font-label-md text-label-md shadow-sm active:scale-95 transition-transform flex-shrink-0 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">calendar_add_on</span>
+                    设置保质期
+                </button>
+<button class="whitespace-nowrap px-5 py-2.5 rounded-[22px] bg-transparent border border-glass-stroke text-secondary font-label-md text-label-md hover:bg-white/40 active:scale-95 transition-transform flex-shrink-0">3 天</button>
+<button class="whitespace-nowrap px-5 py-2.5 rounded-[22px] bg-transparent border border-glass-stroke text-secondary font-label-md text-label-md hover:bg-white/40 active:scale-95 transition-transform flex-shrink-0">1 周</button>
+<button class="whitespace-nowrap px-5 py-2.5 rounded-[22px] bg-transparent border border-glass-stroke text-secondary font-label-md text-label-md hover:bg-white/40 active:scale-95 transition-transform flex-shrink-0">1 个月</button>
+<button class="whitespace-nowrap px-5 py-2.5 rounded-[22px] bg-transparent border border-glass-stroke text-secondary font-label-md text-label-md hover:bg-white/40 active:scale-95 transition-transform flex-shrink-0">自定义</button>
+</div>
+</div>
+</div>
+<!-- Primary Action Button (Fixed at bottom of sheet) -->
+<div class="pt-4 border-t border-glass-stroke mt-auto">
+<button class="w-full h-14 bg-[#1C1C1E] text-white font-headline-md text-label-md rounded-[22px] flex items-center justify-center gap-2 shadow-[0px_8px_24px_rgba(28,28,30,0.16)] active:scale-[0.98] transition-all duration-200">
+<span class="material-symbols-outlined">kitchen</span>
+                    加入冰箱
+                </button>
+</div>
+</div>
+</div>
+
+
+</body></html>

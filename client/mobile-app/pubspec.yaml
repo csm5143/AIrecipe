@@ -1,0 +1,36 @@
+name: airecipe
+description: "吃了么 · AI Recipe — 智能菜谱应用"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  # State Management
+  flutter_riverpod: ^2.6.1
+  # Routing
+  go_router: ^14.8.1
+  # Network
+  dio: ^5.7.0
+  # Local Storage
+  shared_preferences: ^2.3.4
+  # UI
+  flutter_staggered_grid_view: ^0.7.0
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
+  # Fonts
+  google_fonts: ^6.2.1
+  # Tools
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

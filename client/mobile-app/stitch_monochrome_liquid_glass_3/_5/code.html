@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Drafts - 吃了么</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Design System Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-primary-fixed-variant": "#474649",
+                        "surface-container": "#edeef0",
+                        "on-background": "#1a1c1d",
+                        "on-tertiary": "#ffffff",
+                        "secondary": "#5e5e63",
+                        "on-tertiary-container": "#e25722",
+                        "surface-container-low": "#f3f3f5",
+                        "secondary-fixed": "#e3e2e7",
+                        "on-secondary-fixed-variant": "#46464b",
+                        "surface": "#f9f9fb",
+                        "primary-fixed": "#e4e2e4",
+                        "outline-variant": "#c7c6ca",
+                        "error": "#ba1a1a",
+                        "subtle-divider": "#E5E5EA",
+                        "background": "#f9f9fb",
+                        "primary-container": "#1c1c1e",
+                        "on-primary-fixed": "#1b1b1d",
+                        "surface-bright": "#f9f9fb",
+                        "on-error": "#ffffff",
+                        "inverse-surface": "#2f3132",
+                        "secondary-fixed-dim": "#c7c6cb",
+                        "on-surface": "#1a1c1d",
+                        "surface-container-highest": "#e2e2e4",
+                        "on-primary": "#ffffff",
+                        "placeholder-grey": "#AEAEB2",
+                        "surface-container-high": "#e8e8ea",
+                        "on-tertiary-fixed-variant": "#832600",
+                        "secondary-container": "#e0dfe4",
+                        "outline": "#77767b",
+                        "on-primary-container": "#858486",
+                        "on-secondary-container": "#626267",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed-dim": "#ffb59d",
+                        "tertiary-fixed": "#ffdbd0",
+                        "on-secondary-fixed": "#1a1b1f",
+                        "on-surface-variant": "#46464a",
+                        "inverse-primary": "#c8c6c8",
+                        "glass-stroke": "rgba(0, 0, 0, 0.04)",
+                        "glass-surface": "rgba(255, 255, 255, 0.72)",
+                        "surface-variant": "#e2e2e4",
+                        "tertiary-container": "#3a0c00",
+                        "on-tertiary-fixed": "#390c00",
+                        "tertiary": "#040000",
+                        "surface-tint": "#5f5e60",
+                        "glass-refraction": "rgba(255, 255, 255, 0.60)",
+                        "primary-fixed-dim": "#c8c6c8",
+                        "error-container": "#ffdad6",
+                        "inverse-on-surface": "#f0f0f2",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-dim": "#d9dadc",
+                        "primary": "#010102",
+                        "on-secondary": "#ffffff"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "page-margin": "1rem",
+                        "card-padding": "1rem",
+                        "element-gap-tight": "0.5rem",
+                        "gutter": "1rem",
+                        "section-gap": "1.5rem",
+                        "element-gap-comfortable": "0.75rem"
+                    },
+                    fontFamily: {
+                        "display-lg-mobile": ["Inter", "sans-serif"],
+                        "label-sm": ["Inter", "sans-serif"],
+                        "display-lg": ["Inter", "sans-serif"],
+                        "body-lg": ["Inter", "sans-serif"],
+                        "label-md": ["Inter", "sans-serif"],
+                        "headline-lg": ["Inter", "sans-serif"],
+                        "headline-md": ["Inter", "sans-serif"],
+                        "body-md": ["Inter", "sans-serif"]
+                    },
+                    fontSize: {
+                        "display-lg-mobile": ["28px", { "lineHeight": "34px", "fontWeight": "700" }],
+                        "label-sm": ["11px", { "lineHeight": "13px", "fontWeight": "600" }],
+                        "display-lg": ["34px", { "lineHeight": "41px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["15px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e2e2e4;
+            border-radius: 10px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col selection:bg-surface-variant selection:text-on-surface-variant">
+<!-- Top App Bar (Adapted for Sub-page context, suppressing Bottom Nav) -->
+<header class="flex justify-between items-center w-full px-page-margin h-16 sticky top-0 z-50 backdrop-blur-2xl border-b border-glass-stroke bg-glass-surface/72 text-primary">
+<button aria-label="Go back" class="p-2 -ml-2 rounded-full hover:bg-surface-variant transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<h1 class="text-headline-md font-headline-md tracking-tight absolute left-1/2 -translate-x-1/2">Drafts</h1>
+<div class="w-10 h-10 flex items-center justify-center">
+<!-- Empty space for flex alignment, or optional actions -->
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 px-page-margin py-section-gap max-w-3xl mx-auto w-full">
+<div class="flex flex-col gap-element-gap-comfortable">
+<!-- Draft Item: Recipe in progress -->
+<article class="group bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_24px_rgba(0,0,0,0.04)] border border-transparent hover:border-glass-stroke transition-all duration-300 flex items-center cursor-pointer">
+<div class="w-[84px] h-[84px] shrink-0 rounded-lg overflow-hidden bg-surface-container-low mr-element-gap-comfortable relative">
+<img alt="Draft thumbnail" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A top-down view of a partially assembled, high-end culinary dish. Elements like fresh vibrant green herbs, a pool of rich dark sauce, and sliced rare meat are scattered artfully on a pristine white ceramic plate. The lighting is bright, cold, and professional studio quality, emphasizing the textures and natural colors against a minimalist background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDE8ZvcRMKbgJq3YxAYaJnwF02VcySwDfxxArT05C4pCVzdAyV-l9txNWhtjOpzule0b4nAqmQmpOwyA4pZXMdPHd62pQamjuAbHafRkn8JoIE7m_knfTwHrRvXRMiq12CdQkhgrzgUxnjQrKoJgs2Uog_5N_TViA38Bpie0tbWlL49tVnJuViPVaeNUtoiwwjQ6JadISJLnAKbkrRzz4OAlWQeHS97OGeK8_S6P67P7FJSBmZ9U3YrCqa25tbbmfOcmjSQ8cwSqOg"/>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<h2 class="text-body-lg font-body-lg text-on-surface truncate mb-1">Crispy Pork Belly with Apple Slaw</h2>
+<div class="flex items-center gap-2 text-secondary">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<p class="text-label-sm font-label-sm">Last edited 2 hours ago</p>
+</div>
+</div>
+<div class="ml-4 shrink-0">
+<button class="bg-primary text-on-primary px-4 py-2 rounded-lg text-label-md font-label-md hover:opacity-90 transition-opacity whitespace-nowrap">
+                        Continue
+                    </button>
+</div>
+</article>
+<!-- Draft Item: Review without image -->
+<article class="group bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_24px_rgba(0,0,0,0.04)] border border-transparent hover:border-glass-stroke transition-all duration-300 flex items-center cursor-pointer">
+<div class="w-[84px] h-[84px] shrink-0 rounded-lg bg-surface-container flex items-center justify-center mr-element-gap-comfortable text-secondary">
+<span class="material-symbols-outlined text-[32px] opacity-50">edit_document</span>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<h2 class="text-body-lg font-body-lg text-on-surface truncate mb-1">Review: The Midnight Diner Experience</h2>
+<div class="flex items-center gap-2 text-secondary">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<p class="text-label-sm font-label-sm">Last edited Yesterday, 11:45 PM</p>
+</div>
+</div>
+<div class="ml-4 shrink-0">
+<button class="bg-surface-variant text-on-surface px-4 py-2 rounded-lg text-label-md font-label-md hover:bg-surface-container-high transition-colors whitespace-nowrap">
+                        Edit
+                    </button>
+</div>
+</article>
+<!-- Draft Item: Older Recipe -->
+<article class="group bg-surface-container-lowest rounded-xl p-card-padding shadow-[0px_4px_24px_rgba(0,0,0,0.04)] border border-transparent hover:border-glass-stroke transition-all duration-300 flex items-center cursor-pointer">
+<div class="w-[84px] h-[84px] shrink-0 rounded-lg overflow-hidden bg-surface-container-low mr-element-gap-comfortable relative">
+<img alt="Draft thumbnail" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-100" data-alt="A close-up shot of an artisan sourdough bread loaf resting on a rustic wooden board, partially dusted with white flour. The scene is brightly lit with a clean, cool daylight entering from the left, highlighting the crusty texture of the bread. The background is a soft, blurred white surface, maintaining a minimalist and premium culinary aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBq2aqrSvgBjf8b-OF_jw-Bf7tAa4fJCAqAJn5qXX-92Uhj69LV74L2zcgK6sNJpVInLaNkfCgqwEWmXDBCe9z6YTLwGiUwjg-ZT_Tj0SYMFVc81vlmCuGtqTPVp82x5cufc949wxqV0DTX_2N-VfaGO7JTPhRhtvHoqTdlCiHYhySKEHtlwTLUoW6e-6KRPfIYpsqes81IwgL3vmzGuj9deDgkB_saMfN4KhxaYAiSeRmBTy4biIEJccV6QOE-vyyQrPuaJz20N10"/>
+</div>
+<div class="flex-1 min-w-0 flex flex-col justify-center">
+<h2 class="text-body-lg font-body-lg text-on-surface truncate mb-1 text-on-surface-variant">Sourdough Starter Day 5 Notes</h2>
+<div class="flex items-center gap-2 text-secondary">
+<span class="material-symbols-outlined text-[14px]">schedule</span>
+<p class="text-label-sm font-label-sm">Last edited Oct 12, 2023</p>
+</div>
+</div>
+<div class="ml-4 shrink-0">
+<button class="bg-surface-variant text-on-surface px-4 py-2 rounded-lg text-label-md font-label-md hover:bg-surface-container-high transition-colors whitespace-nowrap">
+                        Edit
+                    </button>
+</div>
+</article>
+</div>
+</main>
+</body></html>

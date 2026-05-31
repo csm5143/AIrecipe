@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>My Collections - 吃了么</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-primary-fixed-variant": "#474649",
+                      "surface-container": "#edeef0",
+                      "on-background": "#1a1c1d",
+                      "on-tertiary": "#ffffff",
+                      "secondary": "#5e5e63",
+                      "on-tertiary-container": "#e25722",
+                      "surface-container-low": "#f3f3f5",
+                      "secondary-fixed": "#e3e2e7",
+                      "on-secondary-fixed-variant": "#46464b",
+                      "surface": "#f9f9fb",
+                      "primary-fixed": "#e4e2e4",
+                      "outline-variant": "#c7c6ca",
+                      "error": "#ba1a1a",
+                      "subtle-divider": "#E5E5EA",
+                      "background": "#f9f9fb",
+                      "primary-container": "#1c1c1e",
+                      "on-primary-fixed": "#1b1b1d",
+                      "surface-bright": "#f9f9fb",
+                      "on-error": "#ffffff",
+                      "inverse-surface": "#2f3132",
+                      "secondary-fixed-dim": "#c7c6cb",
+                      "on-surface": "#1a1c1d",
+                      "surface-container-highest": "#e2e2e4",
+                      "on-primary": "#ffffff",
+                      "placeholder-grey": "#AEAEB2",
+                      "surface-container-high": "#e8e8ea",
+                      "on-tertiary-fixed-variant": "#832600",
+                      "secondary-container": "#e0dfe4",
+                      "outline": "#77767b",
+                      "on-primary-container": "#858486",
+                      "on-secondary-container": "#626267",
+                      "on-error-container": "#93000a",
+                      "tertiary-fixed-dim": "#ffb59d",
+                      "tertiary-fixed": "#ffdbd0",
+                      "on-secondary-fixed": "#1a1b1f",
+                      "on-surface-variant": "#46464a",
+                      "inverse-primary": "#c8c6c8",
+                      "glass-stroke": "rgba(0, 0, 0, 0.04)",
+                      "glass-surface": "rgba(255, 255, 255, 0.72)",
+                      "surface-variant": "#e2e2e4",
+                      "tertiary-container": "#3a0c00",
+                      "on-tertiary-fixed": "#390c00",
+                      "tertiary": "#040000",
+                      "surface-tint": "#5f5e60",
+                      "glass-refraction": "rgba(255, 255, 255, 0.60)",
+                      "primary-fixed-dim": "#c8c6c8",
+                      "error-container": "#ffdad6",
+                      "inverse-on-surface": "#f0f0f2",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-dim": "#d9dadc",
+                      "primary": "#010102",
+                      "on-secondary": "#ffffff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "page-margin": "1rem",
+                      "card-padding": "1rem",
+                      "element-gap-tight": "0.5rem",
+                      "gutter": "1rem",
+                      "section-gap": "1.5rem",
+                      "element-gap-comfortable": "0.75rem"
+              },
+              "fontFamily": {
+                      "display-lg-mobile": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "display-lg": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "label-md": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "body-md": ["Inter"]
+              },
+              "fontSize": {
+                      "display-lg-mobile": ["28px", { "lineHeight": "34px", "fontWeight": "700" }],
+                      "label-sm": ["11px", { "lineHeight": "13px", "fontWeight": "600" }],
+                      "display-lg": ["34px", { "lineHeight": "41px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                      "body-lg": ["17px", { "lineHeight": "24px", "fontWeight": "400" }],
+                      "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                      "headline-lg": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                      "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "600" }],
+                      "body-md": ["15px", { "lineHeight": "20px", "fontWeight": "400" }]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-filled {
+          font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Hide scrollbar for clean UI */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        * {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-bright text-on-surface font-body-md min-h-screen pb-[120px]">
+<!-- TopAppBar (from JSON Shared Components) -->
+<header class="flex justify-between items-center w-full px-page-margin h-16 sticky top-0 z-50 backdrop-blur-2xl border-b border-glass-stroke bg-glass-surface/72">
+<button class="flex items-center justify-center p-2 -ml-2 text-primary hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="text-headline-lg-mobile font-headline-lg-mobile text-primary tracking-tight">
+            吃了么
+        </h1>
+<button class="flex items-center justify-center p-2 -mr-2 text-primary hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</header>
+<!-- Page Context Header (Fulfilling User Request within layout constraints) -->
+<div class="px-page-margin pt-element-gap-comfortable pb-section-gap flex items-center justify-between">
+<div class="flex items-center gap-2">
+<h2 class="text-display-lg-mobile font-display-lg-mobile text-primary tracking-tight">Collections</h2>
+</div>
+<button class="flex items-center justify-center h-10 px-4 rounded-full bg-surface-container-highest/50 text-primary transition-transform hover:scale-105 active:scale-95 border border-glass-stroke backdrop-blur-md">
+<span class="material-symbols-outlined mr-1" style="font-size: 18px;">create_new_folder</span>
+<span class="text-label-md font-label-md">New</span>
+</button>
+</div>
+<!-- Tabs -->
+<div class="px-page-margin mb-section-gap">
+<div class="flex items-center p-1 bg-surface-container-low rounded-xl w-full max-w-[240px]">
+<button class="flex-1 py-2 text-center rounded-lg bg-surface-container-lowest shadow-[0px_2px_8px_rgba(0,0,0,0.04)] text-primary text-label-md font-label-md transition-all">
+                Recipes
+            </button>
+<button class="flex-1 py-2 text-center rounded-lg text-secondary text-label-md font-label-md transition-all hover:bg-surface-container-highest/30">
+                Posts
+            </button>
+</div>
+</div>
+<!-- Main Content: Bento Grid of Collections -->
+<main class="px-page-margin grid grid-cols-2 gap-gutter">
+<!-- Collection Card 1 -->
+<article class="flex flex-col gap-2 group cursor-pointer">
+<div class="w-full aspect-square bg-surface-container-lowest rounded-xl p-2 shadow-[0px_4px_24px_rgba(0,0,0,0.04)] border border-glass-stroke transition-transform duration-300 group-hover:scale-[1.02]">
+<div class="w-full h-full rounded-lg overflow-hidden grid grid-cols-2 grid-rows-2 gap-1">
+<img alt="A top-down, high-resolution food photography shot of a vibrant, healthy superfood salad bowl. The bowl is pristine white ceramic, filled with fresh dark leafy greens, perfectly sliced avocado, quinoa, and scattered pomegranate seeds. The lighting is bright, natural studio lighting that casts soft, premium shadows, enhancing the rich, organic colors against a clean, minimalist background." class="w-full h-full object-cover col-span-2 row-span-1" data-alt="A top-down, high-resolution food photography shot of a vibrant, healthy superfood salad bowl. The bowl is pristine white ceramic, filled with fresh dark leafy greens, perfectly sliced avocado, quinoa, and scattered pomegranate seeds. The lighting is bright, natural studio lighting that casts soft, premium shadows, enhancing the rich, organic colors against a clean, minimalist background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKNaUupWmy8m9vWlsD6L34nAkgzRJUUys8Lbr-kv01Fbzwa6YEOwy7XrKfprACOBc4BPUkchBg9ozB1H7qH2HXzKpJYM8UuZPBpZ9jh2_TRr_dVbfxOlBERM9RCh0KFt-N6j_V9mfPOBSHDstctTQaCBRunPJJX7h8XhB4ObCAVhOo0e1eN_NKJ2_4B5YzaPYc17dHA91sy-89QaU41q_2aLye0vQl_xc7y92-KnyeJGSnBF9b84hOzNr8VLPAbEEEyfAz_e8nJUE"/>
+<img alt="A close-up shot of an artisanal, cold-pressed green juice in a sleek, condensation-covered glass jar. The juice is a vibrant, healthy green hue. The lighting is cool and clinical, evoking a sense of refreshing purity and modern wellness. The background is a soft, out-of-focus light gray, emphasizing the liquid texture and premium quality of the beverage." class="w-full h-full object-cover" data-alt="A close-up shot of an artisanal, cold-pressed green juice in a sleek, condensation-covered glass jar. The juice is a vibrant, healthy green hue. The lighting is cool and clinical, evoking a sense of refreshing purity and modern wellness. The background is a soft, out-of-focus light gray, emphasizing the liquid texture and premium quality of the beverage." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBtkYHSBvFtyeAu27i3jORD_QLp4deNf9p3312X8mj2Y5qCRSL1bdeudfyH4MZEQ4iuZdefyZXFZED7UwZkfR4_5ixzL0zBsAX81uZXeo1kHHQzgwQDAinZowwPd40qpLMEyOFjSpXNBb_eI9tmxKsgjMc9E_SakHh9_cvzHJj_Ujdka8eljLY0ES9h5iEJ7h3_5kcy1MY8pbTuyqyr-rwsUP7Hay9fJFp4z-7PcsyUSNG7R8N1WMHmYa654wnAs0Y4yN2WJp_rAQk"/>
+<div class="w-full h-full bg-surface-container-highest flex items-center justify-center relative">
+<img alt="A minimalist composition of fresh, whole ingredients laid out on a flawless white marble countertop. Half a grapefruit, a sprig of fresh mint, and a handful of almonds are arranged with deliberate, architectural precision. The image utilizes heavy whitespace and high-key lighting to create a sophisticated, high-end culinary aesthetic perfect for a modern recipe app." class="w-full h-full object-cover opacity-60" data-alt="A minimalist composition of fresh, whole ingredients laid out on a flawless white marble countertop. Half a grapefruit, a sprig of fresh mint, and a handful of almonds are arranged with deliberate, architectural precision. The image utilizes heavy whitespace and high-key lighting to create a sophisticated, high-end culinary aesthetic perfect for a modern recipe app." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCz1xBziq-WW9ux2el2ukJX7GmvvG3HL7uJcAGGhuXOLAxDhWjIniYTzbhNPj4bXnV3cZu3wnA8tB38rCct7UngrQUeJCEBLYrebE_rkIn0YnttpfpHAdkWQjO0Lg_K9BqwE-pLehYnWjz3blD7kq6U7Qa-lHnbNUwGaXEf3YvyLa7k62ateprPWrGg3ud4SJzdBdFC5FlYOwQNNvMC7fwF4NVlbXkiBBM6bUbPWHMaACuABlI5bdVk65Q3nTT1vdR9v1rqhpKlHHk"/>
+<span class="absolute inset-0 flex items-center justify-center text-on-primary-fixed bg-surface/50 backdrop-blur-sm text-label-md font-label-md">+12</span>
+</div>
+</div>
+</div>
+<div class="px-1">
+<h3 class="text-body-md font-body-md text-primary font-medium">Healthy Habits</h3>
+<p class="text-label-sm font-label-sm text-secondary mt-0.5">15 saved items</p>
+</div>
+</article>
+<!-- Collection Card 2 -->
+<article class="flex flex-col gap-2 group cursor-pointer">
+<div class="w-full aspect-square bg-surface-container-lowest rounded-xl p-2 shadow-[0px_4px_24px_rgba(0,0,0,0.04)] border border-glass-stroke transition-transform duration-300 group-hover:scale-[1.02]">
+<div class="w-full h-full rounded-lg overflow-hidden">
+<img alt="A decadent slice of rich chocolate layered cake sitting on a matte black ceramic plate. The background is a soft, moody grey with subtle light refraction, creating an elegant, upscale dessert presentation. The texture of the dark chocolate ganache is highly detailed, catching delicate highlights that emphasize its premium, indulgent quality." class="w-full h-full object-cover" data-alt="A decadent slice of rich chocolate layered cake sitting on a matte black ceramic plate. The background is a soft, moody grey with subtle light refraction, creating an elegant, upscale dessert presentation. The texture of the dark chocolate ganache is highly detailed, catching delicate highlights that emphasize its premium, indulgent quality." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDAvuOgsNag3KFOFXlSSKSBwLcyUUpPQpCz7x_6VItdimjHDznZZm1fu6SotL7Vdlbv8K8NCFI-VkThOeZoF0dAe8LoKoHtg7eD3jwEQxHvdr9gBCXO2psrJlwD7wnSFMaorvbC6sN2eP3rPKG56r5JRx15vFZMEgNavi6g5jJvOEe1Cpb32FmFLQT9oP6QfykctIzqGrzvfg6BLXYuHau9MOBvn1oSQEWdYkGbYMZQvWs7l3GR6NWkLVWOvshFkuME11My-iKzw2o"/>
+</div>
+</div>
+<div class="px-1">
+<h3 class="text-body-md font-body-md text-primary font-medium">Weekend Baking</h3>
+<p class="text-label-sm font-label-sm text-secondary mt-0.5">8 saved items</p>
+</div>
+</article>
+<!-- Collection Card 3 -->
+<article class="flex flex-col gap-2 group cursor-pointer">
+<div class="w-full aspect-[3/4] bg-surface-container-lowest rounded-xl p-2 shadow-[0px_4px_24px_rgba(0,0,0,0.04)] border border-glass-stroke transition-transform duration-300 group-hover:scale-[1.02]">
+<div class="w-full h-full rounded-lg overflow-hidden bg-surface-container-low flex flex-col items-center justify-center gap-2 border border-dashed border-outline-variant">
+<div class="h-10 w-10 rounded-full bg-surface-container-highest flex items-center justify-center text-secondary group-hover:bg-primary group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined">add</span>
+</div>
+<span class="text-label-md font-label-md text-secondary">Create New</span>
+</div>
+</div>
+</article>
+</main>
+<!-- BottomNavBar (from JSON Shared Components) -->
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-50 flex justify-around items-center px-4 py-3 backdrop-blur-3xl border border-glass-refraction shadow-[0px_4px_24px_rgba(0,0,0,0.04)] bg-glass-surface/72 rounded-full">
+<!-- Inactive: Home -->
+<button class="flex items-center justify-center text-secondary p-2 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">home</span>
+</button>
+<!-- Inactive: Smart Toy -->
+<button class="flex items-center justify-center text-secondary p-2 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">smart_toy</span>
+</button>
+<!-- Central FAB: Add Circle -->
+<button class="bg-primary text-on-primary rounded-full shadow-lg h-12 w-12 flex items-center justify-center hover:scale-110 transition-transform">
+<span class="material-symbols-outlined icon-filled">add_circle</span>
+</button>
+<!-- Active: Bookmark (Current Page Intent) -->
+<button class="flex items-center justify-center text-primary bg-surface-container-highest/50 rounded-full p-2">
+<span class="material-symbols-outlined icon-filled">bookmark</span>
+</button>
+<!-- Inactive: Person -->
+<button class="flex items-center justify-center text-secondary p-2 hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">person</span>
+</button>
+</nav>
+</body></html>

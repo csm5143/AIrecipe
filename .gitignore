@@ -59,5 +59,9 @@ env
 # 本地配置文件
 *.local.*
 
+# Flutter 构建缓存
+.dart_tool/
+*.iml
+
 # 异常产物
 $null
