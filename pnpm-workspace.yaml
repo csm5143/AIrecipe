@@ -1,0 +1,8 @@
+packages:
+  - 'server/**'
+  - 'client/admin-web'
+  - 'client/web'
+  - 'packages/**'
+  - '!'
+  - '**/node_modules'
+  - '!**/node_modules'
