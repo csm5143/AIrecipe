@@ -27,7 +27,9 @@ class AppColors {
 
   // ── 液体玻璃 ──
   static const Color glassSurface = Color(0xB8FFFFFF); // rgba(255,255,255,0.72)
-  static const Color glassRefraction = Color(0x99FFFFFF); // rgba(255,255,255,0.6)
+  static const Color glassRefraction = Color(
+    0x99FFFFFF,
+  ); // rgba(255,255,255,0.6)
 }
 
 class AppTheme {
@@ -49,13 +51,44 @@ class AppTheme {
 
       // ── 字体 (使用系统默认，避免 Google Fonts 网络问题) ──
       textTheme: const TextTheme(
-        displayLarge: TextStyle(fontSize: 34, fontWeight: FontWeight.w700, letterSpacing: -0.02, height: 1.2),
-        headlineLarge: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.01, height: 1.2),
-        headlineMedium: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, height: 1.27),
-        bodyLarge: TextStyle(fontSize: 17, fontWeight: FontWeight.w400, height: 1.4),
-        bodyMedium: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, height: 1.33),
-        labelMedium: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, letterSpacing: 0.01, height: 1.38),
-        labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, height: 1.18),
+        displayLarge: TextStyle(
+          fontSize: 34,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0,
+          height: 1.2,
+        ),
+        headlineLarge: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0,
+          height: 1.2,
+        ),
+        headlineMedium: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w600,
+          height: 1.27,
+        ),
+        bodyLarge: TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w400,
+          height: 1.4,
+        ),
+        bodyMedium: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w400,
+          height: 1.33,
+        ),
+        labelMedium: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0,
+          height: 1.38,
+        ),
+        labelSmall: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          height: 1.18,
+        ),
       ),
 
       // ── 组件样式 ──
@@ -65,7 +98,9 @@ class AppTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         titleTextStyle: const TextStyle(
-          fontSize: 22, fontWeight: FontWeight.w600, color: AppColors.textPrimary,
+          fontSize: 22,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
         ),
       ),
 
@@ -75,10 +110,7 @@ class AppTheme {
         space: 1,
       ),
 
-      iconTheme: const IconThemeData(
-        color: AppColors.textPrimary,
-        size: 24,
-      ),
+      iconTheme: const IconThemeData(color: AppColors.textPrimary, size: 24),
     );
   }
 }

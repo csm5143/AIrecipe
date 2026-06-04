@@ -38,14 +38,17 @@ class RecipeCard extends StatelessWidget {
               child: CachedNetworkImage(
                 imageUrl: recipe.coverImage,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => Shimmer.fromColors(
+                placeholder: (_, _) => Shimmer.fromColors(
                   baseColor: AppColors.surfaceSecondary,
                   highlightColor: AppColors.background,
                   child: Container(color: AppColors.surfaceSecondary),
                 ),
-                errorWidget: (_, __, ___) => Container(
+                errorWidget: (_, _, _) => Container(
                   color: AppColors.surfaceSecondary,
-                  child: const Icon(Icons.broken_image, color: AppColors.textPlaceholder),
+                  child: const Icon(
+                    Icons.broken_image,
+                    color: AppColors.textPlaceholder,
+                  ),
                 ),
               ),
             ),
@@ -64,9 +67,15 @@ class RecipeCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      _MetaChip(icon: Icons.schedule, text: '${recipe.cookTime}m'),
+                      _MetaChip(
+                        icon: Icons.schedule,
+                        text: '${recipe.cookTime}m',
+                      ),
                       const SizedBox(width: 12),
-                      _MetaChip(icon: Icons.local_fire_department, text: recipe.difficulty),
+                      _MetaChip(
+                        icon: Icons.local_fire_department,
+                        text: recipe.difficulty,
+                      ),
                     ],
                   ),
                 ],
@@ -94,7 +103,9 @@ class _MetaChip extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           text,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.textSecondary),
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(color: AppColors.textSecondary),
         ),
       ],
     );

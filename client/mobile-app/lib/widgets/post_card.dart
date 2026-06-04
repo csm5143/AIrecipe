@@ -38,14 +38,17 @@ class PostCard extends StatelessWidget {
               child: CachedNetworkImage(
                 imageUrl: post.imageUrl,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => Shimmer.fromColors(
+                placeholder: (_, _) => Shimmer.fromColors(
                   baseColor: AppColors.surfaceSecondary,
                   highlightColor: AppColors.background,
                   child: Container(color: AppColors.surfaceSecondary),
                 ),
-                errorWidget: (_, __, ___) => Container(
+                errorWidget: (_, _, _) => Container(
                   color: AppColors.surfaceSecondary,
-                  child: const Icon(Icons.broken_image, color: AppColors.textPlaceholder),
+                  child: const Icon(
+                    Icons.broken_image,
+                    color: AppColors.textPlaceholder,
+                  ),
                 ),
               ),
             ),
@@ -59,7 +62,9 @@ class PostCard extends StatelessWidget {
                     post.content,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.4),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyLarge?.copyWith(height: 1.4),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -68,12 +73,15 @@ class PostCard extends StatelessWidget {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
-                          width: 24, height: 24,
+                          width: 24,
+                          height: 24,
                           color: AppColors.surfaceSecondary,
                           child: post.authorAvatar.isNotEmpty
                               ? CachedNetworkImage(
-                                  imageUrl: post.authorAvatar, fit: BoxFit.cover,
-                                  errorWidget: (_, __, ___) => const Icon(Icons.person, size: 16),
+                                  imageUrl: post.authorAvatar,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (_, _, _) =>
+                                      const Icon(Icons.person, size: 16),
                                 )
                               : const Icon(Icons.person, size: 16),
                         ),
@@ -82,13 +90,16 @@ class PostCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           post.authorName,
-                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(color: AppColors.textSecondary),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Icon(Icons.favorite_border, size: 20, color: AppColors.textSecondary),
+                      Icon(
+                        Icons.favorite_border,
+                        size: 20,
+                        color: AppColors.textSecondary,
+                      ),
                     ],
                   ),
                 ],
