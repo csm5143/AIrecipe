@@ -22,8 +22,11 @@ class _GlassBottomNavBarState extends ConsumerState<GlassBottomNavBar>
 
   static const _tabPaths = ['/', '/ai', '', '/collection', '/mine'];
   static const _tabIcons = [
-    Icons.home_rounded, Icons.smart_toy_rounded, Icons.add_rounded,
-    Icons.bookmarks_rounded, Icons.person_rounded,
+    Icons.home_rounded,
+    Icons.smart_toy_rounded,
+    Icons.add_rounded,
+    Icons.bookmarks_rounded,
+    Icons.person_rounded,
   ];
 
   int get _activeIndex {
@@ -38,7 +41,10 @@ class _GlassBottomNavBarState extends ConsumerState<GlassBottomNavBar>
   @override
   void initState() {
     super.initState();
-    _bounceCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
+    _bounceCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
     _bounceAnim = TweenSequence<double>([
       TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.04), weight: 12),
       TweenSequenceItem(tween: Tween(begin: 1.04, end: 0.98), weight: 28),
@@ -77,7 +83,8 @@ class _GlassBottomNavBarState extends ConsumerState<GlassBottomNavBar>
   Widget build(BuildContext context) {
     final isOpen = ref.watch(isPublishSheetOpenProvider);
     final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final totalWidth = MediaQuery.of(context).size.width - 64; // margin left+right
+    final totalWidth =
+        MediaQuery.of(context).size.width - 64; // margin left+right
 
     return AnimatedBuilder(
       animation: _bounceAnim,
@@ -89,7 +96,10 @@ class _GlassBottomNavBarState extends ConsumerState<GlassBottomNavBar>
         // ── 点击：根据位置判断点击哪个 item ──
         onTapUp: (details) {
           final itemWidth = totalWidth / 5;
-          final index = (details.localPosition.dx / itemWidth).floor().clamp(0, 4);
+          final index = (details.localPosition.dx / itemWidth).floor().clamp(
+            0,
+            4,
+          );
           _navigateTo(index);
         },
         // ── 左右滑动切换 ──
@@ -109,64 +119,94 @@ class _GlassBottomNavBarState extends ConsumerState<GlassBottomNavBar>
           }
         },
         child: Container(
-          margin: EdgeInsets.only(left: 32, right: 32, bottom: 6 + bottomPadding),
+          margin: EdgeInsets.only(
+            left: 32,
+            right: 32,
+            bottom: 6 + bottomPadding,
+          ),
           height: 56,
           decoration: BoxDecoration(
-            // 极淡的背景 — 让内容透过
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                const Color(0x25FFFFFF), // 顶部：非常淡
-                const Color(0x18FFFFFF), // 底部：几乎透明
-              ],
+              colors: [const Color(0xF2FFFFFF), const Color(0xD9FFFFFF)],
             ),
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: const Color(0x1AFFFFFF), width: 0.6),
+            border: Border.all(color: const Color(0x22000000), width: 0.7),
             boxShadow: [
-              BoxShadow(color: const Color(0xFF1C1C1E).withAlpha(10), blurRadius: 40, offset: const Offset(0, 8)),
-              const BoxShadow(color: Color(0x1AFFFFFF), blurRadius: 0, offset: Offset(0, 0.5)),
+              BoxShadow(
+                color: const Color(0xFF1C1C1E).withAlpha(24),
+                blurRadius: 34,
+                offset: const Offset(0, 14),
+              ),
+              const BoxShadow(
+                color: Color(0x80FFFFFF),
+                blurRadius: 0,
+                offset: Offset(0, 1),
+              ),
             ],
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(28),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-              child: Row(children: List.generate(5, (i) {
-                final active = i == _activeIndex || (i == 2 && isOpen);
-                final isCenter = i == 2;
-                return Expanded(
-                  child: Center(
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 350),
-                      curve: Curves.easeOutCubic,
-                      width: isCenter && !active ? 40 : (isCenter && active ? 36 : 38),
-                      height: isCenter && !active ? 40 : (isCenter && active ? 36 : 38),
-                      decoration: BoxDecoration(
-                        color: active
-                            ? (isCenter ? AppColors.surface : AppColors.textPrimary)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(isCenter ? 20 : 19),
-                        boxShadow: active && !isCenter
-                            ? [BoxShadow(color: const Color(0xFF000000).withAlpha(12), blurRadius: 8, offset: const Offset(0, 2))]
-                            : null,
-                      ),
-                      child: AnimatedRotation(
-                        turns: isCenter && active ? 0.125 : 0,
+              child: Row(
+                children: List.generate(5, (i) {
+                  final active = i == _activeIndex || (i == 2 && isOpen);
+                  final isCenter = i == 2;
+                  return Expanded(
+                    child: Center(
+                      child: AnimatedContainer(
                         duration: const Duration(milliseconds: 350),
                         curve: Curves.easeOutCubic,
-                        child: Icon(
-                          isCenter && active ? Icons.close_rounded : _tabIcons[i],
+                        width: isCenter && !active
+                            ? 40
+                            : (isCenter && active ? 36 : 38),
+                        height: isCenter && !active
+                            ? 40
+                            : (isCenter && active ? 36 : 38),
+                        decoration: BoxDecoration(
                           color: active
-                              ? (isCenter ? AppColors.textPrimary : AppColors.surface)
-                              : AppColors.textSecondary.withAlpha(160),
-                          size: isCenter ? 24 : 22,
+                              ? (isCenter
+                                    ? AppColors.surface
+                                    : AppColors.textPrimary)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(
+                            isCenter ? 20 : 19,
+                          ),
+                          boxShadow: active && !isCenter
+                              ? [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF000000,
+                                    ).withAlpha(12),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: AnimatedRotation(
+                          turns: isCenter && active ? 0.125 : 0,
+                          duration: const Duration(milliseconds: 350),
+                          curve: Curves.easeOutCubic,
+                          child: Icon(
+                            isCenter && active
+                                ? Icons.close_rounded
+                                : _tabIcons[i],
+                            color: active
+                                ? (isCenter
+                                      ? AppColors.textPrimary
+                                      : AppColors.surface)
+                                : AppColors.textSecondary.withAlpha(160),
+                            size: isCenter ? 24 : 22,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              })),
+                  );
+                }),
+              ),
             ),
           ),
         ),
@@ -174,11 +214,16 @@ class _GlassBottomNavBarState extends ConsumerState<GlassBottomNavBar>
     );
   }
 }
+
 /// Shell Scaffold — 页面滑动过渡
 class GlassScaffoldWithNav extends ConsumerWidget {
   final Widget body;
   final String currentLocation;
-  const GlassScaffoldWithNav({super.key, required this.body, required this.currentLocation});
+  const GlassScaffoldWithNav({
+    super.key,
+    required this.body,
+    required this.currentLocation,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -190,13 +235,21 @@ class GlassScaffoldWithNav extends ConsumerWidget {
           switchOutCurve: Curves.easeIn,
           transitionBuilder: (child, animation) {
             return SlideTransition(
-              position: Tween<Offset>(begin: const Offset(0.06, 0), end: Offset.zero).animate(animation),
+              position: Tween<Offset>(
+                begin: const Offset(0.06, 0),
+                end: Offset.zero,
+              ).animate(animation),
               child: FadeTransition(opacity: animation, child: child),
             );
           },
           child: body,
         ),
-        Positioned(left: 0, right: 0, bottom: 0, child: GlassBottomNavBar(currentLocation: currentLocation)),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: GlassBottomNavBar(currentLocation: currentLocation),
+        ),
         const PublishSheet(),
       ],
     );

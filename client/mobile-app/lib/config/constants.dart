@@ -3,7 +3,7 @@ class AppConstants {
   AppConstants._();
 
   static const String appName = '吃了么 · AI Recipe';
-  static const String apiBaseDev = 'http://localhost:3000/api/v1';
+  static const String apiBaseDev = 'http://10.0.2.2:3000/api';
   static const String apiBaseProd = 'https://api.airecipe.com/api/v1';
 
   static const int pageSize = 20;

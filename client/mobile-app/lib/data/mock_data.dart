@@ -2,17 +2,24 @@ import '../models/recipe.dart';
 import '../models/post.dart';
 import '../models/ingredient.dart';
 import '../models/notification_item.dart';
-import '../providers/ai_provider.dart';
+import '../models/chat.dart';
 
 // ── 模拟 URL ──
-const _imgFood1 = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80';
-const _imgFood2 = 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80';
-const _imgFood3 = 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=600&q=80';
-const _imgFood4 = 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=600&q=80';
-const _imgFood5 = 'https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=600&q=80';
+const _imgFood1 =
+    'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80';
+const _imgFood2 =
+    'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80';
+const _imgFood3 =
+    'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=600&q=80';
+const _imgFood4 =
+    'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=600&q=80';
+const _imgFood5 =
+    'https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=600&q=80';
 
-const _imgAvatar1 = 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80';
-const _imgAvatar2 = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80';
+const _imgAvatar1 =
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80';
+const _imgAvatar2 =
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80';
 
 final mockRecipes = [
   Recipe(
@@ -36,9 +43,21 @@ final mockRecipes = [
       const IngredientItem(name: '海盐', amount: '少许', unit: ''),
     ],
     steps: [
-      const CookingStep(stepNumber: 1, title: '准备食材', description: '藜麦洗净煮熟，牛油果切片，小番茄对半切。'),
-      const CookingStep(stepNumber: 2, title: '煎蛋', description: '平底锅加少许橄榄油，煎两个太阳蛋。'),
-      const CookingStep(stepNumber: 3, title: '组装', description: '碗底铺藜麦，依次摆上牛油果、番茄、煎蛋，撒海盐调味。'),
+      const CookingStep(
+        stepNumber: 1,
+        title: '准备食材',
+        description: '藜麦洗净煮熟，牛油果切片，小番茄对半切。',
+      ),
+      const CookingStep(
+        stepNumber: 2,
+        title: '煎蛋',
+        description: '平底锅加少许橄榄油，煎两个太阳蛋。',
+      ),
+      const CookingStep(
+        stepNumber: 3,
+        title: '组装',
+        description: '碗底铺藜麦，依次摆上牛油果、番茄、煎蛋，撒海盐调味。',
+      ),
     ],
   ),
   Recipe(
@@ -62,10 +81,26 @@ final mockRecipes = [
       const IngredientItem(name: '海盐与黑胡椒', amount: '少许', unit: ''),
     ],
     steps: [
-      const CookingStep(stepNumber: 1, title: '准备工作', description: '用厨房纸巾吸干三文鱼表面水分，两面撒海盐和黑胡椒腌制10分钟。芦笋洗净切去老根，大蒜切末。'),
-      const CookingStep(stepNumber: 2, title: '煎制配菜', description: '平底锅中火加热，加少许橄榄油，放入芦笋翻煎2-3分钟至翠绿微皱。'),
-      const CookingStep(stepNumber: 3, title: '煎三文鱼', description: '锅擦净重新加热，放入一半黄油融化，三文鱼皮面朝下煎3-4分钟至金黄酥脆，翻面再煎2分钟。'),
-      const CookingStep(stepNumber: 4, title: '调味出锅', description: '调小火，加入剩余黄油和蒜末，用勺子不断将蒜香黄油淋在鱼表面约1分钟。挤柠檬汁，装盘淋酱汁。'),
+      const CookingStep(
+        stepNumber: 1,
+        title: '准备工作',
+        description: '用厨房纸巾吸干三文鱼表面水分，两面撒海盐和黑胡椒腌制10分钟。芦笋洗净切去老根，大蒜切末。',
+      ),
+      const CookingStep(
+        stepNumber: 2,
+        title: '煎制配菜',
+        description: '平底锅中火加热，加少许橄榄油，放入芦笋翻煎2-3分钟至翠绿微皱。',
+      ),
+      const CookingStep(
+        stepNumber: 3,
+        title: '煎三文鱼',
+        description: '锅擦净重新加热，放入一半黄油融化，三文鱼皮面朝下煎3-4分钟至金黄酥脆，翻面再煎2分钟。',
+      ),
+      const CookingStep(
+        stepNumber: 4,
+        title: '调味出锅',
+        description: '调小火，加入剩余黄油和蒜末，用勺子不断将蒜香黄油淋在鱼表面约1分钟。挤柠檬汁，装盘淋酱汁。',
+      ),
     ],
   ),
   Recipe(
@@ -93,6 +128,32 @@ final mockRecipes = [
     likes: 2100,
     authorName: '健康小厨',
     authorAvatar: '',
+    ingredients: [
+      const IngredientItem(name: '生菜', amount: '120', unit: 'g'),
+      const IngredientItem(name: '胡萝卜丝', amount: '50', unit: 'g'),
+      const IngredientItem(name: '紫洋葱', amount: '1/4', unit: '个'),
+      const IngredientItem(name: '黑橄榄', amount: '8', unit: '颗'),
+      const IngredientItem(name: '玉米粒', amount: '30', unit: 'g'),
+      const IngredientItem(name: '核桃仁', amount: '20', unit: 'g'),
+      const IngredientItem(name: '低脂奶酪', amount: '30', unit: 'g'),
+    ],
+    steps: [
+      const CookingStep(
+        stepNumber: 1,
+        title: '清洗切配',
+        description: '生菜洗净沥干，胡萝卜刨丝，紫洋葱切圈，奶酪切小块。',
+      ),
+      const CookingStep(
+        stepNumber: 2,
+        title: '调味拌匀',
+        description: '加入橄榄油、柠檬汁、海盐和黑胡椒，轻轻拌匀保持蔬菜爽脆。',
+      ),
+      const CookingStep(
+        stepNumber: 3,
+        title: '装盘完成',
+        description: '铺上黑橄榄、玉米粒和核桃仁，最后撒上奶酪即可。',
+      ),
+    ],
   ),
   Recipe(
     id: '5',
@@ -112,8 +173,10 @@ final mockRecipes = [
 final mockPosts = [
   Post(
     id: 'p1',
-    content: 'Weekend homemade pizza night! Got the crust perfectly crispy this time.',
-    imageUrl: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80',
+    content:
+        'Weekend homemade pizza night! Got the crust perfectly crispy this time.',
+    imageUrl:
+        'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600&q=80',
     authorName: 'Sarah B.',
     authorAvatar: _imgAvatar1,
     likes: 234,
@@ -122,8 +185,10 @@ final mockPosts = [
   ),
   Post(
     id: 'p2',
-    content: 'The ultimate smashburger experiment. Secret sauce recipe in comments! 🍔',
-    imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80',
+    content:
+        'The ultimate smashburger experiment. Secret sauce recipe in comments! 🍔',
+    imageUrl:
+        'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80',
     authorName: 'Chef Mike',
     authorAvatar: _imgAvatar2,
     likes: 567,
@@ -151,40 +216,70 @@ final mockSavedPosts = mockPosts;
 
 final mockNotifications = [
   NotificationItem(
-    id: 'n1', type: NotificationType.ai, fromUserName: 'AI Nutritionist',
-    action: 'suggested a new recipe based on your fridge:', targetName: 'Lemon Herb Chicken',
-    timeAgo: '15m ago', isUnread: true,
+    id: 'n1',
+    type: NotificationType.ai,
+    fromUserName: '小厨子',
+    action: 'suggested a new recipe based on your fridge:',
+    targetName: 'Lemon Herb Chicken',
+    timeAgo: '15m ago',
+    isUnread: true,
   ),
   NotificationItem(
-    id: 'n2', type: NotificationType.like, fromUserName: 'Sarah B.',
+    id: 'n2',
+    type: NotificationType.like,
+    fromUserName: 'Sarah B.',
     fromUserAvatar: _imgAvatar1,
-    action: 'liked your', targetName: 'Perfect Morning Avocado Toast',
-    targetImage: _imgFood1, timeAgo: '2h ago', isUnread: true,
+    action: 'liked your',
+    targetName: 'Perfect Morning Avocado Toast',
+    targetImage: _imgFood1,
+    timeAgo: '2h ago',
+    isUnread: true,
   ),
   NotificationItem(
-    id: 'n3', type: NotificationType.comment, fromUserName: 'Michael T.',
+    id: 'n3',
+    type: NotificationType.comment,
+    fromUserName: 'Michael T.',
     fromUserAvatar: _imgAvatar2,
-    action: 'commented:', targetName: 'Tried this substitution and it worked perfectly!',
-    targetImage: _imgFood4, timeAgo: 'Tue', isUnread: false,
+    action: 'commented:',
+    targetName: 'Tried this substitution and it worked perfectly!',
+    targetImage: _imgFood4,
+    timeAgo: 'Tue',
+    isUnread: false,
   ),
   NotificationItem(
-    id: 'n4', type: NotificationType.achievement, fromUserName: 'System',
-    action: 'You\'ve reached a', targetName: '7-day cooking streak!',
-    timeAgo: 'Mon', isUnread: false,
+    id: 'n4',
+    type: NotificationType.achievement,
+    fromUserName: 'System',
+    action: 'You\'ve reached a',
+    targetName: '7-day cooking streak!',
+    timeAgo: 'Mon',
+    isUnread: false,
   ),
 ];
 
 final mockChatHistory = [
   ChatHistoryItem(
-    id: 'c1', title: '高蛋白减脂餐推荐', preview: '为您推荐三文鱼藜麦沙拉，富含优质蛋白和碳水，制作时间只需15分钟...',
-    timeAgo: '2 hours ago', recipeCount: 3, tag: 'restaurant',
+    id: 'c1',
+    title: '高蛋白减脂餐推荐',
+    preview: '为您推荐三文鱼藜麦沙拉，富含优质蛋白和碳水，制作时间只需15分钟...',
+    timeAgo: '2 hours ago',
+    recipeCount: 3,
+    tag: 'restaurant',
   ),
   ChatHistoryItem(
-    id: 'c2', title: '冰箱剩余食材处理', preview: '根据您提供的西红柿、鸡蛋和半颗洋葱，建议制作意式番茄洋葱炒蛋...',
-    timeAgo: 'Yesterday', recipeCount: 2, tag: 'kitchen',
+    id: 'c2',
+    title: '冰箱剩余食材处理',
+    preview: '根据您提供的西红柿、鸡蛋和半颗洋葱，建议制作意式番茄洋葱炒蛋...',
+    timeAgo: 'Yesterday',
+    recipeCount: 2,
+    tag: 'kitchen',
   ),
   ChatHistoryItem(
-    id: 'c3', title: '低卡快手早餐', preview: '燕麦奇亚籽布丁是绝佳选择，前一天晚上准备好，第二天直接享用...',
-    timeAgo: 'May 12', recipeCount: 1, tag: 'restaurant',
+    id: 'c3',
+    title: '低卡快手早餐',
+    preview: '燕麦奇亚籽布丁是绝佳选择，前一天晚上准备好，第二天直接享用...',
+    timeAgo: 'May 12',
+    recipeCount: 1,
+    tag: 'restaurant',
   ),
 ];

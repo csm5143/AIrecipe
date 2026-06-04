@@ -5,9 +5,18 @@ import '../config/theme.dart';
 class GlassSearchBar extends StatelessWidget {
   final VoidCallback? onTap;
   final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
   final TextEditingController? controller;
+  final FocusNode? focusNode;
 
-  const GlassSearchBar({super.key, this.onTap, this.onChanged, this.controller});
+  const GlassSearchBar({
+    super.key,
+    this.onTap,
+    this.onChanged,
+    this.onSubmitted,
+    this.controller,
+    this.focusNode,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -29,19 +38,31 @@ class GlassSearchBar extends StatelessWidget {
               child: controller != null
                   ? TextField(
                       controller: controller,
+                      focusNode: focusNode,
                       onChanged: onChanged,
+                      onSubmitted: onSubmitted,
+                      textInputAction: TextInputAction.search,
                       decoration: const InputDecoration(
                         hintText: '搜索菜谱、食材、博主...',
-                        hintStyle: TextStyle(color: AppColors.textPlaceholder, fontSize: 15),
+                        hintStyle: TextStyle(
+                          color: AppColors.textPlaceholder,
+                          fontSize: 15,
+                        ),
                         border: InputBorder.none,
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
                       ),
-                      style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: AppColors.textPrimary,
+                      ),
                     )
                   : const Text(
                       '搜索菜谱、食材、博主...',
-                      style: TextStyle(color: AppColors.textPlaceholder, fontSize: 15),
+                      style: TextStyle(
+                        color: AppColors.textPlaceholder,
+                        fontSize: 15,
+                      ),
                     ),
             ),
           ],

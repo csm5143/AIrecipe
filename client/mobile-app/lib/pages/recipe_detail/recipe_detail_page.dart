@@ -6,6 +6,7 @@ import '../../config/theme.dart';
 import '../../config/glass_theme.dart';
 import '../../providers/recipe_provider.dart';
 import '../../models/recipe.dart';
+import '../../widgets/capsule_toast.dart';
 
 /// 菜谱详情页
 class RecipeDetailPage extends ConsumerWidget {
@@ -40,12 +41,15 @@ class RecipeDetailPage extends ConsumerWidget {
                       child: CachedNetworkImage(
                         imageUrl: recipe.coverImage,
                         fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => Container(color: AppColors.surfaceSecondary),
+                        errorWidget: (_, _, _) =>
+                            Container(color: AppColors.surfaceSecondary),
                       ),
                     ),
                     // 渐变遮罩
                     Positioned(
-                      bottom: 0, left: 0, right: 0,
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
                       child: Container(
                         height: 80,
                         decoration: const BoxDecoration(
@@ -60,17 +64,20 @@ class RecipeDetailPage extends ConsumerWidget {
                     // 顶部操作按钮
                     Positioned(
                       top: MediaQuery.of(context).padding.top + 8,
-                      left: 16, right: 16,
+                      left: 16,
+                      right: 16,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           _CircleGlassButton(
                             icon: Icons.arrow_back_ios_new,
-                            onTap: () => Navigator.of(context).canPop() ? context.pop() : context.go('/'),
+                            onTap: () => Navigator.of(context).canPop()
+                                ? context.pop()
+                                : context.go('/'),
                           ),
                           _CircleGlassButton(
                             icon: Icons.more_horiz,
-                            onTap: () {},
+                            onTap: () => _showRecipeMenu(context),
                           ),
                         ],
                       ),
@@ -85,13 +92,20 @@ class RecipeDetailPage extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
                   decoration: const BoxDecoration(
                     color: AppColors.background,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(32),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // 标题
-                      Text(recipe.title, style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28)),
+                      Text(
+                        recipe.title,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.displayLarge?.copyWith(fontSize: 28),
+                      ),
                       const SizedBox(height: 20),
                       // 信息卡片（四列）
                       _InfoRow(recipe: recipe),
@@ -110,7 +124,9 @@ class RecipeDetailPage extends ConsumerWidget {
           ),
           // 底部操作栏
           Positioned(
-            left: 16, right: 16, bottom: 16,
+            left: 16,
+            right: 16,
+            bottom: 16,
             child: _BottomActionBar(recipe: recipe),
           ),
         ],
@@ -130,10 +146,77 @@ class _CircleGlassButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 40, height: 40,
+        width: 40,
+        height: 40,
         decoration: GlassTheme.glassDecoration(borderRadius: 20),
         child: Icon(icon, size: 20, color: AppColors.textPrimary),
       ),
+    );
+  }
+}
+
+void _showRecipeMenu(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (context) => Padding(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        0,
+        16,
+        16 + MediaQuery.of(context).padding.bottom,
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: GlassTheme.glassDecoration(
+          borderRadius: 24,
+          bgColor: const Color(0xF2FFFFFF),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            _MenuActionTile(
+              icon: Icons.ios_share,
+              label: '分享菜谱',
+              message: '分享面板稍后接入',
+            ),
+            _MenuActionTile(
+              icon: Icons.flag_outlined,
+              label: '举报内容',
+              message: '已收到举报入口',
+            ),
+            _MenuActionTile(
+              icon: Icons.visibility_off_outlined,
+              label: '不感兴趣',
+              message: '将减少类似菜谱推荐',
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _MenuActionTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String message;
+
+  const _MenuActionTile({
+    required this.icon,
+    required this.label,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon, color: AppColors.textPrimary),
+      title: Text(label, style: Theme.of(context).textTheme.bodyMedium),
+      onTap: () {
+        Navigator.pop(context);
+        showCapsuleToast(context, message);
+      },
     );
   }
 }
@@ -150,29 +233,51 @@ class _InfoRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 24, offset: Offset(0, 4))],
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 24,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _InfoItem(icon: Icons.schedule, label: '耗时', value: '${recipe.cookTime}分钟'),
-          _InfoItem(icon: Icons.local_fire_department, label: '难度', value: _cnDifficulty(recipe.difficulty)),
-          _InfoItem(icon: Icons.kitchen, label: '食材', value: '${recipe.ingredientCount}种'),
-          _InfoItem(icon: Icons.bolt, label: '热量', value: '${recipe.calories}卡'),
-        ].mapIndexed((i, child) {
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (i > 0) const SizedBox(
-                height: 40,
-                child: VerticalDivider(color: AppColors.divider, width: 1),
-              ),
-              child,
-            ],
-          );
-        }).toList(),
+          _InfoItem(
+            icon: Icons.schedule,
+            label: '耗时',
+            value: '${recipe.cookTime}分钟',
+          ),
+          const _InfoDivider(),
+          _InfoItem(
+            icon: Icons.local_fire_department,
+            label: '难度',
+            value: _cnDifficulty(recipe.difficulty),
+          ),
+          const _InfoDivider(),
+          _InfoItem(
+            icon: Icons.kitchen,
+            label: '食材',
+            value: '${recipe.ingredientCount}种',
+          ),
+          const _InfoDivider(),
+          _InfoItem(
+            icon: Icons.bolt,
+            label: '热量',
+            value: '${recipe.calories}卡',
+          ),
+        ],
       ),
     );
+  }
+}
+
+class _InfoDivider extends StatelessWidget {
+  const _InfoDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(width: 1, height: 44, color: AppColors.divider);
   }
 }
 
@@ -181,18 +286,42 @@ class _InfoItem extends StatelessWidget {
   final String label;
   final String value;
 
-  const _InfoItem({required this.icon, required this.label, required this.value});
+  const _InfoItem({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Icon(icon, size: 20, color: AppColors.textSecondary),
-        const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary, letterSpacing: 0.5)),
-        const SizedBox(height: 2),
-        Text(value, style: Theme.of(context).textTheme.labelMedium),
-      ],
+    return Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 20, color: AppColors.textSecondary),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+              letterSpacing: 0,
+            ),
+          ),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              maxLines: 1,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.labelMedium,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -211,38 +340,53 @@ class _IngredientsSection extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('所需食材', style: Theme.of(context).textTheme.headlineMedium),
-            Text('2人份', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.textSecondary)),
+            Text(
+              '2人份',
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: AppColors.textSecondary),
+            ),
           ],
         ),
         const SizedBox(height: 12),
-        ...ingredients.map((item) => Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: AppColors.divider)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(item.name, style: Theme.of(context).textTheme.bodyMedium),
-              Row(
-                children: [
-                  Text('${item.amount}${item.unit}',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    width: 32, height: 32,
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(16),
+        ...ingredients.map(
+          (item) => Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: AppColors.divider)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(item.name, style: Theme.of(context).textTheme.bodyMedium),
+                Row(
+                  children: [
+                    Text(
+                      '${item.amount}${item.unit}',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
-                    child: const Icon(Icons.add, size: 18, color: AppColors.textPrimary),
-                  ),
-                ],
-              ),
-            ],
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.add,
+                        size: 18,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        )),
+        ),
       ],
     );
   }
@@ -260,38 +404,56 @@ class _StepsSection extends StatelessWidget {
       children: [
         Text('烹饪步骤', style: Theme.of(context).textTheme.headlineMedium),
         const SizedBox(height: 20),
-        ...steps.map((step) => Padding(
-          padding: const EdgeInsets.only(bottom: 24),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 28, height: 28,
-                decoration: const BoxDecoration(
-                  color: AppColors.textPrimary, shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text('${step.stepNumber}',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.surface),
+        ...steps.map(
+          (step) => Padding(
+            padding: const EdgeInsets.only(bottom: 24),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: const BoxDecoration(
+                    color: AppColors.textPrimary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${step.stepNumber}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.surface,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(step.title, style: Theme.of(context).textTheme.labelMedium?.copyWith(fontSize: 15)),
-                    const SizedBox(height: 4),
-                    Text(step.description, style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary, height: 1.6,
-                    )),
-                  ],
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        step.title,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.labelMedium?.copyWith(fontSize: 15),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        step.description,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                          height: 1.6,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        )),
+        ),
       ],
     );
   }
@@ -310,61 +472,85 @@ class _BottomActionBarState extends State<_BottomActionBar> {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: GlassTheme.glassDecoration(borderRadius: GlassTheme.navRadius, bgColor: const Color(0xD9FFFFFF)),
-      child: Row(children: [
-        GestureDetector(
-          onTap: () => setState(() => _liked = !_liked),
-          child: Container(
-            width: 48, height: 48,
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
-              child: Icon(
-                _liked ? Icons.favorite : Icons.favorite_border,
-                key: ValueKey(_liked),
-                color: _liked ? AppColors.accent : AppColors.textSecondary,
-                size: 24,
+      decoration: GlassTheme.glassDecoration(
+        borderRadius: GlassTheme.navRadius,
+        bgColor: const Color(0xD9FFFFFF),
+      ),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => setState(() => _liked = !_liked),
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (child, anim) =>
+                    ScaleTransition(scale: anim, child: child),
+                child: Icon(
+                  _liked ? Icons.favorite : Icons.favorite_border,
+                  key: ValueKey(_liked),
+                  color: _liked ? AppColors.accent : AppColors.textSecondary,
+                  size: 24,
+                ),
               ),
             ),
           ),
-        ),
-        GestureDetector(
-          onTap: () => setState(() => _bookmarked = !_bookmarked),
-          child: Container(
-            width: 48, height: 48,
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
-              child: Icon(
-                _bookmarked ? Icons.bookmark : Icons.bookmark_border,
-                key: ValueKey(_bookmarked),
-                color: _bookmarked ? AppColors.textPrimary : AppColors.textSecondary,
-                size: 24,
+          GestureDetector(
+            onTap: () => setState(() => _bookmarked = !_bookmarked),
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (child, anim) =>
+                    ScaleTransition(scale: anim, child: child),
+                child: Icon(
+                  _bookmarked ? Icons.bookmark : Icons.bookmark_border,
+                  key: ValueKey(_bookmarked),
+                  color: _bookmarked
+                      ? AppColors.textPrimary
+                      : AppColors.textSecondary,
+                  size: 24,
+                ),
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: SizedBox(
-            height: 44,
-            child: FilledButton(
-              onPressed: () {},
-              style: FilledButton.styleFrom(backgroundColor: AppColors.textPrimary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-              child: const Text('加入菜篮', style: TextStyle(fontSize: 15)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: SizedBox(
+              height: 44,
+              child: FilledButton(
+                onPressed: () => showCapsuleToast(
+                  context,
+                  '已将 ${widget.recipe.ingredientCount} 种食材加入小菜篮',
+                  icon: Icons.shopping_basket_outlined,
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.textPrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text('加入菜篮', style: TextStyle(fontSize: 15)),
+              ),
             ),
           ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 }
 
-String _cnDifficulty(String d) { switch (d) { case 'Easy': return '简单'; case 'Medium': return '中等'; case 'Hard': return '困难'; default: return d; } }
-
-extension _IndexedMap<T> on Iterable<T> {
-  Iterable<E> mapIndexed<E>(E Function(int index, T item) f) {
-    var i = 0;
-    return map((item) => f(i++, item));
+String _cnDifficulty(String d) {
+  switch (d) {
+    case 'Easy':
+      return '简单';
+    case 'Medium':
+      return '中等';
+    case 'Hard':
+      return '困难';
+    default:
+      return d;
   }
 }
