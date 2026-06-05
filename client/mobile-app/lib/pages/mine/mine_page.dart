@@ -4,10 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../config/theme.dart';
 import '../../config/glass_theme.dart';
+import '../../models/notification_item.dart';
+import '../../models/recipe.dart';
 import '../../providers/recipe_provider.dart';
 import '../../providers/collection_provider.dart';
+import '../../providers/auth_provider.dart';
 
-/// 我的页
 class MinePage extends ConsumerStatefulWidget {
   const MinePage({super.key});
   @override
@@ -44,9 +46,14 @@ class _MinePageState extends ConsumerState<MinePage>
 
   @override
   Widget build(BuildContext context) {
-    final recipes = ref.watch(recipeListProvider);
-    final notifications = ref.watch(notificationListProvider);
-    if (recipes.isEmpty) return const SizedBox.shrink();
+    final myRecipesAsync = ref.watch(myRecipeListProvider);
+    final myRecipes = myRecipesAsync.valueOrNull ?? const <Recipe>[];
+    final myCollections = ref.watch(myCollectionProvider);
+    final notifications =
+        ref.watch(notificationListProvider).valueOrNull ??
+        const <NotificationItem>[];
+    final auth = ref.watch(authControllerProvider);
+    final user = auth.user;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -55,7 +62,7 @@ class _MinePageState extends ConsumerState<MinePage>
           children: [
             Column(
               children: [
-                // ── 顶栏 ──
+                // 鈹€鈹€ 椤舵爮 鈹€鈹€
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                   child: Row(
@@ -74,20 +81,22 @@ class _MinePageState extends ConsumerState<MinePage>
                         icon: Icons.notifications_outlined,
                         onTap: () =>
                             setState(() => _showNotifPanel = !_showNotifPanel),
-                        badge: true,
+                        badge: notifications.any((item) => item.isUnread),
                       ),
                     ],
                   ),
                 ),
-                // ── 可滚动内容 ──
+                // 鈹€鈹€ 鍙粴鍔ㄥ唴瀹?鈹€鈹€
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 24),
-                        // 头像
-                        Center(
+                        // 头像 — 点击跳转编辑资料
+                        GestureDetector(
+                          onTap: () => context.push('/settings/edit-profile'),
+                          child: Center(
                           child: Stack(
                             clipBehavior: Clip.none,
                             children: [
@@ -107,14 +116,20 @@ class _MinePageState extends ConsumerState<MinePage>
                                     ),
                                   ],
                                 ),
-                                child: const CircleAvatar(
+                                child: CircleAvatar(
                                   radius: 44,
                                   backgroundColor: AppColors.surfaceSecondary,
-                                  child: Icon(
-                                    Icons.person,
-                                    size: 44,
-                                    color: AppColors.textSecondary,
-                                  ),
+                                  backgroundImage:
+                                      (user?.avatar.isNotEmpty ?? false)
+                                      ? NetworkImage(user!.avatar)
+                                      : null,
+                                  child: (user?.avatar.isNotEmpty ?? false)
+                                      ? null
+                                      : const Icon(
+                                          Icons.person,
+                                          size: 44,
+                                          color: AppColors.textSecondary,
+                                        ),
                                 ),
                               ),
                               Positioned(
@@ -147,61 +162,55 @@ class _MinePageState extends ConsumerState<MinePage>
                             ],
                           ),
                         ),
+                        ),
                         const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              '小食家',
-                              style: Theme.of(context).textTheme.headlineLarge,
-                            ),
-                            const SizedBox(width: 6),
-                            Icon(
-                              Icons.stars_rounded,
-                              size: 20,
-                              color: AppColors.accent,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '探索美食的无限可能。AI 食谱创作者，记录每一次完美的味蕾邂逅。',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.textSecondary),
-                        ),
-                        const SizedBox(height: 24),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
+                        GestureDetector(
+                          onTap: () => context.push('/settings/edit-profile'),
                           child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _Stat(value: '128', label: '关注'),
-                              _Stat(value: '3.2k', label: '粉丝'),
-                              _Stat(value: '42', label: '作品'),
-                              _Stat(value: '560', label: '收藏'),
+                              Text(
+                                user?.nickname.isNotEmpty == true
+                                    ? user!.nickname
+                                    : '未命名用户',
+                                style: Theme.of(context).textTheme.headlineLarge,
+                              ),
+                              const SizedBox(width: 6),
+                              Icon(
+                                Icons.stars_rounded,
+                                size: 20,
+                                color: AppColors.accent,
+                              ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 20),
-                        Center(
-                          child: OutlinedButton(
-                            onPressed: () =>
-                                context.push('/settings/edit-profile'),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 32,
-                                vertical: 10,
+                        const SizedBox(height: 6),
+                        const SizedBox.shrink(),
+                        const SizedBox(height: 24),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _Stat(
+                                value: '${user?.following ?? 0}',
+                                label: '关注',
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
+                              _Stat(
+                                value: '${user?.followers ?? 0}',
+                                label: '粉丝',
                               ),
-                              side: const BorderSide(color: AppColors.divider),
-                              backgroundColor: AppColors.surfaceSecondary,
-                            ),
-                            child: const Text(
-                              '编辑资料',
-                              style: TextStyle(fontSize: 13),
-                            ),
+                              _Stat(
+                                value:
+                                    '${_countOrLoaded(user?.works, myRecipes.length)}',
+                                label: '作品',
+                              ),
+                              _Stat(
+                                value:
+                                    '${_countOrLoaded(user?.collections, myCollections.length)}',
+                                label: '收藏',
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -227,163 +236,38 @@ class _MinePageState extends ConsumerState<MinePage>
                             Tab(text: '收藏'),
                           ],
                         ),
-                        // ── TabBarView with constrained height ──
+                        // 鈹€鈹€ TabBarView with constrained height 鈹€鈹€
                         SizedBox(
                           height: MediaQuery.of(context).size.height * 0.55,
                           child: TabBarView(
                             controller: _tabCtrl,
                             children: [
-                              // 作品
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  16,
-                                  12,
-                                  16,
-                                  100,
+                              myRecipesAsync.when(
+                                loading: () =>
+                                    const _MineMessage(message: '正在加载你的作品'),
+                                error: (error, _) => _MineMessage(
+                                  message: error.toString(),
+                                  actionLabel: '重试',
+                                  onAction: () =>
+                                      ref.invalidate(myRecipeListProvider),
                                 ),
-                                child: GridView.builder(
-                                  gridDelegate:
-                                      const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 2,
-                                        crossAxisSpacing: 12,
-                                        mainAxisSpacing: 12,
-                                        childAspectRatio: 0.75,
-                                      ),
-                                  itemCount: recipes.length,
-                                  itemBuilder: (context, index) {
-                                    final r = recipes[index];
-                                    return GestureDetector(
-                                      onTap: () =>
-                                          context.push('/recipe/${r.id}'),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: AppColors.surface,
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
-                                          boxShadow: const [
-                                            BoxShadow(
-                                              color: Color(0x0A000000),
-                                              blurRadius: 24,
-                                            ),
-                                          ],
-                                        ),
-                                        clipBehavior: Clip.antiAlias,
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Expanded(
-                                              child: CachedNetworkImage(
-                                                imageUrl: r.coverImage,
-                                                fit: BoxFit.cover,
-                                                width: double.infinity,
-                                                errorWidget: (_, _, _) =>
-                                                    Container(
-                                                      color: AppColors
-                                                          .surfaceSecondary,
-                                                    ),
-                                              ),
-                                            ),
-                                            Padding(
-                                              padding: const EdgeInsets.all(12),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    r.title,
-                                                    maxLines: 2,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      fontSize: 14,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 6),
-                                                  Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .spaceBetween,
-                                                    children: [
-                                                      Row(
-                                                        children: [
-                                                          const Icon(
-                                                            Icons.schedule,
-                                                            size: 14,
-                                                            color: AppColors
-                                                                .textSecondary,
-                                                          ),
-                                                          const SizedBox(
-                                                            width: 4,
-                                                          ),
-                                                          Text(
-                                                            '${r.cookTime}分钟',
-                                                            style: Theme.of(context)
-                                                                .textTheme
-                                                                .labelSmall
-                                                                ?.copyWith(
-                                                                  color: AppColors
-                                                                      .textSecondary,
-                                                                ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                      Row(
-                                                        children: [
-                                                          Icon(
-                                                            Icons.favorite,
-                                                            size: 14,
-                                                            color: AppColors
-                                                                .accent
-                                                                .withAlpha(200),
-                                                          ),
-                                                          const SizedBox(
-                                                            width: 4,
-                                                          ),
-                                                          Text(
-                                                            '${(r.likes / 1000).toStringAsFixed(1)}k',
-                                                            style: Theme.of(context)
-                                                                .textTheme
-                                                                .labelSmall
-                                                                ?.copyWith(
-                                                                  color: AppColors
-                                                                      .textSecondary,
-                                                                ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  },
+                                data: (recipes) => _MineRecipeGrid(
+                                  recipes: recipes,
+                                  onTap: _openMyRecipe,
                                 ),
                               ),
-                              // 动态
                               const Center(
                                 child: Text(
-                                  '暂无动态',
+                                  '你的发布、点赞和评论会同步显示在这里。',
                                   style: TextStyle(
                                     color: AppColors.textSecondary,
                                   ),
                                 ),
                               ),
-                              // 收藏
-                              const Center(
-                                child: Text(
-                                  '暂无收藏',
-                                  style: TextStyle(
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
+                              _MineCollectionList(
+                                collections: myCollections,
+                                onOpenAll: () =>
+                                    context.push('/my-collections'),
                               ),
                             ],
                           ),
@@ -394,7 +278,7 @@ class _MinePageState extends ConsumerState<MinePage>
                 ),
               ],
             ),
-            // ── 汉堡菜单 ──
+            // 鈹€鈹€ 姹夊牎鑿滃崟 鈹€鈹€
             if (_menuOpen)
               Positioned.fill(
                 child: GestureDetector(
@@ -455,7 +339,7 @@ class _MinePageState extends ConsumerState<MinePage>
                   ),
                 ),
               ),
-            // ── 通知预览面板 ──
+            // 鈹€鈹€ 閫氱煡棰勮闈㈡澘 鈹€鈹€
             if (_showNotifPanel)
               Positioned.fill(
                 child: GestureDetector(
@@ -501,69 +385,83 @@ class _MinePageState extends ConsumerState<MinePage>
                           ],
                         ),
                         const SizedBox(height: 12),
-                        ...notifications
-                            .take(4)
-                            .map(
-                              (n) => Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                      width: 8,
-                                      height: 8,
-                                      margin: const EdgeInsets.only(
-                                        top: 6,
-                                        right: 10,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: n.isUnread
-                                            ? AppColors.accentBlue
-                                            : Colors.transparent,
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          RichText(
-                                            text: TextSpan(
-                                              style: const TextStyle(
-                                                fontSize: 13,
-                                                color: AppColors.textPrimary,
-                                                height: 1.3,
-                                              ),
-                                              children: [
-                                                TextSpan(
-                                                  text: n.fromUserName,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                                TextSpan(
-                                                  text:
-                                                      ' ${n.action} ${n.targetName}',
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            n.timeAgo,
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              color: AppColors.textSecondary,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                        if (notifications.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: Text(
+                              '暂无通知',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textSecondary,
                               ),
                             ),
+                          )
+                        else
+                          ...notifications
+                              .take(4)
+                              .map(
+                                (n) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        margin: const EdgeInsets.only(
+                                          top: 6,
+                                          right: 10,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: n.isUnread
+                                              ? AppColors.accentBlue
+                                              : Colors.transparent,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            RichText(
+                                              text: TextSpan(
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  color: AppColors.textPrimary,
+                                                  height: 1.3,
+                                                ),
+                                                children: [
+                                                  TextSpan(
+                                                    text: n.fromUserName,
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                  TextSpan(
+                                                    text:
+                                                        ' ${n.action} ${n.targetName}',
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              n.timeAgo,
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                       ],
                     ),
                   ),
@@ -574,6 +472,20 @@ class _MinePageState extends ConsumerState<MinePage>
       ),
     );
   }
+
+  void _openMyRecipe(Recipe recipe) {
+    final status = recipe.status.toLowerCase();
+    if (status == 'draft' || status == 'pending' || status == 'rejected') {
+      context.push('/publish/recipe', extra: recipe);
+      return;
+    }
+    context.push('/recipe/${recipe.id}');
+  }
+}
+
+int _countOrLoaded(int? profileCount, int loadedCount) {
+  final count = profileCount ?? 0;
+  return count > 0 ? count : loadedCount;
 }
 
 class _MenuAction {
@@ -658,4 +570,263 @@ class _Stat extends StatelessWidget {
       ),
     );
   }
+}
+
+class _MineRecipeGrid extends StatelessWidget {
+  final List<Recipe> recipes;
+  final ValueChanged<Recipe> onTap;
+
+  const _MineRecipeGrid({required this.recipes, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    if (recipes.isEmpty) {
+      return const _MineMessage(message: '还没有作品，发布或保存草稿后会显示在这里。');
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+      child: GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 0.75,
+        ),
+        itemCount: recipes.length,
+        itemBuilder: (context, index) {
+          final recipe = recipes[index];
+          return _MineRecipeCard(recipe: recipe, onTap: () => onTap(recipe));
+        },
+      ),
+    );
+  }
+}
+
+class _MineRecipeCard extends StatelessWidget {
+  final Recipe recipe;
+  final VoidCallback onTap;
+
+  const _MineRecipeCard({required this.recipe, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(color: Color(0x0A000000), blurRadius: 24),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: recipe.coverImage.isEmpty
+                  ? const _RecipeCoverFallback()
+                  : CachedNetworkImage(
+                      imageUrl: recipe.coverImage,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      errorWidget: (_, _, _) => const _RecipeCoverFallback(),
+                    ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    recipe.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _RecipeMeta(
+                        icon: Icons.schedule,
+                        text: '${recipe.cookTime}分钟',
+                      ),
+                      _RecipeMeta(
+                        icon: Icons.favorite,
+                        text: _compactCount(recipe.likes),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecipeCoverFallback extends StatelessWidget {
+  const _RecipeCoverFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: AppColors.surfaceSecondary,
+      child: const Icon(Icons.restaurant, color: AppColors.textPlaceholder),
+    );
+  }
+}
+
+class _RecipeMeta extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _RecipeMeta({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: AppColors.textSecondary),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(color: AppColors.textSecondary),
+        ),
+      ],
+    );
+  }
+}
+
+class _MineCollectionList extends StatelessWidget {
+  final List<Map<String, dynamic>> collections;
+  final VoidCallback onOpenAll;
+
+  const _MineCollectionList({
+    required this.collections,
+    required this.onOpenAll,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (collections.isEmpty) {
+      return _MineMessage(
+        message: '收藏夹会同步显示在这里。',
+        actionLabel: '去管理收藏',
+        onAction: onOpenAll,
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+      itemCount: collections.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        final item = collections[index];
+        final name = (item['name'] ?? '未命名收藏夹').toString();
+        final description = (item['description'] ?? '').toString();
+        final count = item['itemCount'] ?? item['item_count'] ?? 0;
+
+        return GestureDetector(
+          onTap: onOpenAll,
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0x0A000000)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceSecondary,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.folder_outlined,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        description.isEmpty ? '$count 个菜谱' : description,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MineMessage extends StatelessWidget {
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  const _MineMessage({required this.message, this.actionLabel, this.onAction});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: 10),
+              TextButton(onPressed: onAction, child: Text(actionLabel!)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _compactCount(int value) {
+  if (value >= 10000) return '${(value / 10000).toStringAsFixed(1)}w';
+  if (value >= 1000) return '${(value / 1000).toStringAsFixed(1)}k';
+  return '$value';
 }

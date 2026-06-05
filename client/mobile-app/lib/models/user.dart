@@ -3,6 +3,8 @@ class AppUser {
   final String nickname;
   final String avatar;
   final String bio;
+  final String phone;
+  final String gender;
   final int followers;
   final int following;
   final int works;
@@ -13,6 +15,8 @@ class AppUser {
     required this.nickname,
     this.avatar = '',
     this.bio = '',
+    this.phone = '',
+    this.gender = 'UNKNOWN',
     this.followers = 0,
     this.following = 0,
     this.works = 0,
@@ -25,6 +29,8 @@ class AppUser {
       nickname: _stringValue(json['nickname'] ?? json['name']),
       avatar: _stringValue(json['avatar'] ?? json['avatar_url']),
       bio: _stringValue(json['bio']),
+      phone: _stringValue(json['phone']),
+      gender: _stringValue(json['gender'], 'UNKNOWN'),
       followers: _intValue(json['followers']),
       following: _intValue(json['following']),
       works: _intValue(json['works']),
@@ -38,6 +44,8 @@ class AppUser {
       'nickname': nickname,
       'avatar': avatar,
       'bio': bio,
+      'phone': phone,
+      'gender': gender,
       'followers': followers,
       'following': following,
       'works': works,

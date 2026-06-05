@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/theme.dart';
+import '../../providers/api_providers.dart';
+import '../../providers/collection_provider.dart';
+import '../../widgets/capsule_toast.dart';
 
 /// 发帖子页 — 文字输入 + 图片上传 + 位置话题标签 + 底部格式工具栏
-class CreatePostPage extends StatefulWidget {
+class CreatePostPage extends ConsumerStatefulWidget {
   const CreatePostPage({super.key});
   @override
-  State<CreatePostPage> createState() => _CreatePostPageState();
+  ConsumerState<CreatePostPage> createState() => _CreatePostPageState();
 }
 
-class _CreatePostPageState extends State<CreatePostPage> {
+class _CreatePostPageState extends ConsumerState<CreatePostPage> {
   final _textCtrl = TextEditingController();
   final List<String> _images = [];
   int _charCount = 0;
+  bool _submitting = false;
 
   @override
   void dispose() {
@@ -34,9 +39,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
         title: const Text('发帖子'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).canPop()
-                ? context.pop()
-                : context.go('/'),
+            onPressed: _submitting ? null : _submit,
             style: TextButton.styleFrom(
               backgroundColor: AppColors.textPrimary,
               foregroundColor: AppColors.surface,
@@ -45,7 +48,13 @@ class _CreatePostPageState extends State<CreatePostPage> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('发布', style: TextStyle(fontSize: 13)),
+            child: _submitting
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('发布', style: TextStyle(fontSize: 13)),
           ),
           const SizedBox(width: 8),
         ],
@@ -90,7 +99,11 @@ class _CreatePostPageState extends State<CreatePostPage> {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () => setState(() => _images.add('')),
+                        onTap: () => showCapsuleToast(
+                          context,
+                          '图片上传稍后接入',
+                          icon: Icons.info_outline,
+                        ),
                         child: Container(
                           width: (MediaQuery.of(context).size.width - 44) / 3,
                           height: (MediaQuery.of(context).size.width - 44) / 3,
@@ -177,6 +190,34 @@ class _CreatePostPageState extends State<CreatePostPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _submit() async {
+    final content = _textCtrl.text.trim();
+    if (content.isEmpty) {
+      showCapsuleToast(context, '先写一点内容再发布', icon: Icons.error_outline);
+      return;
+    }
+
+    setState(() => _submitting = true);
+    try {
+      final post = await ref.read(postApiProvider).createPost({
+        'content': content,
+        'status': 'pending',
+      });
+      ref.invalidate(postListProvider);
+
+      if (!mounted) return;
+      showCapsuleToast(context, '已提交审核');
+      context.go('/post/${post.id}');
+    } catch (error) {
+      if (!mounted) return;
+      showCapsuleToast(context, error.toString(), icon: Icons.error_outline);
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
+    }
   }
 }
 

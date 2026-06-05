@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../config/theme.dart';
+import '../../providers/collection_provider.dart';
 import '../../widgets/capsule_toast.dart';
 
-class MyCollectionsPage extends StatefulWidget {
+class MyCollectionsPage extends ConsumerWidget {
   const MyCollectionsPage({super.key});
-  @override
-  State<MyCollectionsPage> createState() => _MyCollectionsPageState();
-}
-
-class _MyCollectionsPageState extends State<MyCollectionsPage> {
-  int _tab = 0;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final collections = ref.watch(myCollectionProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -28,178 +27,99 @@ class _MyCollectionsPageState extends State<MyCollectionsPage> {
         centerTitle: true,
         actions: [
           IconButton(
+            tooltip: '新建收藏夹',
             icon: const Icon(Icons.create_new_folder),
-            onPressed: () => showCapsuleToast(
-              context,
-              '已创建新的收藏夹',
-              icon: Icons.create_new_folder,
-            ),
+            onPressed: () => _showCreateDialog(context, ref),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 8),
-            // Segmented tabs
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-              child: Container(
-                width: 220,
-                height: 40,
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceSecondary,
-                  borderRadius: BorderRadius.circular(10),
+      body: RefreshIndicator(
+        onRefresh: () => ref.read(myCollectionProvider.notifier).load(),
+        child: collections.isEmpty
+            ? const _EmptyCollections()
+            : GridView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.82,
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _tab = 0),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          decoration: BoxDecoration(
-                            color: _tab == 0
-                                ? AppColors.surface
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
-                            boxShadow: _tab == 0
-                                ? const [
-                                    BoxShadow(
-                                      color: Color(0x0A000000),
-                                      blurRadius: 8,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                          child: Center(
-                            child: Text(
-                              '食谱',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: _tab == 0
-                                    ? AppColors.textPrimary
-                                    : AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _tab = 1),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          decoration: BoxDecoration(
-                            color: _tab == 1
-                                ? AppColors.surface
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
-                            boxShadow: _tab == 1
-                                ? const [
-                                    BoxShadow(
-                                      color: Color(0x0A000000),
-                                      blurRadius: 8,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                          child: Center(
-                            child: Text(
-                              '帖子',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: _tab == 1
-                                    ? AppColors.textPrimary
-                                    : AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                itemCount: collections.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == collections.length) {
+                    return _CreateCard(
+                      onTap: () => _showCreateDialog(context, ref),
+                    );
+                  }
+                  return _CollectionCard(collection: collections[index]);
+                },
               ),
-            ),
-            // Collection grid
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Expanded(
-                        child: _Card(
-                          title: '健康食谱',
-                          count: '15 项',
-                          color: Color(0xFFD5E8D4),
-                          subColor: Color(0xFF8FC8A8),
-                          hasOverlay: true,
-                          overlayText: '+12',
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _Card(
-                          title: '周末烘焙',
-                          count: '8 项',
-                          color: Color(0xFFE8D5C4),
-                          subColor: null,
-                          hasOverlay: false,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(child: _CreateCard()),
-                      const SizedBox(width: 16),
-                      const Spacer(),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 100),
-          ],
-        ),
       ),
     );
   }
+
+  Future<void> _showCreateDialog(BuildContext context, WidgetRef ref) async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('新建收藏夹'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: '收藏夹名称'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = controller.text.trim();
+              if (value.isEmpty) return;
+              Navigator.pop(context, value);
+            },
+            child: const Text('创建'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+
+    if (name == null || name.isEmpty) return;
+
+    try {
+      await ref.read(myCollectionProvider.notifier).create(name);
+      if (context.mounted) {
+        showCapsuleToast(context, '收藏夹已创建');
+      }
+    } catch (error) {
+      if (context.mounted) {
+        showCapsuleToast(context, '创建失败: $error');
+      }
+    }
+  }
 }
 
-class _Card extends StatelessWidget {
-  final String title, count;
-  final Color color;
-  final Color? subColor;
-  final bool hasOverlay;
-  final String? overlayText;
-  const _Card({
-    required this.title,
-    required this.count,
-    required this.color,
-    this.subColor,
-    required this.hasOverlay,
-    this.overlayText,
-  });
+class _CollectionCard extends StatelessWidget {
+  final Map<String, dynamic> collection;
+
+  const _CollectionCard({required this.collection});
 
   @override
   Widget build(BuildContext context) {
+    final name = collection['name']?.toString() ?? '未命名';
+    final count = collection['itemCount'] ?? collection['item_count'] ?? 0;
+    final coverImages = collection['coverImages'] is List
+        ? collection['coverImages'] as List
+        : const [];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AspectRatio(
-          aspectRatio: 1,
+        Expanded(
           child: Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
@@ -212,59 +132,31 @@ class _Card extends StatelessWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(10),
-              child: hasOverlay
-                  ? Column(
-                      children: [
-                        Expanded(flex: 2, child: Container(color: color)),
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Container(
-                                  color: const Color(0xFFB5D8B0),
-                                ),
-                              ),
-                              Expanded(
-                                child: Container(
-                                  color: subColor ?? color,
-                                  child: Center(
-                                    child: Text(
-                                      overlayText ?? '',
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    )
-                  : Container(
-                      color: color,
+              child: coverImages.isEmpty
+                  ? Container(
+                      color: AppColors.surfaceSecondary,
                       child: const Center(
                         child: Icon(
-                          Icons.cake,
+                          Icons.collections_bookmark,
                           size: 40,
-                          color: Colors.white54,
+                          color: AppColors.textPlaceholder,
                         ),
                       ),
-                    ),
+                    )
+                  : _CoverGrid(images: coverImages),
             ),
           ),
         ),
         const SizedBox(height: 8),
         Text(
-          title,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+          name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 2),
         Text(
-          count,
+          '$count 个菜谱',
           style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
         ),
       ],
@@ -272,59 +164,96 @@ class _Card extends StatelessWidget {
   }
 }
 
+class _CoverGrid extends StatelessWidget {
+  final List images;
+
+  const _CoverGrid({required this.images});
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = images.take(4).map((item) => item.toString()).toList();
+    return GridView.builder(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+      ),
+      itemCount: visible.length,
+      itemBuilder: (context, index) => Image.network(
+        visible[index],
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => Container(color: AppColors.surfaceSecondary),
+      ),
+    );
+  }
+}
+
 class _CreateCard extends StatelessWidget {
-  const _CreateCard();
+  final VoidCallback onTap;
+
+  const _CreateCard({required this.onTap});
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () =>
-          showCapsuleToast(context, '已创建新的收藏夹', icon: Icons.create_new_folder),
-      child: AspectRatio(
-        aspectRatio: 0.75,
-        child: Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: const [
-              BoxShadow(color: Color(0x06000000), blurRadius: 20),
-            ],
-            border: Border.all(color: const Color(0x08000000)),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              color: AppColors.surfaceSecondary,
-              border: Border.all(
-                color: AppColors.divider,
-                strokeAlign: BorderSide.strokeAlignInside,
-              ),
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: const [
+            BoxShadow(color: Color(0x06000000), blurRadius: 20),
+          ],
+          border: Border.all(color: const Color(0x08000000)),
+        ),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: Color(0xFFE8E8EA),
+              child: Icon(Icons.add, size: 22, color: AppColors.textSecondary),
             ),
-            child: const Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Color(0xFFE8E8EA),
-                  child: Icon(
-                    Icons.add,
-                    size: 22,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '新建',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
+            SizedBox(height: 8),
+            Text(
+              '新建',
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
-          ),
+          ],
         ),
       ),
+    );
+  }
+}
+
+class _EmptyCollections extends StatelessWidget {
+  const _EmptyCollections();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 120, 24, 100),
+      children: [
+        const Icon(
+          Icons.collections_bookmark_outlined,
+          size: 46,
+          color: AppColors.textPlaceholder,
+        ),
+        const SizedBox(height: 14),
+        Text(
+          '暂无收藏夹',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '创建收藏夹，跨设备同步你收藏的菜谱。',
+          textAlign: TextAlign.center,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+        ),
+      ],
     );
   }
 }

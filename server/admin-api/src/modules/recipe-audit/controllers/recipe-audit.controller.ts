@@ -77,18 +77,25 @@ export async function getProcessedRecipes(req: Request, res: Response) {
 
 export async function getRecipeDetail(req: Request, res: Response) {
   const { id } = req.params;
+  const numericId = parseInt(id);
 
   try {
-    const recipe = await prisma.recipe.findUnique({
-      where: { id: parseInt(id) },
-    });
+    // 支持数字 ID 和 recipeKey 字符串两种查找方式
+    const recipe = isNaN(numericId)
+      ? await prisma.recipe.findUnique({ where: { recipeKey: id } })
+      : await prisma.recipe.findUnique({ where: { id: numericId } });
 
     if (!recipe) {
       res.status(404).json({ code: 404, message: '菜谱不存在' });
       return;
     }
 
-    res.json(success(formatRecipeResponse(recipe)));
+    try {
+      res.json(success(formatRecipeResponse(recipe)));
+    } catch (formatError) {
+      console.error('[RecipeAudit] 格式化菜谱详情失败', formatError);
+      res.status(500).json({ code: 500, message: '数据格式异常，请联系管理员' });
+    }
   } catch (error) {
     console.error('[RecipeAudit] 获取菜谱详情失败', error);
     res.status(500).json({ code: 500, message: '获取详情失败' });
@@ -97,12 +104,14 @@ export async function getRecipeDetail(req: Request, res: Response) {
 
 export async function auditRecipe(req: Request, res: Response) {
   const { id } = req.params;
+  const numericId = parseInt(id);
   const { action, reason } = req.body;
 
   try {
-    const recipe = await prisma.recipe.findUnique({
-      where: { id: parseInt(id) },
-    });
+    // 支持数字 ID 和 recipeKey 字符串两种查找方式
+    const recipe = isNaN(numericId)
+      ? await prisma.recipe.findUnique({ where: { recipeKey: id } })
+      : await prisma.recipe.findUnique({ where: { id: numericId } });
 
     if (!recipe) {
       res.status(404).json({ code: 404, message: '菜谱不存在' });
@@ -131,7 +140,7 @@ export async function auditRecipe(req: Request, res: Response) {
     }
 
     await prisma.recipe.update({
-      where: { id: parseInt(id) },
+      where: { id: recipe.id },
       data: updateData,
     });
 

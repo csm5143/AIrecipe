@@ -3,11 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/theme.dart';
 import '../../config/glass_theme.dart';
+import '../../data/api/app_exception.dart';
 import '../../providers/ai_provider.dart';
+import '../../providers/api_providers.dart';
 import '../../widgets/capsule_toast.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
-  const ChatPage({super.key});
+  final String initialPrompt;
+  final String initialSessionId;
+
+  const ChatPage({
+    super.key,
+    this.initialPrompt = '',
+    this.initialSessionId = '',
+  });
 
   @override
   ConsumerState<ChatPage> createState() => _ChatPageState();
@@ -16,22 +25,40 @@ class ChatPage extends ConsumerStatefulWidget {
 class _ChatPageState extends ConsumerState<ChatPage> {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
+  var _isSending = false;
+  var _isLoadingSession = false;
 
   final _starterMessages = [
     ChatMessage(
       id: 'starter-1',
       isUser: false,
-      text: '我是小厨子。把食材、口味、人数告诉我，我来帮你把今天这顿饭整理清楚。',
+      text: '我是小厨子。把食材、口味、人数告诉我，我来帮你把今天这顿饭安排清楚。',
       timestamp: DateTime.now(),
     ),
   ];
 
   static const _promptChips = [
-    _PromptChipData(Icons.kitchen_outlined, '用冰箱食材'),
+    _PromptChipData(Icons.kitchen_outlined, '用冰箱食材配菜'),
     _PromptChipData(Icons.local_fire_department_outlined, '低卡一点'),
     _PromptChipData(Icons.child_care_outlined, '儿童友好'),
-    _PromptChipData(Icons.timer_outlined, '15分钟内'),
+    _PromptChipData(Icons.timer_outlined, '15分钟快手菜'),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialPrompt.isNotEmpty) {
+      _textController.text = widget.initialPrompt;
+      _textController.selection = TextSelection.collapsed(
+        offset: widget.initialPrompt.length,
+      );
+    }
+    if (widget.initialSessionId.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadSession(widget.initialSessionId);
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -58,10 +85,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add_comment_outlined),
-            onPressed: () {
-              ref.read(chatMessagesProvider.notifier).state = [];
-              showCapsuleToast(context, '已新建对话', icon: Icons.add_comment);
-            },
+            onPressed: _isSending || _isLoadingSession ? null : _startNewChat,
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_horiz),
@@ -71,35 +95,44 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             ),
             onSelected: (value) => showCapsuleToast(context, value),
             itemBuilder: (context) => const [
-              PopupMenuItem(value: '对话已保存', child: Text('保存对话')),
-              PopupMenuItem(value: '历史记录稍后接入', child: Text('查看历史')),
+              PopupMenuItem(value: '对话会自动保存到后端', child: Text('自动保存')),
+              PopupMenuItem(value: '可在最近对话中继续打开', child: Text('历史记录')),
             ],
           ),
         ],
       ),
       body: Column(
         children: [
+          if (_isLoadingSession) const LinearProgressIndicator(minHeight: 2),
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
-              itemCount: visibleMessages.length + (messages.isEmpty ? 1 : 0),
+              itemCount:
+                  visibleMessages.length +
+                  (messages.isEmpty && !_isLoadingSession ? 1 : 0) +
+                  (_isSending ? 1 : 0),
               itemBuilder: (context, index) {
-                if (messages.isEmpty && index == visibleMessages.length) {
-                  return _PromptGrid(items: _promptChips, onTap: _applyPrompt);
+                if (index < visibleMessages.length) {
+                  return _ChatBubble(message: visibleMessages[index]);
                 }
 
-                return _ChatBubble(message: visibleMessages[index]);
+                if (_isSending && index == visibleMessages.length) {
+                  return const _TypingBubble();
+                }
+
+                return _PromptGrid(items: _promptChips, onTap: _applyPrompt);
               },
             ),
           ),
           _Composer(
             controller: _textController,
+            isSending: _isSending || _isLoadingSession,
             onMicTap: () =>
-                showCapsuleToast(context, '语音输入稍后接入', icon: Icons.mic),
+                showCapsuleToast(context, '语音输入还在接入中', icon: Icons.mic),
             onAttachTap: () => showCapsuleToast(
               context,
-              '食材识别稍后接入',
+              '食材图片识别还在接入中',
               icon: Icons.add_photo_alternate_outlined,
             ),
             onSend: _sendDraft,
@@ -109,28 +142,84 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     );
   }
 
+  Future<void> _loadSession(String sessionId) async {
+    setState(() => _isLoadingSession = true);
+    try {
+      final messages = await ref
+          .read(aiApiProvider)
+          .getSessionMessages(sessionId);
+      ref.read(chatSessionIdProvider.notifier).state = sessionId;
+      ref.read(chatMessagesProvider.notifier).state = messages;
+      _scrollToBottom();
+    } catch (error) {
+      final message = error is AppException ? error.message : error.toString();
+      if (mounted) {
+        showCapsuleToast(context, message, icon: Icons.error_outline);
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingSession = false);
+    }
+  }
+
+  void _startNewChat() {
+    ref.read(chatSessionIdProvider.notifier).state = null;
+    ref.read(chatMessagesProvider.notifier).state = [];
+    showCapsuleToast(context, '已新建对话', icon: Icons.add_comment);
+  }
+
   void _applyPrompt(String value) {
     _textController.text = value;
     _textController.selection = TextSelection.collapsed(offset: value.length);
   }
 
-  void _sendDraft() {
+  Future<void> _sendDraft() async {
     final text = _textController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || _isSending || _isLoadingSession) return;
 
-    final messages = ref.read(chatMessagesProvider);
-    ref.read(chatMessagesProvider.notifier).state = [
-      ...messages,
-      ChatMessage(
-        id: DateTime.now().microsecondsSinceEpoch.toString(),
-        isUser: true,
-        text: text,
-        timestamp: DateTime.now(),
-      ),
-    ];
+    final currentMessages = ref.read(chatMessagesProvider);
+    final userMessage = ChatMessage(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      isUser: true,
+      text: text,
+      timestamp: DateTime.now(),
+    );
+    final nextMessages = [...currentMessages, userMessage];
+
+    ref.read(chatMessagesProvider.notifier).state = nextMessages;
     _textController.clear();
-    showCapsuleToast(context, '小厨子回复逻辑稍后接入', icon: Icons.auto_awesome);
+    setState(() => _isSending = true);
+    _scrollToBottom();
 
+    try {
+      final reply = await ref
+          .read(aiApiProvider)
+          .sendMessage(text: text, sessionId: ref.read(chatSessionIdProvider));
+
+      ref.read(chatSessionIdProvider.notifier).state = reply.sessionId;
+      ref.read(chatMessagesProvider.notifier).state = [
+        ...ref.read(chatMessagesProvider),
+        ChatMessage(
+          id: 'ai-${DateTime.now().microsecondsSinceEpoch}',
+          isUser: false,
+          text: reply.message,
+          timestamp: DateTime.now(),
+        ),
+      ];
+      ref.invalidate(chatHistoryProvider);
+    } catch (error) {
+      final message = error is AppException ? error.message : error.toString();
+      if (mounted) {
+        showCapsuleToast(context, message, icon: Icons.error_outline);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSending = false);
+        _scrollToBottom();
+      }
+    }
+  }
+
+  void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
       _scrollController.animateTo(
@@ -238,6 +327,43 @@ class _ChatBubble extends StatelessWidget {
   }
 }
 
+class _TypingBubble extends StatelessWidget {
+  const _TypingBubble();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          _AssistantAvatar(),
+          SizedBox(width: 8),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(18),
+                topRight: Radius.circular(18),
+                bottomRight: Radius.circular(18),
+                bottomLeft: Radius.circular(6),
+              ),
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _AssistantAvatar extends StatelessWidget {
   const _AssistantAvatar();
 
@@ -308,12 +434,14 @@ class _PromptGrid extends StatelessWidget {
 
 class _Composer extends StatelessWidget {
   final TextEditingController controller;
+  final bool isSending;
   final VoidCallback onMicTap;
   final VoidCallback onAttachTap;
   final VoidCallback onSend;
 
   const _Composer({
     required this.controller,
+    required this.isSending,
     required this.onMicTap,
     required this.onAttachTap,
     required this.onSend,
@@ -350,6 +478,7 @@ class _Composer extends StatelessWidget {
                 ),
                 child: TextField(
                   controller: controller,
+                  enabled: !isSending,
                   minLines: 1,
                   maxLines: 4,
                   textInputAction: TextInputAction.send,
@@ -373,12 +502,14 @@ class _Composer extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             GestureDetector(
-              onTap: onSend,
+              onTap: isSending ? null : onSend,
               child: Container(
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  color: AppColors.textPrimary,
+                  color: isSending
+                      ? AppColors.textSecondary
+                      : AppColors.textPrimary,
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: const [
                     BoxShadow(
@@ -388,8 +519,8 @@ class _Composer extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Icon(
-                  Icons.arrow_upward,
+                child: Icon(
+                  isSending ? Icons.hourglass_empty : Icons.arrow_upward,
                   color: AppColors.surface,
                   size: 22,
                 ),

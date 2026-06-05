@@ -7,15 +7,25 @@ class UserApi {
 
   Future<AppUser> getUserProfile(String id) {
     return guardApi(() async {
-      final response = await _dio.get('/users/$id');
+      final response = await _dio.get(
+        id == 'me' ? '/wx/userinfo' : '/users/$id',
+      );
+      return AppUser.fromJson(responseMap(response));
+    });
+  }
+
+  Future<AppUser> getCurrentProfile() {
+    return guardApi(() async {
+      final response = await _dio.get('/wx/userinfo');
       return AppUser.fromJson(responseMap(response));
     });
   }
 
   Future<AppUser> updateProfile(Map<String, dynamic> data) {
     return guardApi(() async {
-      final response = await _dio.put('/users/me', data: data);
-      return AppUser.fromJson(responseMap(response));
+      await _dio.put('/wx/userinfo', data: data);
+      final profile = await _dio.get('/wx/userinfo');
+      return AppUser.fromJson(responseMap(profile));
     });
   }
 

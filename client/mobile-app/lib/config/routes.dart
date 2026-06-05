@@ -26,6 +26,8 @@ import '../pages/mine_sub/drafts_page.dart';
 import '../pages/mine_sub/history_page.dart';
 import '../pages/mine_sub/my_collections_page.dart';
 import '../widgets/bottom_nav_bar.dart';
+import '../data/api/auth_storage.dart';
+import '../models/recipe.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -33,6 +35,27 @@ final _shellNavigatorKey = GlobalKey<NavigatorState>();
 final goRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/',
+  redirect: (context, state) async {
+    final path = state.uri.path;
+    final hasToken = (await AuthStorage.getToken()).isNotEmpty;
+    final isLogin = path == '/login';
+    final protectedPaths = [
+      '/ai/chat',
+      '/collection',
+      '/mine',
+      '/notifications',
+      '/settings',
+      '/publish',
+      '/drafts',
+      '/history',
+      '/my-collections',
+    ];
+    final needsAuth = protectedPaths.any((prefix) => path.startsWith(prefix));
+
+    if (!hasToken && needsAuth) return '/login';
+    if (hasToken && isLogin) return '/mine';
+    return null;
+  },
   routes: [
     ShellRoute(
       navigatorKey: _shellNavigatorKey,
@@ -64,7 +87,13 @@ final goRouter = GoRouter(
       ],
     ),
     GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
-    GoRoute(path: '/ai/chat', builder: (context, state) => const ChatPage()),
+    GoRoute(
+      path: '/ai/chat',
+      builder: (context, state) => ChatPage(
+        initialPrompt: state.extra is String ? state.extra as String : '',
+        initialSessionId: state.uri.queryParameters['session'] ?? '',
+      ),
+    ),
     GoRoute(
       path: '/recipe/:id',
       builder: (context, state) =>
@@ -95,7 +124,9 @@ final goRouter = GoRouter(
     ),
     GoRoute(
       path: '/publish/recipe',
-      builder: (context, state) => const UploadRecipePage(),
+      builder: (context, state) => UploadRecipePage(
+        initialRecipe: state.extra is Recipe ? state.extra as Recipe : null,
+      ),
     ),
     GoRoute(
       path: '/publish/post',

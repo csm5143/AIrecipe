@@ -8,7 +8,7 @@ class AIRecipeApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: '吃了么 · AI Recipe',
+      title: '小厨子 · AIrecipe',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       routerConfig: goRouter,

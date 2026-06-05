@@ -1,11 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/mock_data.dart';
 import '../models/chat.dart';
+import 'api_providers.dart';
 
 export '../models/chat.dart';
 
+final chatSessionIdProvider = StateProvider<String?>((ref) => null);
+
 final chatMessagesProvider = StateProvider<List<ChatMessage>>((ref) => []);
 
-final chatHistoryProvider = Provider<List<ChatHistoryItem>>(
-  (ref) => mockChatHistory,
-);
+final chatHistoryProvider = FutureProvider<List<ChatHistoryItem>>((ref) {
+  return ref.read(aiApiProvider).getHistory();
+});

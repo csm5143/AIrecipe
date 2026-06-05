@@ -22,16 +22,32 @@ class Post {
   });
 
   factory Post.fromJson(Map<String, dynamic> json) {
+    final title = _stringValue(json['title']);
+    final description = _stringValue(json['description']);
+    final content = _stringValue(
+      json['content'],
+      description.isNotEmpty ? description : title,
+    );
+
     return Post(
       id: _stringValue(json['id']),
-      content: _stringValue(json['content']),
-      imageUrl: _stringValue(json['image_url'] ?? json['imageUrl']),
+      content: content,
+      imageUrl: _stringValue(
+        json['image_url'] ?? json['imageUrl'] ?? json['coverImage'],
+      ),
       authorName: _stringValue(json['author_name'] ?? json['authorName']),
       authorAvatar: _stringValue(json['author_avatar'] ?? json['authorAvatar']),
-      likes: _intValue(json['likes']),
-      comments: _intValue(json['comments']),
-      favorites: _intValue(json['favorites']),
-      timeAgo: _stringValue(json['time_ago'] ?? json['timeAgo']),
+      likes: _intValue(json['likes'] ?? json['favoriteCount']),
+      comments: _intValue(json['comments'] ?? json['commentCount']),
+      favorites: _intValue(json['favorites'] ?? json['collectCount']),
+      timeAgo: _stringValue(
+        json['time_ago'] ?? json['timeAgo'],
+        _relativeTime(
+          _dateValue(
+            json['publishedAt'] ?? json['createdAt'] ?? json['updatedAt'],
+          ),
+        ),
+      ),
     );
   }
 
@@ -58,4 +74,21 @@ int _intValue(dynamic value, [int fallback = 0]) {
   if (value is int) return value;
   if (value is num) return value.toInt();
   return int.tryParse(value?.toString() ?? '') ?? fallback;
+}
+
+DateTime? _dateValue(dynamic value) {
+  if (value == null) return null;
+  if (value is DateTime) return value;
+  if (value is num) return DateTime.fromMillisecondsSinceEpoch(value.toInt());
+  return DateTime.tryParse(value.toString());
+}
+
+String _relativeTime(DateTime? value) {
+  if (value == null) return '';
+  final diff = DateTime.now().difference(value.toLocal());
+  if (diff.inMinutes < 1) return '刚刚';
+  if (diff.inHours < 1) return '${diff.inMinutes}分钟前';
+  if (diff.inDays < 1) return '${diff.inHours}小时前';
+  if (diff.inDays < 7) return '${diff.inDays}天前';
+  return '${value.month}/${value.day}';
 }

@@ -35,22 +35,18 @@ class PostCard extends StatelessWidget {
             // 图片
             AspectRatio(
               aspectRatio: 1,
-              child: CachedNetworkImage(
-                imageUrl: post.imageUrl,
-                fit: BoxFit.cover,
-                placeholder: (_, _) => Shimmer.fromColors(
-                  baseColor: AppColors.surfaceSecondary,
-                  highlightColor: AppColors.background,
-                  child: Container(color: AppColors.surfaceSecondary),
-                ),
-                errorWidget: (_, _, _) => Container(
-                  color: AppColors.surfaceSecondary,
-                  child: const Icon(
-                    Icons.broken_image,
-                    color: AppColors.textPlaceholder,
-                  ),
-                ),
-              ),
+              child: post.imageUrl.isEmpty
+                  ? const _PostImageFallback()
+                  : CachedNetworkImage(
+                      imageUrl: post.imageUrl,
+                      fit: BoxFit.cover,
+                      placeholder: (_, _) => Shimmer.fromColors(
+                        baseColor: AppColors.surfaceSecondary,
+                        highlightColor: AppColors.background,
+                        child: Container(color: AppColors.surfaceSecondary),
+                      ),
+                      errorWidget: (_, _, _) => const _PostImageFallback(),
+                    ),
             ),
             // 内容
             Padding(
@@ -108,6 +104,18 @@ class PostCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _PostImageFallback extends StatelessWidget {
+  const _PostImageFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.surfaceSecondary,
+      child: const Icon(Icons.restaurant, color: AppColors.textPlaceholder),
     );
   }
 }

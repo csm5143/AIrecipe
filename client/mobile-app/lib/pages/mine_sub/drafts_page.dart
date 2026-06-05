@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../config/theme.dart';
-import '../../widgets/capsule_toast.dart';
 
-class DraftsPage extends StatelessWidget {
+import '../../config/theme.dart';
+import '../../models/recipe.dart';
+import '../../providers/recipe_provider.dart';
+
+class DraftsPage extends ConsumerWidget {
   const DraftsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final recipesAsync = ref.watch(myRecipeListProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -20,44 +25,48 @@ class DraftsPage extends StatelessWidget {
         ),
         title: const Text('草稿箱'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-        children: [
-          _DraftCard(
-            title: 'Crispy Pork Belly with Apple Slaw',
-            time: '2小时前',
-            hasImage: true,
-            action: '继续编辑',
-          ),
-          _DraftCard(
-            title: 'Review: The Midnight Diner Experience',
-            time: '昨天 23:45',
-            hasImage: false,
-            action: '编辑',
-          ),
-          _DraftCard(
-            title: 'Sourdough Starter Day 5 Notes',
-            time: '2023年10月12日',
-            hasImage: true,
-            action: '编辑',
-          ),
-        ],
+      body: recipesAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => _DraftMessage(
+          icon: Icons.cloud_off,
+          title: '加载失败',
+          message: error.toString(),
+        ),
+        data: (recipes) {
+          if (recipes.isEmpty) {
+            return const _DraftMessage(
+              icon: Icons.edit_document,
+              title: '还没有草稿',
+              message: '上传或保存过的用户菜谱会出现在这里。',
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: () => ref.refresh(myRecipeListProvider.future),
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+              itemCount: recipes.length,
+              itemBuilder: (context, index) => _DraftCard(
+                recipe: recipes[index],
+                onTap: () =>
+                    context.push('/publish/recipe', extra: recipes[index]),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 }
 
 class _DraftCard extends StatelessWidget {
-  final String title, time, action;
-  final bool hasImage;
-  const _DraftCard({
-    required this.title,
-    required this.time,
-    required this.hasImage,
-    required this.action,
-  });
+  final Recipe recipe;
+  final VoidCallback onTap;
+
+  const _DraftCard({required this.recipe, required this.onTap});
+
   @override
-  Widget build(BuildContext c) {
+  Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -75,13 +84,14 @@ class _DraftCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               color: AppColors.surfaceSecondary,
             ),
-            child: hasImage
-                ? const Icon(Icons.image, color: AppColors.textPlaceholder)
-                : const Icon(
+            clipBehavior: Clip.antiAlias,
+            child: recipe.coverImage.isEmpty
+                ? const Icon(
                     Icons.edit_document,
                     size: 36,
                     color: AppColors.textPlaceholder,
-                  ),
+                  )
+                : Image.network(recipe.coverImage, fit: BoxFit.cover),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -89,7 +99,7 @@ class _DraftCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  recipe.title.isEmpty ? '未命名菜谱' : recipe.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -97,21 +107,15 @@ class _DraftCard extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Row(
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
                   children: [
-                    const Icon(
-                      Icons.schedule,
-                      size: 14,
-                      color: AppColors.textSecondary,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      time,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
+                    _MetaChip(icon: Icons.schedule, label: _timeText(recipe)),
+                    _MetaChip(
+                      icon: Icons.fact_check_outlined,
+                      label: _statusText(recipe.status),
                     ),
                   ],
                 ),
@@ -120,8 +124,7 @@ class _DraftCard extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           FilledButton(
-            onPressed: () =>
-                showCapsuleToast(c, '已打开草稿编辑', icon: Icons.edit_document),
+            onPressed: onTap,
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.textPrimary,
               shape: RoundedRectangleBorder(
@@ -129,9 +132,89 @@ class _DraftCard extends StatelessWidget {
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             ),
-            child: Text(action, style: const TextStyle(fontSize: 13)),
+            child: const Text('继续编辑', style: TextStyle(fontSize: 13)),
           ),
         ],
+      ),
+    );
+  }
+
+  String _timeText(Recipe recipe) {
+    final date = recipe.updatedAt;
+    if (date == null) return '最近编辑';
+    return '${date.year}/${date.month}/${date.day}';
+  }
+
+  String _statusText(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return '待审核';
+      case 'published':
+        return '已发布';
+      case 'rejected':
+        return '需修改';
+      case 'draft':
+        return '草稿';
+      default:
+        return status.isEmpty ? '草稿' : status;
+    }
+  }
+}
+
+class _MetaChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _MetaChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: AppColors.textSecondary),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+        ),
+      ],
+    );
+  }
+}
+
+class _DraftMessage extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String message;
+
+  const _DraftMessage({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 42, color: AppColors.textPlaceholder),
+            const SizedBox(height: 12),
+            Text(title, style: Theme.of(context).textTheme.headlineMedium),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            ),
+          ],
+        ),
       ),
     );
   }

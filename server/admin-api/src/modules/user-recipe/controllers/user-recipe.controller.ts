@@ -1,34 +1,86 @@
 import { Request, Response } from 'express';
-import { paginated } from '../../../types/response';
 import { prisma } from '../../../lib/prisma';
+import { badRequest, notFound, paginated, success } from '../../../types/response';
+
+type RecipeStatusInput = 'draft' | 'pending';
+
+function normalizeDifficulty(value: string) {
+  switch (value) {
+    case 'easy':
+      return 'EASY';
+    case 'hard':
+      return 'HARD';
+    default:
+      return 'MEDIUM';
+  }
+}
+
+function normalizeSubmitStatus(value: unknown): 'DRAFT' | 'PENDING' {
+  return value === 'draft' ? 'DRAFT' : 'PENDING';
+}
+
+function buildRecipeData(body: any, statusInput: RecipeStatusInput) {
+  const status = normalizeSubmitStatus(statusInput);
+  const title = (body.title || '').toString().trim();
+
+  if (status === 'PENDING' && !title) {
+    throw new Error('Title is required before submitting for review');
+  }
+
+  return {
+    title: title || 'Untitled recipe',
+    coverImage: body.coverImage || '',
+    description: body.description?.toString().trim() || '',
+    difficulty: normalizeDifficulty(body.difficulty),
+    cookingTime: parseInt(body.cookingTime) || 30,
+    servings: parseInt(body.servings) || 2,
+    ingredients: Array.isArray(body.ingredients) ? body.ingredients : [],
+    steps: Array.isArray(body.steps) ? body.steps : [],
+    tips: body.tips || '',
+    tags: Array.isArray(body.tags) ? body.tags : [],
+    mealTimes: Array.isArray(body.mealTimes) ? body.mealTimes : [],
+    dishTypes: Array.isArray(body.dishTypes) ? body.dishTypes : [],
+    status,
+    publishedAt: status === 'PENDING' ? null : undefined,
+  };
+}
+
+async function getAuthor(userId: number) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { nickname: true, avatar: true },
+  });
+}
 
 export async function getMyRecipes(req: Request, res: Response) {
   const userId = (req as any).userId;
   const page = parseInt(req.query.page as string) || 1;
   const pageSize = Math.min(parseInt(req.query.pageSize as string) || 20, 100);
+  const status = req.query.status?.toString().toUpperCase();
+
+  const where: any = {
+    source: 'USER',
+    authorId: userId,
+    isDeleted: false,
+  };
+
+  if (status) where.status = status;
 
   try {
-    const where: any = {
-      source: 'USER',
-      authorId: userId,
-    };
-
     const [data, total] = await Promise.all([
       prisma.recipe.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { updatedAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
       prisma.recipe.count({ where }),
     ]);
 
-    const formattedData = data.map(formatRecipeResponse);
-
-    res.json(paginated(formattedData, { page, pageSize, total }));
+    res.json(paginated(data.map(formatRecipeResponse), { page, pageSize, total }));
   } catch (error) {
-    console.error('[UserRecipe] 获取我的菜谱失败', error);
-    res.json(paginated([], { page, pageSize, total: 0 }));
+    console.error('[UserRecipe] getMyRecipes failed', error);
+    res.status(500).json(badRequest('Failed to load my recipes'));
   }
 }
 
@@ -37,222 +89,189 @@ export async function getCommunityRecipes(req: Request, res: Response) {
   const pageSize = Math.min(parseInt(req.query.pageSize as string) || 20, 100);
 
   try {
+    const where = {
+      source: 'USER',
+      status: 'PUBLISHED',
+      isDeleted: false,
+    } as any;
     const [data, total] = await Promise.all([
       prisma.recipe.findMany({
-        where: {
-          source: 'USER',
-          status: 'PUBLISHED',
-        },
+        where,
         orderBy: { publishedAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      prisma.recipe.count({
-        where: {
-          source: 'USER',
-          status: 'PUBLISHED',
-        },
-      }),
+      prisma.recipe.count({ where }),
     ]);
 
-    const formattedData = data.map(formatRecipeResponse);
-
-    res.json(paginated(formattedData, { page, pageSize, total }));
+    res.json(paginated(data.map(formatRecipeResponse), { page, pageSize, total }));
   } catch (error) {
-    console.error('[UserRecipe] 获取社区菜谱失败', error);
-    res.json(paginated([], { page, pageSize, total: 0 }));
+    console.error('[UserRecipe] getCommunityRecipes failed', error);
+    res.status(500).json(badRequest('Failed to load community recipes'));
   }
 }
 
 export async function getRecipeDetail(req: Request, res: Response) {
-  const { id } = req.params;
-
-  try {
-    const recipe = await prisma.recipe.findUnique({
-      where: { id: parseInt(id) },
-    });
-
-    if (!recipe) {
-      res.json({ success: false, message: '菜谱不存在' });
-      return;
-    }
-
-    res.json({
-      success: true,
-      message: '获取成功',
-      data: formatRecipeResponse(recipe),
-    });
-  } catch (error) {
-    console.error('[UserRecipe] 获取菜谱详情失败', error);
-    res.json({ success: false, message: '获取失败' });
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    res.status(400).json(badRequest('Invalid recipe id'));
+    return;
   }
+
+  const recipe = await prisma.recipe.findFirst({
+    where: { id, isDeleted: false },
+  });
+
+  if (!recipe) {
+    res.status(404).json(notFound('Recipe not found'));
+    return;
+  }
+
+  res.json(success(formatRecipeResponse(recipe)));
 }
 
 export async function submitRecipe(req: Request, res: Response) {
   const userId = (req as any).userId;
-  const user = (req as any).user;
-  const {
-    title,
-    coverImage,
-    description,
-    difficulty,
-    cookingTime,
-    servings,
-    ingredients,
-    steps,
-    tips,
-    tags,
-    mealTimes,
-    dishTypes,
-  } = req.body;
+  const submitStatus: RecipeStatusInput =
+    req.body.status === 'draft' ? 'draft' : 'pending';
 
   try {
+    const author = await getAuthor(userId);
     const recipe = await prisma.recipe.create({
       data: {
-        recipeKey: 'ur_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10),
+        recipeKey: 'ur_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10),
         source: 'USER',
         authorId: userId,
-        authorName: user?.nickname || '美食爱好者',
-        authorAvatar: user?.avatar || '',
-        title: title.trim(),
-        coverImage,
-        description: description?.trim() || '',
-        difficulty: difficulty === 'easy' ? 'EASY' : difficulty === 'hard' ? 'HARD' : 'MEDIUM',
-        cookingTime: parseInt(cookingTime) || 30,
-        servings: parseInt(servings) || 2,
-        ingredients: ingredients || [],
-        steps: steps || [],
-        tips: tips || '',
-        tags: tags || [],
-        mealTimes: mealTimes || [],
-        dishTypes: dishTypes || [],
-        status: 'PENDING',
+        authorName: author?.nickname || 'Food lover',
+        authorAvatar: author?.avatar || '',
+        ...buildRecipeData(req.body, submitStatus),
       },
     });
 
-    res.json({
-      success: true,
-      message: '提交成功，等待审核',
-      recipeId: recipe.id,
+    res.json(success({ id: recipe.id, recipeId: recipe.id }, submitStatus === 'draft' ? 'Draft saved' : 'Submitted for review'));
+  } catch (error: any) {
+    console.error('[UserRecipe] submitRecipe failed', error);
+    res.status(400).json(badRequest(error.message || 'Failed to submit recipe'));
+  }
+}
+
+export async function updateMyRecipe(req: Request, res: Response) {
+  const userId = (req as any).userId;
+  const id = parseInt(req.params.id);
+  const submitStatus: RecipeStatusInput =
+    req.body.status === 'draft' ? 'draft' : 'pending';
+
+  if (isNaN(id)) {
+    res.status(400).json(badRequest('Invalid recipe id'));
+    return;
+  }
+
+  try {
+    const existing = await prisma.recipe.findUnique({ where: { id } });
+    if (!existing || existing.isDeleted) {
+      res.status(404).json(notFound('Recipe not found'));
+      return;
+    }
+    if (existing.authorId !== userId) {
+      res.status(403).json(badRequest('No permission to update this recipe'));
+      return;
+    }
+    if (existing.status === 'PUBLISHED') {
+      res.status(400).json(badRequest('Published recipes cannot be edited here'));
+      return;
+    }
+
+    const updated = await prisma.recipe.update({
+      where: { id },
+      data: buildRecipeData(req.body, submitStatus),
     });
-  } catch (error) {
-    console.error('[UserRecipe] 提交菜谱失败', error);
-    res.status(500).json({ success: false, message: '提交失败' });
+
+    res.json(success(formatRecipeResponse(updated), submitStatus === 'draft' ? 'Draft saved' : 'Submitted for review'));
+  } catch (error: any) {
+    console.error('[UserRecipe] updateMyRecipe failed', error);
+    res.status(400).json(badRequest(error.message || 'Failed to update recipe'));
   }
 }
 
 export async function deleteMyRecipe(req: Request, res: Response) {
-  const { id } = req.params;
+  const id = parseInt(req.params.id);
   const userId = (req as any).userId;
 
-  try {
-    const recipe = await prisma.recipe.findUnique({
-      where: { id: parseInt(id) },
-    });
-
-    if (!recipe) {
-      res.json({ success: false, message: '菜谱不存在' });
-      return;
-    }
-
-    if (recipe.authorId !== userId) {
-      res.json({ success: false, message: '无权删除' });
-      return;
-    }
-
-    if (recipe.status === 'PUBLISHED') {
-      res.json({ success: false, message: '已发布的菜谱不能删除' });
-      return;
-    }
-
-    await prisma.recipe.delete({
-      where: { id: parseInt(id) },
-    });
-
-    res.json({ success: true, message: '删除成功' });
-  } catch (error) {
-    console.error('[UserRecipe] 删除菜谱失败', error);
-    res.json({ success: false, message: '删除失败' });
+  if (isNaN(id)) {
+    res.status(400).json(badRequest('Invalid recipe id'));
+    return;
   }
+
+  const recipe = await prisma.recipe.findUnique({ where: { id } });
+  if (!recipe || recipe.isDeleted) {
+    res.status(404).json(notFound('Recipe not found'));
+    return;
+  }
+  if (recipe.authorId !== userId) {
+    res.status(403).json(badRequest('No permission to delete this recipe'));
+    return;
+  }
+  if (recipe.status === 'PUBLISHED') {
+    res.status(400).json(badRequest('Published recipes cannot be deleted here'));
+    return;
+  }
+
+  await prisma.recipe.delete({ where: { id } });
+  res.json(success(null, 'Recipe deleted'));
 }
 
 export async function toggleLike(req: Request, res: Response) {
-  const { id } = req.params;
+  const id = parseInt(req.params.id);
   const userId = (req as any).userId;
 
-  try {
-    const recipe = await prisma.recipe.findUnique({
-      where: { id: parseInt(id) },
-    });
-
-    if (!recipe) {
-      res.json({ success: false, message: '菜谱不存在' });
-      return;
-    }
-
-    const existingLike = await prisma.favorite.findUnique({
-      where: {
-        userId_recipeId: {
-          userId,
-          recipeId: parseInt(id),
-        },
-      },
-    });
-
-    let liked = false;
-    let newLikeCount = recipe.favoriteCount || 0;
-
-    if (existingLike) {
-      await prisma.favorite.delete({
-        where: { id: existingLike.id },
-      });
-      newLikeCount = Math.max(0, newLikeCount - 1);
-    } else {
-      await prisma.favorite.create({
-        data: {
-          userId,
-          recipeId: parseInt(id),
-        },
-      });
-      newLikeCount = newLikeCount + 1;
-      liked = true;
-    }
-
-    await prisma.recipe.update({
-      where: { id: parseInt(id) },
-      data: { favoriteCount: newLikeCount },
-    });
-
-    res.json({
-      success: true,
-      message: liked ? '点赞成功' : '取消点赞',
-      liked,
-      likeCount: newLikeCount,
-    });
-  } catch (error) {
-    console.error('[UserRecipe] 点赞操作失败', error);
-    res.json({ success: false, message: '操作失败' });
+  if (isNaN(id)) {
+    res.status(400).json(badRequest('Invalid recipe id'));
+    return;
   }
+
+  const recipe = await prisma.recipe.findUnique({ where: { id } });
+  if (!recipe || recipe.isDeleted) {
+    res.status(404).json(notFound('Recipe not found'));
+    return;
+  }
+
+  const existingLike = await prisma.favorite.findUnique({
+    where: { userId_recipeId: { userId, recipeId: id } },
+  });
+
+  let liked = false;
+  let favoriteCount = recipe.favoriteCount || 0;
+
+  if (existingLike) {
+    await prisma.favorite.delete({ where: { id: existingLike.id } });
+    favoriteCount = Math.max(0, favoriteCount - 1);
+  } else {
+    await prisma.favorite.create({ data: { userId, recipeId: id } });
+    favoriteCount += 1;
+    liked = true;
+  }
+
+  await prisma.recipe.update({
+    where: { id },
+    data: { favoriteCount },
+  });
+
+  res.json(success({ liked, likeCount: favoriteCount }));
 }
 
 export async function increaseViewCount(req: Request, res: Response) {
-  const { id } = req.params;
-
-  try {
-    const recipe = await prisma.recipe.update({
-      where: { id: parseInt(id) },
-      data: { viewCount: { increment: 1 } },
-    });
-
-    res.json({
-      success: true,
-      message: '浏览量增加成功',
-      viewCount: recipe.viewCount,
-    });
-  } catch (error) {
-    console.error('[UserRecipe] 增加浏览量失败', error);
-    res.json({ success: false, message: '操作失败' });
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    res.status(400).json(badRequest('Invalid recipe id'));
+    return;
   }
+
+  const recipe = await prisma.recipe.update({
+    where: { id },
+    data: { viewCount: { increment: 1 } },
+  });
+
+  res.json(success({ viewCount: recipe.viewCount }));
 }
 
 function formatRecipeResponse(item: any) {
@@ -261,7 +280,7 @@ function formatRecipeResponse(item: any) {
     recipeId: item.recipeKey,
     source: item.source,
     authorId: item.authorId,
-    authorName: item.authorName || '美食爱好者',
+    authorName: item.authorName || 'Food lover',
     authorAvatar: item.authorAvatar || '',
     title: item.title,
     coverImage: item.coverImage || '',

@@ -199,7 +199,7 @@
           </div>
           <div class="detail-row">
             <span class="label">作者：</span>
-            <span>{{ currentRecipe.nickname }}</span>
+            <span>{{ currentRecipe.authorName || currentRecipe.nickname || '未知' }}</span>
           </div>
           <div class="detail-row">
             <span class="label">难度：</span>
@@ -407,7 +407,7 @@ async function fetchStats() {
 async function handleViewDetail(row: UserRecipeItem) {
   try {
     const res = await recipeAuditApi.getRecipeDetail(row.recipeId);
-    currentRecipe.value = res.data.data;
+    currentRecipe.value = res.data;
     detailDialogVisible.value = true;
   } catch (error) {
     console.error('获取详情失败', error);

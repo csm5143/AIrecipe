@@ -49,13 +49,15 @@ const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
 
-    const devOrigins = [
-      'http://localhost:5173',
-      'http://localhost:3001',
-      'http://localhost:3000',
+    // 开发环境：允许所有 localhost 来源（Flutter web / 移动端调试等随机端口）
+    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+      return callback(null, true);
+    }
+
+    const prodOrigins = [
       "https://admin.airecipe.cn",
     ];
-    const allAllowed = [...devOrigins, ...customOrigins];
+    const allAllowed = [...prodOrigins, ...customOrigins];
 
     if (allAllowed.includes(origin)) {
       callback(null, true);

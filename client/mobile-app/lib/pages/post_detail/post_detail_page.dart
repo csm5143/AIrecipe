@@ -15,10 +15,14 @@ class PostDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final post = ref.watch(postByIdProvider(postId));
+    final postAsync = ref.watch(postByIdProvider(postId));
 
-    if (post == null) {
-      return Scaffold(
+    return postAsync.when(
+      loading: () => const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, _) => Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
           title: const Text('帖子详情'),
@@ -29,11 +33,47 @@ class PostDetailPage extends ConsumerWidget {
                 : context.go('/'),
           ),
         ),
-        body: const Center(child: Text('帖子未找到')),
-      );
-    }
+        body: _PostDetailMessage(
+          message: error.toString(),
+          onRetry: () => ref.invalidate(postByIdProvider(postId)),
+        ),
+      ),
+      data: (post) => _PostDetailContent(post: post),
+    );
+  }
+}
 
-    return _PostDetailContent(post: post);
+class _PostDetailMessage extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _PostDetailMessage({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.article_outlined,
+              size: 42,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            TextButton(onPressed: onRetry, child: const Text('重试')),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -313,18 +353,29 @@ class _PostImage extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: AspectRatio(
         aspectRatio: 1,
-        child: CachedNetworkImage(
-          imageUrl: imageUrl,
-          fit: BoxFit.cover,
-          errorWidget: (_, _, _) => Container(
-            color: AppColors.surfaceSecondary,
-            child: const Icon(
-              Icons.restaurant,
-              size: 48,
-              color: AppColors.textPlaceholder,
-            ),
-          ),
-        ),
+        child: imageUrl.isEmpty
+            ? const _PostImageFallback()
+            : CachedNetworkImage(
+                imageUrl: imageUrl,
+                fit: BoxFit.cover,
+                errorWidget: (_, _, _) => const _PostImageFallback(),
+              ),
+      ),
+    );
+  }
+}
+
+class _PostImageFallback extends StatelessWidget {
+  const _PostImageFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.surfaceSecondary,
+      child: const Icon(
+        Icons.restaurant,
+        size: 48,
+        color: AppColors.textPlaceholder,
       ),
     );
   }

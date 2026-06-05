@@ -1,14 +1,18 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/theme.dart';
 import '../../config/glass_theme.dart';
+import '../../models/home_content.dart';
 import '../../models/recipe.dart';
 import '../../models/post.dart';
+import '../../models/notification_item.dart';
+import '../../providers/home_provider.dart';
 import '../../providers/recipe_provider.dart';
 import '../../providers/collection_provider.dart';
-import '../../data/mock_data.dart';
+import '../../data/api/auth_storage.dart';
 import '../../widgets/recipe_card.dart';
 import '../../widgets/post_card.dart';
 import '../../widgets/search_bar.dart';
@@ -29,11 +33,12 @@ class _HomePageState extends ConsumerState<HomePage> {
   bool _showSearchPanel = false;
   bool _menuOpen = false;
   int _activeFilter = 0;
+  List<String> _searchHistory = [];
 
-  static const _filterPills = ['为你推荐', '关注', '早餐', '晚餐', '快手菜', '素食'];
-  static const _banners = ['🔥 夏日清爽减脂食谱特辑', '🌟 新用户专享：注册即得AI食谱'];
-  static const _searchHistory = ['意面', '三文鱼', '牛油果早餐'];
-  static const _hotSearches = ['减脂餐', '快手早餐', '鸡蛋', '宝宝餐', '低卡晚餐'];
+  static const _fallbackBanners = [
+    HomeBanner(id: 'default-banner-1', title: '发现今天要做的菜'),
+    HomeBanner(id: 'default-banner-2', title: '用小厨子整理你的冰箱灵感'),
+  ];
 
   String get _searchQuery => _searchController.text.trim();
 
@@ -46,20 +51,38 @@ class _HomePageState extends ConsumerState<HomePage> {
       }
     });
     _startBannerAutoScroll();
+    _loadSearchHistory();
+  }
+
+  Future<void> _loadSearchHistory() async {
+    final history = await AuthStorage.getSearchHistory();
+    if (mounted) setState(() => _searchHistory = history);
   }
 
   void _startBannerAutoScroll() {
     Future.delayed(const Duration(seconds: 4), () {
       if (mounted) {
-        _bannerIndex = (_bannerIndex + 1) % _banners.length;
-        _pageCtrl.animateToPage(
-          _bannerIndex,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        );
+        final count = _currentBannerCount();
+        if (count > 1) {
+          _bannerIndex = (_bannerIndex + 1) % count;
+          if (_pageCtrl.hasClients) {
+            _pageCtrl.animateToPage(
+              _bannerIndex,
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+            );
+          }
+        }
         _startBannerAutoScroll();
       }
     });
+  }
+
+  int _currentBannerCount() {
+    final banners = ref.read(homeContentProvider).valueOrNull?.banners;
+    return (banners?.isNotEmpty ?? false)
+        ? banners!.length
+        : _fallbackBanners.length;
   }
 
   @override
@@ -73,8 +96,27 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(BuildContext context) {
     final recipes = ref.watch(recipeListProvider);
-    final notifications = ref.watch(notificationListProvider);
-    final feedItems = _buildFeedItems(recipes, mockPosts);
+    final homeContent = ref.watch(homeContentProvider).valueOrNull;
+    final notifications =
+        ref.watch(notificationListProvider).valueOrNull ??
+        const <NotificationItem>[];
+    final posts = ref.watch(postListProvider).valueOrNull ?? const <Post>[];
+    final displayRecipes = recipes.isNotEmpty
+        ? recipes
+        : homeContent?.latestRecipes ?? const <Recipe>[];
+    final banners = homeContent?.banners.isNotEmpty == true
+        ? homeContent!.banners
+        : _fallbackBanners;
+    final categories =
+        homeContent?.categories
+            .map((category) => category.name)
+            .where((name) => name.isNotEmpty)
+            .toList() ??
+        const <String>[];
+    final filterPills = ['为你推荐', ...categories.take(7)];
+    final activeFilter = _activeFilter < filterPills.length ? _activeFilter : 0;
+    final hotSearches = _homeHotSearches(categories, displayRecipes);
+    final feedItems = _buildFeedItems(displayRecipes, posts);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -142,13 +184,13 @@ class _HomePageState extends ConsumerState<HomePage> {
                           height: 40,
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
-                            itemCount: _filterPills.length,
+                            itemCount: filterPills.length,
                             separatorBuilder: (_, _) =>
                                 const SizedBox(width: 10),
                             itemBuilder: (ctx, i) {
-                              final active = i == _activeFilter;
+                              final active = i == activeFilter;
                               return GestureDetector(
-                                onTap: () => setState(() => _activeFilter = i),
+                                onTap: () => _selectCategory(i, filterPills),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 20,
@@ -166,7 +208,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                           ),
                                   ),
                                   child: Text(
-                                    _filterPills[i],
+                                    filterPills[i],
                                     style: Theme.of(context)
                                         .textTheme
                                         .labelMedium
@@ -195,36 +237,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                         child: PageView.builder(
                           controller: _pageCtrl,
                           onPageChanged: (i) => _bannerIndex = i,
-                          itemCount: _banners.length,
-                          itemBuilder: (ctx, i) => Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: const Color(0x0A000000),
-                              ),
-                            ),
-                            child: Center(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.campaign,
-                                    color: AppColors.accent.withAlpha(100),
-                                    size: 40,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    _banners[i],
-                                    style: Theme.of(context).textTheme.bodyLarge
-                                        ?.copyWith(
-                                          color: AppColors.textSecondary,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                          itemCount: banners.length,
+                          itemBuilder: (ctx, i) => _HomeBannerCard(
+                            banner: banners[i],
+                            onTap: () => _openBanner(banners[i], filterPills),
                           ),
                         ),
                       ),
@@ -233,14 +249,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(
-                          _banners.length,
+                          banners.length,
                           (i) => Container(
                             width: 6,
                             height: 6,
                             margin: const EdgeInsets.symmetric(horizontal: 3),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: i == _bannerIndex
+                              color: i == _bannerIndex % banners.length
                                   ? AppColors.textPrimary
                                   : AppColors.divider,
                             ),
@@ -253,8 +269,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                 const SliverToBoxAdapter(child: SizedBox(height: 16)),
               ],
               body: RefreshIndicator(
-                onRefresh: () async =>
-                    await Future.delayed(const Duration(seconds: 1)),
+                onRefresh: () async {
+                  await Future.wait([
+                    ref.refresh(homeContentProvider.future),
+                    ref.read(recipeListProvider.notifier).refresh(),
+                  ]);
+                },
                 child: MasonryGridView.count(
                   crossAxisCount: 2,
                   mainAxisSpacing: 12,
@@ -285,27 +305,30 @@ class _HomePageState extends ConsumerState<HomePage> {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: _hideSearchPanel,
-                  child: Container(color: Colors.transparent),
-                ),
-              ),
-            if (_showSearchPanel)
-              Positioned(
-                top: 64,
-                left: 16,
-                right: 16,
-                child: _HomeSearchPanel(
-                  query: _searchQuery,
-                  history: _searchHistory,
-                  hotSearches: _hotSearches,
-                  onKeywordTap: _useSearchKeyword,
-                  onSearchTap: _openSearchResults,
-                  onRecipeTap: (recipe) {
-                    _hideSearchPanel();
-                    context.push('/recipe/${recipe.id}');
-                  },
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _HomeSearchPanel(
+                        query: _searchQuery,
+                        history: _searchHistory,
+                        hotSearches: hotSearches,
+                        recipes: displayRecipes,
+                        onKeywordTap: _useSearchKeyword,
+                        onSearchTap: _openSearchResults,
+                        onRecipeTap: (recipe) {
+                          _hideSearchPanel();
+                          context.push('/recipe/${recipe.id}');
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: _hideSearchPanel,
+                        behavior: HitTestBehavior.translucent,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             // 通知预览面板
@@ -353,69 +376,83 @@ class _HomePageState extends ConsumerState<HomePage> {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        ...notifications
-                            .take(4)
-                            .map(
-                              (n) => Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                      width: 8,
-                                      height: 8,
-                                      margin: const EdgeInsets.only(
-                                        top: 6,
-                                        right: 10,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: n.isUnread
-                                            ? AppColors.accentBlue
-                                            : Colors.transparent,
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          RichText(
-                                            text: TextSpan(
-                                              style: const TextStyle(
-                                                fontSize: 13,
-                                                color: AppColors.textPrimary,
-                                                height: 1.3,
-                                              ),
-                                              children: [
-                                                TextSpan(
-                                                  text: n.fromUserName,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                                TextSpan(
-                                                  text:
-                                                      ' ${n.action} ${n.targetName}',
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            n.timeAgo,
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              color: AppColors.textSecondary,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                        if (notifications.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: Text(
+                              '暂无通知',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textSecondary,
                               ),
                             ),
+                          )
+                        else
+                          ...notifications
+                              .take(4)
+                              .map(
+                                (n) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        margin: const EdgeInsets.only(
+                                          top: 6,
+                                          right: 10,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: n.isUnread
+                                              ? AppColors.accentBlue
+                                              : Colors.transparent,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            RichText(
+                                              text: TextSpan(
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  color: AppColors.textPrimary,
+                                                  height: 1.3,
+                                                ),
+                                                children: [
+                                                  TextSpan(
+                                                    text: n.fromUserName,
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                  TextSpan(
+                                                    text:
+                                                        ' ${n.action} ${n.targetName}',
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              n.timeAgo,
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                       ],
                     ),
                   ),
@@ -472,19 +509,46 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   void _useSearchKeyword(String keyword) {
-    _searchController.text = keyword;
-    _searchController.selection = TextSelection.collapsed(
-      offset: keyword.length,
-    );
-    setState(() => _showSearchPanel = true);
-    _searchFocusNode.requestFocus();
+    setState(() => _showSearchPanel = false);
+    Future.microtask(() {
+      if (mounted) {
+        context.push('/search?q=${Uri.encodeQueryComponent(keyword)}');
+      }
+    });
   }
 
   void _openSearchResults(String value) {
     final query = value.trim();
     if (query.isEmpty) return;
     _hideSearchPanel();
+    AuthStorage.addSearchHistory(query);
+    if (mounted) {
+      setState(() {
+        _searchHistory.insert(0, query);
+      });
+    }
     context.push('/search?q=${Uri.encodeQueryComponent(query)}');
+  }
+
+  void _selectCategory(int index, List<String> filterPills) {
+    setState(() => _activeFilter = index);
+    final category = index == 0 ? null : filterPills[index];
+    ref.read(recipeListProvider.notifier).filterByCategory(category);
+  }
+
+  void _openBanner(HomeBanner banner, List<String> filterPills) {
+    final type = banner.linkType.toLowerCase();
+    final value = banner.linkValue.trim();
+    if (type == 'recipe' && value.isNotEmpty) {
+      context.push('/recipe/$value');
+      return;
+    }
+    if (type == 'category' && value.isNotEmpty) {
+      final index = filterPills.indexOf(value);
+      if (index > 0) {
+        _selectCategory(index, filterPills);
+      }
+    }
   }
 
   Widget _menuItem(
@@ -513,15 +577,123 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   List<Object> _buildFeedItems(List<Recipe> recipes, List<Post> posts) {
-    return [
-      recipes[0],
-      posts[0],
-      recipes[1],
-      posts.length > 1 ? posts[1] : recipes[2],
-      recipes[3],
-      recipes[2],
-      recipes.length > 4 ? recipes[4] : recipes[0],
-    ];
+    final items = <Object>[];
+    final maxCount = recipes.length > posts.length
+        ? recipes.length
+        : posts.length;
+
+    for (var i = 0; i < maxCount; i++) {
+      if (i < recipes.length) items.add(recipes[i]);
+      if (i < posts.length) items.add(posts[i]);
+    }
+
+    return items;
+  }
+}
+
+List<String> _homeHotSearches(List<String> categories, List<Recipe> recipes) {
+  final values = <String>[];
+  values.addAll(categories);
+  values.addAll(recipes.map((recipe) => recipe.title));
+
+  final seen = <String>{};
+  return values
+      .map((value) => value.trim())
+      .where((value) => value.isNotEmpty)
+      .where((value) => seen.add(value))
+      .take(8)
+      .toList();
+}
+
+class _HomeBannerCard extends StatelessWidget {
+  final HomeBanner banner;
+  final VoidCallback onTap;
+
+  const _HomeBannerCard({required this.banner, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0x0A000000)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (banner.imageUrl.isNotEmpty)
+              CachedNetworkImage(
+                imageUrl: banner.imageUrl,
+                fit: BoxFit.cover,
+                errorWidget: (_, _, _) => _BannerFallback(title: banner.title),
+              )
+            else
+              _BannerFallback(title: banner.title),
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0x00000000), Color(0x99000000)],
+                ),
+              ),
+            ),
+            Positioned(
+              left: 18,
+              right: 18,
+              bottom: 16,
+              child: Text(
+                banner.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BannerFallback extends StatelessWidget {
+  final String title;
+
+  const _BannerFallback({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.campaign,
+            color: AppColors.accent.withAlpha(100),
+            size: 40,
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -529,6 +701,7 @@ class _HomeSearchPanel extends StatelessWidget {
   final String query;
   final List<String> history;
   final List<String> hotSearches;
+  final List<Recipe> recipes;
   final ValueChanged<String> onKeywordTap;
   final ValueChanged<String> onSearchTap;
   final ValueChanged<Recipe> onRecipeTap;
@@ -537,6 +710,7 @@ class _HomeSearchPanel extends StatelessWidget {
     required this.query,
     required this.history,
     required this.hotSearches,
+    required this.recipes,
     required this.onKeywordTap,
     required this.onSearchTap,
     required this.onRecipeTap,
@@ -638,7 +812,7 @@ class _HomeSearchPanel extends StatelessWidget {
 
   List<Recipe> _matches(String value) {
     final keyword = value.toLowerCase();
-    return mockRecipes
+    return recipes
         .where((recipe) {
           final title = recipe.title.toLowerCase();
           final author = recipe.authorName.toLowerCase();
@@ -709,17 +883,25 @@ class _HomeSearchStarter extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _HomeKeywordSection(
-          title: '搜索历史',
-          items: history,
-          onKeywordTap: onKeywordTap,
-        ),
-        const SizedBox(height: 14),
-        _HomeKeywordSection(
-          title: '热搜',
-          items: hotSearches,
-          onKeywordTap: onKeywordTap,
-        ),
+        if (history.isNotEmpty) ...[
+          _HomeKeywordSection(
+            title: '搜索历史',
+            items: history,
+            onKeywordTap: onKeywordTap,
+          ),
+          const SizedBox(height: 14),
+        ],
+        if (hotSearches.isNotEmpty)
+          _HomeKeywordSection(
+            title: '热搜',
+            items: hotSearches,
+            onKeywordTap: onKeywordTap,
+          )
+        else
+          const Text(
+            '输入关键词搜索菜谱',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
       ],
     );
   }
@@ -809,12 +991,16 @@ class _NoHomeSearchMatch extends StatelessWidget {
 String _cnDifficulty(String difficulty) {
   switch (difficulty) {
     case 'Easy':
+    case 'easy':
       return '简单';
     case 'Medium':
+    case 'medium':
+    case 'normal':
       return '中等';
     case 'Hard':
+    case 'hard':
       return '困难';
     default:
-      return difficulty;
+      return difficulty; // 已是中文直接返回
   }
 }

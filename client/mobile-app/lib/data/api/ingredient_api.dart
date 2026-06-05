@@ -9,7 +9,7 @@ class IngredientApi {
 
   Future<List<Ingredient>> getFridgeItems() {
     return guardApi(() async {
-      final response = await _dio.get('/fridge/items');
+      final response = await _dio.get('/app/fridge');
       return responseList(
         response,
       ).map((item) => Ingredient.fromJson(mapValue(item))).toList();
@@ -19,7 +19,17 @@ class IngredientApi {
   Future<Ingredient> addToFridge(Ingredient ingredient) {
     return guardApi(() async {
       final response = await _dio.post(
-        '/fridge/items',
+        '/app/fridge',
+        data: ingredient.toJson(),
+      );
+      return Ingredient.fromJson(responseMap(response));
+    });
+  }
+
+  Future<Ingredient> updateFridgeItem(Ingredient ingredient) {
+    return guardApi(() async {
+      final response = await _dio.put(
+        '/app/fridge/${ingredient.id}',
         data: ingredient.toJson(),
       );
       return Ingredient.fromJson(responseMap(response));
@@ -28,7 +38,7 @@ class IngredientApi {
 
   Future<void> removeFromFridge(String id) {
     return guardApi(() async {
-      await _dio.delete('/fridge/items/$id');
+      await _dio.delete('/app/fridge/$id');
     });
   }
 

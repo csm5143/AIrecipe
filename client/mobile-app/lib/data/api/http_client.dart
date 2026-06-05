@@ -1,13 +1,13 @@
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/constants.dart';
 import '../../config/routes.dart';
 import 'app_exception.dart';
+import 'auth_storage.dart';
 
 class HttpClient {
   HttpClient._();
 
-  static const tokenKey = 'auth_token';
+  static const tokenKey = AuthStorage.tokenKey;
   static Dio? _instance;
 
   static Dio get instance {
@@ -27,17 +27,15 @@ class HttpClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final prefs = await SharedPreferences.getInstance();
-          final token = prefs.getString(tokenKey);
-          if (token != null && token.isNotEmpty) {
+          final token = await AuthStorage.getToken();
+          if (token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
           handler.next(options);
         },
         onError: (error, handler) async {
           if (error.response?.statusCode == 401) {
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.remove(tokenKey);
+            await AuthStorage.clearSession();
             goRouter.go('/login');
           }
 

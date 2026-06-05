@@ -1,11 +1,11 @@
 {
-    "name": "airecipe",
-    "short_name": "airecipe",
+    "name": "小厨子",
+    "short_name": "小厨子",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "小厨子 - 智能菜谱应用",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

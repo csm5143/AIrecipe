@@ -28,6 +28,10 @@ class ChatMessage {
       'timestamp': timestamp.toIso8601String(),
     };
   }
+
+  Map<String, dynamic> toApiJson() {
+    return {'role': isUser ? 'user' : 'assistant', 'content': text};
+  }
 }
 
 class ChatHistoryItem {
@@ -67,6 +71,29 @@ class ChatHistoryItem {
       'recipe_count': recipeCount,
       'tag': tag,
     };
+  }
+}
+
+class ChatReply {
+  final String sessionId;
+  final String message;
+  final String model;
+  final int tokensUsed;
+
+  const ChatReply({
+    required this.sessionId,
+    required this.message,
+    this.model = '',
+    this.tokensUsed = 0,
+  });
+
+  factory ChatReply.fromJson(Map<String, dynamic> json) {
+    return ChatReply(
+      sessionId: _stringValue(json['session_id'] ?? json['sessionId']),
+      message: _stringValue(json['message'] ?? json['text'] ?? json['content']),
+      model: _stringValue(json['model']),
+      tokensUsed: _intValue(json['tokens_used'] ?? json['tokensUsed']),
+    );
   }
 }
 

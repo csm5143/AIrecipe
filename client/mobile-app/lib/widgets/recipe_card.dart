@@ -67,14 +67,18 @@ class RecipeCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      _MetaChip(
-                        icon: Icons.schedule,
-                        text: '${recipe.cookTime}m',
+                      Flexible(
+                        child: _MetaChip(
+                          icon: Icons.schedule,
+                          text: '${recipe.cookTime}分钟',
+                        ),
                       ),
-                      const SizedBox(width: 12),
-                      _MetaChip(
-                        icon: Icons.local_fire_department,
-                        text: recipe.difficulty,
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: _MetaChip(
+                          icon: Icons.local_fire_department,
+                          text: recipe.difficulty,
+                        ),
                       ),
                     ],
                   ),

@@ -53,6 +53,8 @@ model User {
   shoppingLists ShoppingList[] // 购物清单
   browseHistory BrowseHistory[] // 浏览记录
   notifications Notification[]  // 通知记录
+  aiChatSessions AiChatSession[]
+  aiChatMessages AiChatMessage[]
   following     Follow[]       @relation("follower")
   followers    Follow[]       @relation("following")
   
@@ -441,6 +443,82 @@ model AiApiKey {
 }
 
 // AI 生图 Prompt 模板
+model AiChatSession {
+  id            Int                 @id @default(autoincrement())
+  userId        Int
+  title         String?
+  status        AiChatSessionStatus @default(ACTIVE)
+  lastMessageAt DateTime?
+  metadata      Json?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages      AiChatMessage[]
+
+  @@index([userId, lastMessageAt])
+  @@index([status])
+  @@map("ai_chat_sessions")
+}
+
+model AiChatMessage {
+  id          Int        @id @default(autoincrement())
+  sessionId   Int
+  userId      Int?
+  role        AiChatRole
+  content     String
+  model       String?
+  tokensUsed  Int?
+  ragContext  Json?
+  metadata    Json?
+  createdAt   DateTime   @default(now())
+
+  session     AiChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user        User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+  @@index([userId, createdAt])
+  @@index([role])
+  @@map("ai_chat_messages")
+}
+
+model AiRagDocument {
+  id          Int                  @id @default(autoincrement())
+  sourceType  AiRagSourceType      @default(ADMIN_DOC)
+  sourceId    String?
+  title       String
+  content     String
+  metadata    Json?
+  status      AiRagDocumentStatus  @default(ACTIVE)
+  createdBy   Int?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  chunks      AiRagChunk[]
+
+  @@index([sourceType, sourceId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("ai_rag_documents")
+}
+
+model AiRagChunk {
+  id          Int           @id @default(autoincrement())
+  documentId  Int
+  chunkIndex  Int
+  content     String
+  embedding   Json?
+  tokenCount  Int?
+  metadata    Json?
+  createdAt   DateTime      @default(now())
+
+  document    AiRagDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex])
+  @@index([documentId])
+  @@map("ai_rag_chunks")
+}
+
 model PromptTemplate {
   id          Int      @id @default(autoincrement())
   name        String
@@ -750,6 +828,32 @@ enum ScanStatus {
   PROCESSING
   SUCCESS
   FAILED
+}
+
+enum AiChatRole {
+  USER
+  ASSISTANT
+  SYSTEM
+  TOOL
+}
+
+enum AiChatSessionStatus {
+  ACTIVE
+  ARCHIVED
+  DELETED
+}
+
+enum AiRagSourceType {
+  RECIPE
+  INGREDIENT
+  NOTICE
+  USER_UPLOAD
+  ADMIN_DOC
+}
+
+enum AiRagDocumentStatus {
+  ACTIVE
+  DISABLED
 }
 
 enum LinkType {

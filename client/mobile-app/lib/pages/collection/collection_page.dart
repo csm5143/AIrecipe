@@ -1,675 +1,191 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../config/theme.dart';
+import '../../models/ingredient.dart';
 import '../../providers/collection_provider.dart';
 import '../../widgets/capsule_toast.dart';
 
 class CollectionPage extends ConsumerStatefulWidget {
   const CollectionPage({super.key});
+
   @override
   ConsumerState<CollectionPage> createState() => _CollectionPageState();
 }
 
 class _CollectionPageState extends ConsumerState<CollectionPage> {
-  int _subTab = 0; // 0=菜篮, 1=冰箱
-  bool _showNotifPanel = false;
-  bool _menuOpen = false;
-  final Set<int> _selected = {};
-
-  final _fridgeItems = const [
-    _FItem('有机苹果', '3个', '10月24日 09:15', '🍎'),
-    _FItem('大番茄', '2个', '10月23日 18:20', '🍅'),
-    _FItem('胡萝卜', '500g', '10月22日 11:45', '🥕'),
-  ];
-
-  final _basketGroups = const [
-    _BGroup('川味担担面', [
-      _BItem('猪肉沫', '150g'),
-      _BItem('宜宾碎米芽菜', '50g'),
-      _BItem('鲜面条', '2人份'),
-    ]),
-    _BGroup('手动添加', [_BItem('大蒜', '2头')]),
-  ];
+  int _tab = 0;
 
   @override
   Widget build(BuildContext context) {
-    final notifications = ref.watch(notificationListProvider);
-    final isFridge = _subTab == 1;
+    final fridgeItems = ref.watch(ingredientListProvider);
+    final shoppingLists = ref.watch(shoppingListProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.glassSurface,
         title: const Text('我的食材'),
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () => setState(() {
-            _menuOpen = !_menuOpen;
-            if (_menuOpen) _showNotifPanel = false;
-          }),
-        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () => setState(() {
-              _showNotifPanel = !_showNotifPanel;
-              if (_showNotifPanel) _menuOpen = false;
-            }),
+            tooltip: '刷新',
+            icon: const Icon(Icons.refresh),
+            onPressed: _refresh,
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 180),
-            child: Column(
-              children: [
-                // Tabs
-                Container(
-                  height: 44,
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: const Color(0x80E2E2E4),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0x0A000000)),
-                  ),
-                  child: Row(
-                    children: [
-                      _TabBtn(
-                        '小菜篮',
-                        _subTab == 0,
-                        () => setState(() {
-                          _subTab = 0;
-                          _selected.clear();
-                        }),
-                      ),
-                      _TabBtn(
-                        '小冰箱',
-                        _subTab == 1,
-                        () => setState(() {
-                          _subTab = 1;
-                          _selected.clear();
-                        }),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                if (isFridge) ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _Btn(
-                          Icons.photo_camera,
-                          'AI 拍照识别',
-                          true,
-                          () => context.push('/publish/scan'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _Btn(Icons.add, '手动添加', false, _showAddDialog),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  ..._buildFridgeList(),
-                ] else ...[
-                  // Basket action bar: 合并 / 复制 / 手动添加
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _BasketActionBtn(
-                          Icons.merge,
-                          '合并',
-                          () => _showToast('已合并相同食材'),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _BasketActionBtn(
-                          Icons.content_copy,
-                          '复制',
-                          () => _showToast('采购清单已复制'),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _BasketActionBtn(
-                          Icons.add,
-                          '手动添加',
-                          _showAddDialog,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  // Basket groups
-                  ..._basketGroups.map((g) => _buildBasketGroup(g)),
-                  // Basket selected bar
-                  if (_selected.isNotEmpty) _buildBasketSelectedBar(),
-                ],
-              ],
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
+          children: [
+            _SegmentedTabs(
+              index: _tab,
+              onChanged: (value) => setState(() => _tab = value),
             ),
-          ),
-          // Fridge selected bar
-          if (isFridge && _selected.isNotEmpty)
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 90,
-              child: _selectedFridgeBar(),
-            ),
-          // Notification panel
-          if (_showNotifPanel)
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => setState(() => _showNotifPanel = false),
-                child: Container(color: Colors.transparent),
+            const SizedBox(height: 16),
+            if (_tab == 0)
+              _ShoppingListView(
+                lists: shoppingLists,
+                onDelete: _deleteShoppingList,
+              )
+            else
+              _FridgeView(
+                items: fridgeItems,
+                onAdd: _showAddDialog,
+                onDelete: _deleteFridgeItem,
+                onAiRecipe: () => context.push('/ai/chat'),
               ),
-            ),
-          if (_showNotifPanel)
-            Positioned(
-              top: 56,
-              right: 16,
-              width: 280,
-              child: _notifPanel(
-                context,
-                notifications,
-                onViewAll: () {
-                  setState(() => _showNotifPanel = false);
-                  context.push('/notifications');
-                },
-              ),
-            ),
-          if (_menuOpen)
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => setState(() => _menuOpen = false),
-                child: Container(color: Colors.transparent),
-              ),
-            ),
-          if (_menuOpen)
-            Positioned(
-              top: 8,
-              left: 16,
-              width: 224,
-              child: Material(
-                color: Colors.transparent,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: const [
-                      BoxShadow(color: Color(0x14000000), blurRadius: 24),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _MenuItem(
-                        icon: Icons.shopping_basket_outlined,
-                        label: '小菜篮',
-                        onTap: () {
-                          setState(() {
-                            _subTab = 0;
-                            _selected.clear();
-                            _menuOpen = false;
-                          });
-                        },
-                      ),
-                      _MenuItem(
-                        icon: Icons.kitchen_outlined,
-                        label: '小冰箱',
-                        onTap: () {
-                          setState(() {
-                            _subTab = 1;
-                            _selected.clear();
-                            _menuOpen = false;
-                          });
-                        },
-                      ),
-                      _MenuItem(
-                        icon: Icons.history,
-                        label: '浏览历史',
-                        onTap: () {
-                          setState(() => _menuOpen = false);
-                          context.push('/history');
-                        },
-                      ),
-                      _MenuItem(
-                        icon: Icons.collections_bookmark_outlined,
-                        label: '我的收藏',
-                        onTap: () {
-                          setState(() => _menuOpen = false);
-                          context.push('/my-collections');
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-        ],
+          ],
+        ),
       ),
+      floatingActionButton: _tab == 1
+          ? FloatingActionButton(
+              backgroundColor: AppColors.textPrimary,
+              foregroundColor: AppColors.surface,
+              onPressed: _showAddDialog,
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 
-  List<Widget> _buildFridgeList() {
-    return _fridgeItems.asMap().entries.map((e) {
-      final i = e.key;
-      final item = e.value;
-      final sel = _selected.contains(i);
-      return GestureDetector(
-        onTap: () {
-          if (_selected.isNotEmpty) {
-            setState(() => sel ? _selected.remove(i) : _selected.add(i));
-          } else {
-            _showEditDialog(item);
-          }
-        },
-        onLongPress: () {
-          if (_selected.isEmpty) setState(() => _selected.add(i));
-        },
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0x0A000000)),
-            boxShadow: const [
-              BoxShadow(color: Color(0x08000000), blurRadius: 20),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: sel ? AppColors.textPrimary : Colors.transparent,
-                  border: Border.all(
-                    color: sel ? AppColors.textPrimary : AppColors.divider,
-                    width: 2,
-                  ),
-                ),
-                child: sel
-                    ? const Icon(Icons.check, size: 14, color: Colors.white)
-                    : null,
-              ),
-              const SizedBox(width: 14),
-              Text(item.emoji, style: const TextStyle(fontSize: 28)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.name,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${item.qty} · ${item.date}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.close,
-                size: 18,
-                color: AppColors.textPlaceholder,
-              ),
-            ],
-          ),
-        ),
-      );
-    }).toList();
+  Future<void> _refresh() async {
+    await Future.wait([
+      ref.read(ingredientListProvider.notifier).load(),
+      ref.read(shoppingListProvider.notifier).load(),
+    ]);
   }
 
-  void _showToast(String message) {
-    showCapsuleToast(context, message);
+  Future<void> _deleteShoppingList(String id) async {
+    try {
+      await ref.read(shoppingListProvider.notifier).remove(id);
+      if (mounted) showCapsuleToast(context, '菜篮已删除');
+    } catch (error) {
+      if (mounted) showCapsuleToast(context, '删除失败：$error');
+    }
   }
 
-  Widget _buildBasketGroup(_BGroup group) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8, top: 4),
-          child: Row(
-            children: [
-              Icon(
-                group.recipe == '手动添加'
-                    ? Icons.edit_note
-                    : Icons.restaurant_menu,
-                size: 16,
-                color: AppColors.textSecondary,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '来源：${group.recipe}',
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: const [
-              BoxShadow(color: Color(0x08000000), blurRadius: 20),
-            ],
-          ),
-          child: Column(
-            children: group.items.asMap().entries.map((e) {
-              final i = e.key;
-              final item = e.value;
-              final sel = _selected.contains(i + 100); // offset for basket
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                decoration: const BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: AppColors.divider, width: 0.5),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => setState(
-                        () => sel
-                            ? _selected.remove(i + 100)
-                            : _selected.add(i + 100),
-                      ),
-                      child: Container(
-                        width: 22,
-                        height: 22,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: sel
-                              ? AppColors.textPrimary
-                              : Colors.transparent,
-                          border: Border.all(
-                            color: sel
-                                ? AppColors.textPrimary
-                                : AppColors.divider,
-                            width: 2,
-                          ),
-                        ),
-                        child: sel
-                            ? const Icon(
-                                Icons.check,
-                                size: 14,
-                                color: Colors.white,
-                              )
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        item.name,
-                        style: const TextStyle(fontSize: 15),
-                      ),
-                    ),
-                    Text(
-                      item.qty,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    const Icon(
-                      Icons.close,
-                      size: 18,
-                      color: AppColors.textPlaceholder,
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-        const SizedBox(height: 24),
-      ],
+  Future<void> _deleteFridgeItem(String id) async {
+    try {
+      await ref.read(ingredientListProvider.notifier).remove(id);
+      if (mounted) showCapsuleToast(context, '食材已删除');
+    } catch (error) {
+      if (mounted) showCapsuleToast(context, '删除失败：$error');
+    }
+  }
+
+  Future<void> _showAddDialog() async {
+    final result = await showDialog<_IngredientDraft>(
+      context: context,
+      builder: (context) => const _AddIngredientDialog(),
     );
-  }
 
-  Widget _buildBasketSelectedBar() {
+    if (result == null) return;
+
+    try {
+      await ref
+          .read(ingredientListProvider.notifier)
+          .add(
+            Ingredient(
+              id: '',
+              name: result.name,
+              amount: result.amount,
+              unit: result.unit,
+              category: result.category,
+            ),
+          );
+      if (mounted) showCapsuleToast(context, '已加入小冰箱');
+    } catch (error) {
+      if (mounted) showCapsuleToast(context, '添加失败：$error');
+    }
+  }
+}
+
+class _SegmentedTabs extends StatelessWidget {
+  final int index;
+  final ValueChanged<int> onChanged;
+
+  const _SegmentedTabs({required this.index, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 100),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      height: 44,
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.textPrimary,
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0x80E2E2E4),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0x0A000000)),
       ),
       child: Row(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                '已选中',
-                style: TextStyle(fontSize: 11, color: Color(0xCCFFFFFF)),
-              ),
-              Text(
-                '${_selected.length} 项食材',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ],
+          _TabButton(
+            label: '小菜篮',
+            active: index == 0,
+            onTap: () => onChanged(0),
           ),
-          const Spacer(),
-          GestureDetector(
-            onTap: () => setState(() => _selected.clear()),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Text(
-                '全部移入冰箱',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ),
+          _TabButton(
+            label: '小冰箱',
+            active: index == 1,
+            onTap: () => onChanged(1),
           ),
         ],
       ),
     );
   }
-
-  Widget _selectedFridgeBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.textPrimary,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                '已选中',
-                style: TextStyle(fontSize: 11, color: Color(0xCCFFFFFF)),
-              ),
-              Text(
-                '${_selected.length} 项食材',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: () {
-              setState(() => _selected.clear());
-              context.push('/ai/chat');
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.auto_awesome,
-                    size: 18,
-                    color: AppColors.textPrimary,
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    'AI 菜谱',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Dialogs (居中淡入淡出) ──
-  void _showEditDialog(_FItem item) {
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: '',
-      barrierColor: Colors.black26,
-      transitionDuration: const Duration(milliseconds: 250),
-      pageBuilder: (c, a1, a2) => const SizedBox.shrink(),
-      transitionBuilder: (c, anim, a2, child) {
-        return FadeTransition(
-          opacity: anim,
-          child: ScaleTransition(
-            scale: Tween(begin: 0.92, end: 1.0).animate(
-              CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
-            ),
-            child: Center(child: _EditDialog(item: item)),
-          ),
-        );
-      },
-    );
-  }
-
-  void _showAddDialog() {
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: '',
-      barrierColor: Colors.black26,
-      transitionDuration: const Duration(milliseconds: 250),
-      pageBuilder: (c, a1, a2) => const SizedBox.shrink(),
-      transitionBuilder: (c, anim, a2, child) {
-        return FadeTransition(
-          opacity: anim,
-          child: ScaleTransition(
-            scale: Tween(begin: 0.92, end: 1.0).animate(
-              CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
-            ),
-            child: const Center(
-              child: Material(
-                type: MaterialType.transparency,
-                child: _AddDialog(),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
 }
 
-// ── Data classes ──
-class _FItem {
-  final String name, qty, date, emoji;
-  const _FItem(this.name, this.qty, this.date, this.emoji);
-}
-
-class _BGroup {
-  final String recipe;
-  final List<_BItem> items;
-  const _BGroup(this.recipe, this.items);
-}
-
-class _BItem {
-  final String name, qty;
-  const _BItem(this.name, this.qty);
-}
-
-// ── Widgets ──
-class _TabBtn extends StatelessWidget {
-  final String text;
+class _TabButton extends StatelessWidget {
+  final String label;
   final bool active;
   final VoidCallback onTap;
-  const _TabBtn(this.text, this.active, this.onTap);
+
+  const _TabButton({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
   @override
-  Widget build(BuildContext c) {
+  Widget build(BuildContext context) {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
+          duration: const Duration(milliseconds: 180),
+          alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: active ? AppColors.surface : Colors.transparent,
+            color: active ? AppColors.textPrimary : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
-            boxShadow: active
-                ? const [BoxShadow(color: Color(0x0A000000), blurRadius: 8)]
-                : null,
-            border: active ? Border.all(color: const Color(0x0A000000)) : null,
           ),
-          child: Center(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: active ? AppColors.textPrimary : AppColors.textSecondary,
-              ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: active ? AppColors.surface : AppColors.textSecondary,
             ),
           ),
         ),
@@ -678,39 +194,268 @@ class _TabBtn extends StatelessWidget {
   }
 }
 
-class _Btn extends StatelessWidget {
+class _ShoppingListView extends StatelessWidget {
+  final List<Map<String, dynamic>> lists;
+  final ValueChanged<String> onDelete;
+
+  const _ShoppingListView({required this.lists, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    if (lists.isEmpty) {
+      return const _EmptyState(
+        icon: Icons.shopping_basket_outlined,
+        title: '小菜篮还没有同步清单',
+        message: '从菜谱详情加入食材后，会在这里显示购物清单。',
+      );
+    }
+
+    return Column(
+      children: lists.map((list) {
+        final id = list['id']?.toString() ?? '';
+        final name = list['name']?.toString() ?? '未命名清单';
+        final items = list['items'] is List ? list['items'] as List : const [];
+
+        return _Panel(
+          margin: const EdgeInsets.only(bottom: 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.receipt_long,
+                    size: 20,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: '删除',
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: id.isEmpty ? null : () => onDelete(id),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (items.isEmpty)
+                Text(
+                  '暂无食材',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                )
+              else
+                ...items.map((raw) {
+                  final item = raw is Map ? raw : const {};
+                  final itemName = item['name']?.toString() ?? '';
+                  final amount = item['amount']?.toString() ?? '';
+                  final unit = item['unit']?.toString() ?? '';
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 7),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.circle,
+                          size: 7,
+                          color: AppColors.textPlaceholder,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text(itemName)),
+                        Text(
+                          '$amount$unit',
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _FridgeView extends StatelessWidget {
+  final List<Ingredient> items;
+  final VoidCallback onAdd;
+  final ValueChanged<String> onDelete;
+  final VoidCallback onAiRecipe;
+
+  const _FridgeView({
+    required this.items,
+    required this.onAdd,
+    required this.onDelete,
+    required this.onAiRecipe,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _ActionButton(
+                icon: Icons.photo_camera,
+                label: 'AI 拍照识别',
+                dark: true,
+                onTap: () => context.push('/publish/scan'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _ActionButton(
+                icon: Icons.add,
+                label: '手动添加',
+                onTap: onAdd,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (items.isEmpty)
+          const _EmptyState(
+            icon: Icons.kitchen_outlined,
+            title: '小冰箱还是空的',
+            message: '添加食材后，其他端登录同一账号也能同步看到。',
+          )
+        else ...[
+          ...items.map(
+            (item) =>
+                _FridgeTile(item: item, onDelete: () => onDelete(item.id)),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: onAiRecipe,
+              icon: const Icon(Icons.auto_awesome),
+              label: const Text('用冰箱食材问小厨子'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.textPrimary,
+                foregroundColor: AppColors.surface,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _FridgeTile extends StatelessWidget {
+  final Ingredient item;
+  final VoidCallback onDelete;
+
+  const _FridgeTile({required this.item, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    final amount = [item.amount, item.unit].where((v) => v.isNotEmpty).join('');
+
+    return _Panel(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceSecondary,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.kitchen, color: AppColors.textSecondary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  [
+                    if (amount.isNotEmpty) amount,
+                    if (item.category.isNotEmpty) item.category,
+                  ].join(' · '),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: '删除',
+            icon: const Icon(Icons.close),
+            color: AppColors.textPlaceholder,
+            onPressed: onDelete,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool dark;
   final VoidCallback onTap;
-  const _Btn(this.icon, this.label, this.dark, this.onTap);
+
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.dark = false,
+  });
+
   @override
-  Widget build(BuildContext c) {
+  Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 48,
+        height: 46,
         decoration: BoxDecoration(
           color: dark ? AppColors.textPrimary : AppColors.surface,
-          borderRadius: BorderRadius.circular(22),
-          border: dark ? null : Border.all(color: const Color(0x0A000000)),
-          boxShadow: dark
-              ? null
-              : const [BoxShadow(color: Color(0x05000000), blurRadius: 8)],
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0x0A000000)),
+          boxShadow: const [
+            BoxShadow(color: Color(0x08000000), blurRadius: 20),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
-              size: 20,
+              size: 18,
               color: dark ? AppColors.surface : AppColors.textPrimary,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
-                fontSize: 15,
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: dark ? AppColors.surface : AppColors.textPrimary,
               ),
@@ -722,548 +467,167 @@ class _Btn extends StatelessWidget {
   }
 }
 
-class _MenuItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
+class _AddIngredientDialog extends StatefulWidget {
+  const _AddIngredientDialog();
 
-  const _MenuItem({
+  @override
+  State<_AddIngredientDialog> createState() => _AddIngredientDialogState();
+}
+
+class _AddIngredientDialogState extends State<_AddIngredientDialog> {
+  final _nameCtrl = TextEditingController();
+  final _amountCtrl = TextEditingController(text: '1');
+  final _unitCtrl = TextEditingController();
+  String _category = 'other';
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _amountCtrl.dispose();
+    _unitCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColors.surface,
+      title: const Text('添加食材'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _nameCtrl,
+            decoration: const InputDecoration(labelText: '食材名称'),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _amountCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: '数量'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  controller: _unitCtrl,
+                  decoration: const InputDecoration(labelText: '单位'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            initialValue: _category,
+            decoration: const InputDecoration(labelText: '分类'),
+            items: const [
+              DropdownMenuItem(value: 'other', child: Text('其他')),
+              DropdownMenuItem(value: 'vegetable', child: Text('蔬菜')),
+              DropdownMenuItem(value: 'meat', child: Text('肉类')),
+              DropdownMenuItem(value: 'seafood', child: Text('海鲜')),
+              DropdownMenuItem(value: 'seasoning', child: Text('调味')),
+            ],
+            onChanged: (value) => setState(() => _category = value ?? 'other'),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final name = _nameCtrl.text.trim();
+            if (name.isEmpty) return;
+            Navigator.pop(
+              context,
+              _IngredientDraft(
+                name: name,
+                amount: _amountCtrl.text.trim().isEmpty
+                    ? '1'
+                    : _amountCtrl.text.trim(),
+                unit: _unitCtrl.text.trim(),
+                category: _category,
+              ),
+            );
+          },
+          child: const Text('保存'),
+        ),
+      ],
+    );
+  }
+}
+
+class _IngredientDraft {
+  final String name;
+  final String amount;
+  final String unit;
+  final String category;
+
+  const _IngredientDraft({
+    required this.name,
+    required this.amount,
+    required this.unit,
+    required this.category,
+  });
+}
+
+class _Panel extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry? margin;
+
+  const _Panel({required this.child, this.margin});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: margin,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0x0A000000)),
+        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 20)],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String message;
+
+  const _EmptyState({
     required this.icon,
-    required this.label,
-    required this.onTap,
+    required this.title,
+    required this.message,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
-        child: Row(
-          children: [
-            Icon(icon, size: 20, color: AppColors.textPrimary),
-            const SizedBox(width: 12),
-            Text(label, style: Theme.of(context).textTheme.labelMedium),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Edit Dialog (居中弹出) ──
-class _BasketActionBtn extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  const _BasketActionBtn(this.icon, this.label, this.onTap);
-  @override
-  Widget build(BuildContext c) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 44,
-        decoration: BoxDecoration(
-          color: const Color(0x80FFFFFF),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0x1AFFFFFF)),
-          boxShadow: const [
-            BoxShadow(color: Color(0x05000000), blurRadius: 16),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 18, color: AppColors.textPrimary),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EditDialog extends StatelessWidget {
-  final _FItem item;
-  const _EditDialog({required this.item});
-  @override
-  Widget build(BuildContext c) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: const [BoxShadow(color: Color(0x33000000), blurRadius: 48)],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('编辑食材', style: Theme.of(c).textTheme.headlineMedium),
-              GestureDetector(
-                onTap: () => Navigator.pop(c),
-                child: const Icon(Icons.close, color: AppColors.textSecondary),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.surfaceSecondary,
-              border: Border.all(color: Colors.white, width: 3),
-            ),
-            child: Center(
-              child: Text(item.emoji, style: const TextStyle(fontSize: 28)),
-            ),
-          ),
-          const SizedBox(height: 20),
-          _Ef(label: '食材名称', icon: Icons.restaurant, value: item.name),
-          const SizedBox(height: 12),
-          _Ef(label: '数量', icon: Icons.scale, value: item.qty),
-          const SizedBox(height: 12),
-          _Ef(label: '保质期至', icon: Icons.event, value: item.date, isRed: true),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () => Navigator.pop(c),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.textPrimary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.check, size: 18),
-                  SizedBox(width: 8),
-                  Text('保存修改', style: TextStyle(fontSize: 13)),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () => Navigator.pop(c),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.error),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.delete, size: 18, color: AppColors.error),
-                  SizedBox(width: 8),
-                  Text(
-                    '删除食材',
-                    style: TextStyle(fontSize: 13, color: AppColors.error),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Ef extends StatelessWidget {
-  final String label, value;
-  final IconData icon;
-  final bool isRed;
-  const _Ef({
-    required this.label,
-    required this.icon,
-    required this.value,
-    this.isRed = false,
-  });
-  @override
-  Widget build(BuildContext c) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        label,
-        style: Theme.of(
-          c,
-        ).textTheme.labelMedium?.copyWith(color: AppColors.textSecondary),
-      ),
-      const SizedBox(height: 6),
-      Container(
-        height: 44,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceSecondary,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 18, color: AppColors.textPlaceholder),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                value,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: isRed ? AppColors.error : AppColors.textPrimary,
-                ),
-              ),
-            ),
-            if (isRed)
-              const Icon(Icons.warning, size: 18, color: AppColors.error),
-          ],
-        ),
-      ),
-    ],
-  );
-}
-
-// ── Add Dialog (居中弹出) ──
-class _AddDialog extends StatefulWidget {
-  const _AddDialog();
-  @override
-  State<_AddDialog> createState() => _AddDialogState();
-}
-
-class _AddDialogState extends State<_AddDialog> {
-  int _qty = 1, _expiry = 0;
-  @override
-  Widget build(BuildContext c) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 360),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: const [
-              BoxShadow(color: Color(0x33000000), blurRadius: 48),
-            ],
+      padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 20),
+      child: Column(
+        children: [
+          Icon(icon, size: 44, color: AppColors.textPlaceholder),
+          const SizedBox(height: 14),
+          Text(title, style: Theme.of(context).textTheme.headlineMedium),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('添加食材', style: Theme.of(c).textTheme.headlineMedium),
-                  GestureDetector(
-                    onTap: () => Navigator.pop(c),
-                    child: const Icon(
-                      Icons.close,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Text(
-                '食材名称',
-                style: Theme.of(c).textTheme.labelMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Container(
-                height: 48,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceSecondary,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.restaurant,
-                      size: 20,
-                      color: AppColors.textPlaceholder,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        decoration: const InputDecoration(
-                          hintText: '例如：有机苹果',
-                          hintStyle: TextStyle(
-                            color: AppColors.textPlaceholder,
-                          ),
-                          border: InputBorder.none,
-                        ),
-                        style: const TextStyle(fontSize: 17),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                '数量与单位',
-                style: Theme.of(c).textTheme.labelMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Container(
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceSecondary,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              if (_qty > 1) setState(() => _qty--);
-                            },
-                            child: const Padding(
-                              padding: EdgeInsets.all(12),
-                              child: Icon(
-                                Icons.remove,
-                                size: 20,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Text(
-                              '$_qty',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => setState(() => _qty++),
-                            child: const Padding(
-                              padding: EdgeInsets.all(12),
-                              child: Icon(
-                                Icons.add,
-                                size: 20,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Container(
-                    width: 72,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceSecondary,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Center(
-                      child: Text('个', style: TextStyle(fontSize: 17)),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Text(
-                '保质期',
-                style: Theme.of(c).textTheme.labelMedium?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              SizedBox(
-                height: 36,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: 5,
-                  itemBuilder: (ctx, i) {
-                    const opts = ['设置', '3天', '1周', '1月', '自定义'];
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: GestureDetector(
-                        onTap: () => setState(() => _expiry = i),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: i == _expiry
-                                ? AppColors.textPrimary
-                                : AppColors.surfaceSecondary,
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Text(
-                            opts[i],
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: i == _expiry
-                                  ? Colors.white
-                                  : AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () => Navigator.pop(c),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.textPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.kitchen, size: 18),
-                      SizedBox(width: 8),
-                      Text('加入冰箱', style: TextStyle(fontSize: 15)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }
-}
-
-// ── Notification Panel ──
-Widget _notifPanel(
-  BuildContext context,
-  List notifications, {
-  required VoidCallback onViewAll,
-}) {
-  return Material(
-    elevation: 0,
-    color: Colors.transparent,
-    child: Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [BoxShadow(color: Color(0x1A000000), blurRadius: 24)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                '通知',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-              GestureDetector(
-                onTap: onViewAll,
-                child: const Text(
-                  '查看全部',
-                  style: TextStyle(fontSize: 11, color: AppColors.accentBlue),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ...notifications
-              .take(4)
-              .map(
-                (n) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        margin: const EdgeInsets.only(top: 6, right: 10),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: n.isUnread
-                              ? AppColors.accentBlue
-                              : Colors.transparent,
-                        ),
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            RichText(
-                              text: TextSpan(
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.textPrimary,
-                                  height: 1.3,
-                                ),
-                                children: [
-                                  TextSpan(
-                                    text: n.fromUserName,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  TextSpan(
-                                    text: ' ${n.action} ${n.targetName}',
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              n.timeAgo,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-        ],
-      ),
-    ),
-  );
 }

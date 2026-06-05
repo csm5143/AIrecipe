@@ -18,88 +18,85 @@ class AiEntryPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final chatHistory = ref.watch(chatHistoryProvider);
+    final chatHistoryAsync = ref.watch(chatHistoryProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Stack(
-          children: [
-            Positioned(
-              top: -120,
-              right: -80,
-              child: Container(
-                width: 260,
-                height: 260,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.accent.withAlpha(24),
-                ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _TopBar(onBack: () => context.go('/')),
+              const SizedBox(height: 20),
+              _AssistantHeader(onStart: () => context.push('/ai/chat')),
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: _quickNeeds
+                    .map(
+                      (item) => _QuickNeedChip(
+                        item: item,
+                        onTap: () =>
+                            context.push('/ai/chat', extra: item.label),
+                      ),
+                    )
+                    .toList(),
               ),
-            ),
-            Positioned(
-              left: -80,
-              bottom: 80,
-              child: Container(
-                width: 220,
-                height: 220,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.accentBlue.withAlpha(18),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _TopBar(onBack: () => context.go('/')),
-                  const SizedBox(height: 20),
-                  _AssistantHeader(onStart: () => context.push('/ai/chat')),
-                  const SizedBox(height: 18),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: _quickNeeds
-                        .map((item) => _QuickNeedChip(item: item))
-                        .toList(),
+                  Text(
+                    '最近对话',
+                    style: Theme.of(context).textTheme.headlineMedium,
                   ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '最近对话',
-                        style: Theme.of(context).textTheme.headlineMedium,
-                      ),
-                      Text(
-                        '${chatHistory.length} 条',
-                        style: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(color: AppColors.textSecondary),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: ListView.separated(
-                      itemCount: chatHistory.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final item = chatHistory[index];
-                        return _ChatHistoryCard(
-                          item: item,
-                          onTap: () => context.push('/ai/chat'),
-                        );
-                      },
+                  Text(
+                    chatHistoryAsync.maybeWhen(
+                      data: (items) => '${items.length} 条',
+                      orElse: () => '',
+                    ),
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: AppColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 18),
-                  _StartChatButton(onTap: () => context.push('/ai/chat')),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Expanded(
+                child: chatHistoryAsync.when(
+                  data: (chatHistory) => chatHistory.isEmpty
+                      ? const _EmptyHistory()
+                      : RefreshIndicator(
+                          onRefresh: () =>
+                              ref.refresh(chatHistoryProvider.future),
+                          child: ListView.separated(
+                            itemCount: chatHistory.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final item = chatHistory[index];
+                              return _ChatHistoryCard(
+                                item: item,
+                                onTap: () =>
+                                    context.push('/ai/chat?session=${item.id}'),
+                              );
+                            },
+                          ),
+                        ),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (error, _) => _HistoryError(
+                    onRetry: () => ref.invalidate(chatHistoryProvider),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              _StartChatButton(onTap: () => context.push('/ai/chat')),
+            ],
+          ),
         ),
       ),
     );
@@ -186,7 +183,7 @@ class _AssistantHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '今天想吃点什么？',
+                  '告诉我食材、口味和人数，我帮你生成今天的做饭方案。',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -257,6 +254,56 @@ class _StartChatButton extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _EmptyHistory extends StatelessWidget {
+  const _EmptyHistory();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceSecondary,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Icon(Icons.chat_bubble_outline, size: 24),
+          ),
+          const SizedBox(height: 12),
+          Text('还没有对话', style: Theme.of(context).textTheme.labelMedium),
+          const SizedBox(height: 6),
+          Text(
+            '发起一次聊天后，会在这里显示历史会话。',
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HistoryError extends StatelessWidget {
+  final VoidCallback onRetry;
+
+  const _HistoryError({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: TextButton.icon(
+        onPressed: onRetry,
+        icon: const Icon(Icons.refresh),
+        label: const Text('重新加载'),
       ),
     );
   }
@@ -333,15 +380,6 @@ class _ChatHistoryCard extends StatelessWidget {
                       height: 1.35,
                     ),
                   ),
-                  if (item.recipeCount > 0) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      '${item.recipeCount} 个菜谱',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -378,25 +416,29 @@ class _QuickNeed {
 
 class _QuickNeedChip extends StatelessWidget {
   final _QuickNeed item;
+  final VoidCallback onTap;
 
-  const _QuickNeedChip({required this.item});
+  const _QuickNeedChip({required this.item, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x0A000000)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(item.icon, size: 17, color: AppColors.textSecondary),
-          const SizedBox(width: 6),
-          Text(item.label, style: Theme.of(context).textTheme.labelMedium),
-        ],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0x0A000000)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(item.icon, size: 17, color: AppColors.textSecondary),
+            const SizedBox(width: 6),
+            Text(item.label, style: Theme.of(context).textTheme.labelMedium),
+          ],
+        ),
       ),
     );
   }

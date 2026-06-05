@@ -1,6 +1,8 @@
 class Ingredient {
   final String id;
   final String name;
+  final String amount;
+  final String unit;
   final String imageUrl;
   final String category; // 冰箱 / 储藏室 / 生鲜 / 调味
   final bool isLow; // 库存不足标记
@@ -8,6 +10,8 @@ class Ingredient {
   const Ingredient({
     required this.id,
     required this.name,
+    this.amount = '',
+    this.unit = '',
     this.imageUrl = '',
     this.category = '',
     this.isLow = false,
@@ -17,6 +21,8 @@ class Ingredient {
     return Ingredient(
       id: _stringValue(json['id']),
       name: _stringValue(json['name']),
+      amount: _stringValue(json['amount']),
+      unit: _stringValue(json['unit']),
       imageUrl: _stringValue(json['image_url'] ?? json['imageUrl']),
       category: _stringValue(json['category']),
       isLow: _boolValue(json['is_low'] ?? json['isLow']),
@@ -27,6 +33,8 @@ class Ingredient {
     return {
       'id': id,
       'name': name,
+      'amount': amount,
+      'unit': unit,
       'image_url': imageUrl,
       'category': category,
       'is_low': isLow,

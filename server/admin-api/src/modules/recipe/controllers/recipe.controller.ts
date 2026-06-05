@@ -39,7 +39,12 @@ function mapRecipeToFrontend(recipe: any) {
 
 function buildPrismaWhere(query: any) {
   const where: Prisma.RecipeWhereInput = { isDeleted: false };
-  if (query.status) where.status = query.status as ContentStatus;
+  // 默认只显示已发布/已下线的菜谱，草稿和待审核走审核流程
+  if (query.status) {
+    where.status = query.status as ContentStatus;
+  } else {
+    where.status = { in: ['PUBLISHED', 'OFFLINE'] as ContentStatus[] };
+  }
   if (query.dishType) where.dishTypes = { array_contains: query.dishType };
   if (query.keyword) {
     where.OR = [

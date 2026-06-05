@@ -58,7 +58,6 @@ export function buildWhereClause(query: any): any {
     orGroups.push([
       { title: { contains: keyword, mode: 'insensitive' } },
       { description: { contains: keyword, mode: 'insensitive' } },
-      { tags: { has: keyword } },
       { cuisine: { contains: keyword, mode: 'insensitive' } },
     ]);
   }

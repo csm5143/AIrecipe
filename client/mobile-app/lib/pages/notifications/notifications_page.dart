@@ -1,13 +1,13 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+
 import '../../config/theme.dart';
-import '../../providers/collection_provider.dart';
 import '../../models/notification_item.dart';
+import '../../providers/collection_provider.dart';
 import '../../widgets/capsule_toast.dart';
 
-/// 通知列表页
 class NotificationsPage extends ConsumerStatefulWidget {
   const NotificationsPage({super.key});
 
@@ -21,16 +21,12 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final notifications = ref
-        .watch(notificationListProvider)
-        .where((n) => !_deletedIds.contains(n.id))
-        .toList();
-    final today = notifications
-        .where((n) => n.timeAgo.contains('m') || n.timeAgo.contains('h'))
-        .toList();
-    final thisWeek = notifications
-        .where((n) => n.timeAgo == 'Tue' || n.timeAgo == 'Mon')
-        .toList();
+    final notificationsAsync = ref.watch(notificationListProvider);
+    final visibleNotifications =
+        notificationsAsync.valueOrNull
+            ?.where((item) => !_deletedIds.contains(item.id))
+            .toList() ??
+        const <NotificationItem>[];
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -44,10 +40,16 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              setState(() => _readIds.addAll(notifications.map((n) => n.id)));
-              showCapsuleToast(context, '已将通知标记为已读');
-            },
+            onPressed: visibleNotifications.isEmpty
+                ? null
+                : () {
+                    setState(
+                      () => _readIds.addAll(
+                        visibleNotifications.map((item) => item.id),
+                      ),
+                    );
+                    showCapsuleToast(context, '已将通知标记为已读');
+                  },
             child: Text(
               '全部已读',
               style: Theme.of(
@@ -57,36 +59,42 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        children: [
-          if (today.isNotEmpty) ...[
-            _SectionTitle(title: '今天'),
-            ...today.map(_buildTile),
-          ],
-          if (thisWeek.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            _SectionTitle(title: '本周'),
-            ...thisWeek.map(_buildTile),
-          ],
-          if (notifications.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(top: 120),
-              child: Center(
-                child: Text(
-                  '暂无通知',
-                  style: TextStyle(color: AppColors.textSecondary),
-                ),
-              ),
-            ),
-          const SizedBox(height: 100),
-        ],
+      body: notificationsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => _NotificationMessage(
+          icon: Icons.wifi_off_outlined,
+          message: error.toString(),
+          actionLabel: '重试',
+          onAction: () => ref.invalidate(notificationListProvider),
+        ),
+        data: (notifications) {
+          final visible = notifications
+              .where((item) => !_deletedIds.contains(item.id))
+              .toList();
+
+          return RefreshIndicator(
+            onRefresh: () => ref.refresh(notificationListProvider.future),
+            child: visible.isEmpty
+                ? const _NotificationMessage(
+                    icon: Icons.notifications_none_outlined,
+                    message: '暂无通知',
+                  )
+                : ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: [
+                      const _SectionTitle(title: '最新通知'),
+                      ...visible.map(_buildTile),
+                      const SizedBox(height: 100),
+                    ],
+                  ),
+          );
+        },
       ),
     );
   }
 
   Widget _buildTile(NotificationItem notification) {
-    return _NotifTile(
+    return _NotificationTile(
       notification: notification,
       isUnread: notification.isUnread && !_readIds.contains(notification.id),
       onDelete: () {
@@ -99,11 +107,13 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 
 class _SectionTitle extends StatelessWidget {
   final String title;
+
   const _SectionTitle({required this.title});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12, left: 8),
+      padding: const EdgeInsets.only(top: 8, bottom: 12, left: 8),
       child: Text(
         title,
         style: Theme.of(
@@ -114,27 +124,19 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _NotifTile extends StatelessWidget {
+class _NotificationTile extends StatelessWidget {
   final NotificationItem notification;
   final bool isUnread;
   final VoidCallback onDelete;
 
-  const _NotifTile({
+  const _NotificationTile({
     required this.notification,
     required this.isUnread,
     required this.onDelete,
   });
+
   @override
   Widget build(BuildContext context) {
-    final actText = notification.type == NotificationType.ai
-        ? '推荐了新食谱'
-        : notification.type == NotificationType.like
-        ? '赞了'
-        : notification.type == NotificationType.comment
-        ? '评论了'
-        : notification.type == NotificationType.achievement
-        ? '达成成就'
-        : notification.action;
     return Dismissible(
       key: ValueKey(notification.id),
       direction: DismissDirection.endToStart,
@@ -164,36 +166,7 @@ class _NotifTile extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceSecondary,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: const Color(0x0A000000)),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: notification.type == NotificationType.ai
-                    ? const Icon(
-                        Icons.smart_toy,
-                        size: 24,
-                        color: AppColors.textPrimary,
-                      )
-                    : notification.type == NotificationType.achievement
-                    ? const Icon(
-                        Icons.workspace_premium,
-                        size: 24,
-                        color: AppColors.textPrimary,
-                      )
-                    : notification.fromUserAvatar.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: notification.fromUserAvatar,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, _, _) =>
-                            const Icon(Icons.person, size: 24),
-                      )
-                    : const Icon(Icons.person, size: 24),
-              ),
+              _NotificationAvatar(notification: notification),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -213,14 +186,14 @@ class _NotifTile extends StatelessWidget {
                             ),
                           ),
                           TextSpan(
-                            text: ' $actText ',
+                            text: ' ${_actionText(notification)}',
                             style: const TextStyle(
                               color: AppColors.textPrimary,
                             ),
                           ),
                           if (notification.targetName.isNotEmpty)
                             TextSpan(
-                              text: '"${notification.targetName}"',
+                              text: ' "${notification.targetName}"',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w500,
                                 color: AppColors.textPrimary,
@@ -229,13 +202,15 @@ class _NotifTile extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      notification.timeAgo,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.textSecondary,
+                    if (notification.timeAgo.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        notification.timeAgo,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -277,6 +252,111 @@ class _NotifTile extends StatelessWidget {
   }
 }
 
+class _NotificationAvatar extends StatelessWidget {
+  final NotificationItem notification;
+
+  const _NotificationAvatar({required this.notification});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceSecondary,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0x0A000000)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: _avatarChild(),
+    );
+  }
+
+  Widget _avatarChild() {
+    if (notification.type == NotificationType.ai) {
+      return const Icon(
+        Icons.smart_toy,
+        size: 24,
+        color: AppColors.textPrimary,
+      );
+    }
+    if (notification.type == NotificationType.achievement) {
+      return const Icon(
+        Icons.workspace_premium,
+        size: 24,
+        color: AppColors.textPrimary,
+      );
+    }
+    if (notification.type == NotificationType.system) {
+      return const Icon(
+        Icons.campaign_outlined,
+        size: 24,
+        color: AppColors.textPrimary,
+      );
+    }
+    if (notification.fromUserAvatar.isNotEmpty) {
+      return CachedNetworkImage(
+        imageUrl: notification.fromUserAvatar,
+        fit: BoxFit.cover,
+        errorWidget: (_, _, _) => const Icon(Icons.person, size: 24),
+      );
+    }
+    return const Icon(Icons.person, size: 24);
+  }
+}
+
+class _NotificationMessage extends StatelessWidget {
+  final IconData icon;
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  const _NotificationMessage({
+    required this.icon,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        SizedBox(height: MediaQuery.of(context).size.height * 0.24),
+        Icon(icon, size: 42, color: AppColors.textSecondary),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+        if (actionLabel != null && onAction != null) ...[
+          const SizedBox(height: 12),
+          Center(
+            child: TextButton(onPressed: onAction, child: Text(actionLabel!)),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+String _actionText(NotificationItem notification) {
+  if (notification.action.isNotEmpty) return notification.action;
+  return switch (notification.type) {
+    NotificationType.ai => '有新的智能推荐',
+    NotificationType.achievement => '达成了新成就',
+    NotificationType.follow => '关注了你',
+    NotificationType.like => '赞了你的内容',
+    NotificationType.comment => '评论了你的内容',
+    NotificationType.system => '有一条新公告',
+  };
+}
+
 void _openNotificationTarget(
   BuildContext context,
   NotificationItem notification,
@@ -286,17 +366,15 @@ void _openNotificationTarget(
       context.push('/ai/chat');
       return;
     case NotificationType.follow:
-      context.push('/user/1');
-      return;
     case NotificationType.achievement:
     case NotificationType.system:
       context.push('/mine');
       return;
     case NotificationType.like:
-      context.push('/recipe/1');
+      context.push('/my-collections');
       return;
     case NotificationType.comment:
-      context.push('/post/p1');
+      context.push('/collection');
       return;
   }
 }

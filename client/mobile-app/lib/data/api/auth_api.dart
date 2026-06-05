@@ -1,55 +1,61 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../models/user.dart';
 import 'api_helpers.dart';
+import 'auth_storage.dart';
 import 'http_client.dart';
 
 class AuthApi {
   final _dio = HttpClient.instance;
 
-  Future<AuthToken> login(String phone, String password) {
+  Future<AuthSession> login(String phone, String password) {
     return guardApi(() async {
       final response = await _dio.post(
-        '/auth/login',
+        '/wx/phone-login',
         data: {'phone': phone, 'password': password},
       );
-      final token = AuthToken.fromJson(responseMap(response));
-      await _saveToken(token);
-      return token;
+      return _saveSession(responseMap(response));
     });
   }
 
-  Future<AuthToken> register(String phone, String password, String code) {
+  Future<AuthSession> register(String phone, String password, String nickname) {
     return guardApi(() async {
       final response = await _dio.post(
-        '/auth/register',
-        data: {'phone': phone, 'password': password, 'code': code},
+        '/wx/phone-register',
+        data: {'phone': phone, 'password': password, 'nickname': nickname},
       );
-      final token = AuthToken.fromJson(responseMap(response));
-      await _saveToken(token);
-      return token;
+      return _saveSession(responseMap(response));
     });
   }
 
-  Future<AuthToken> refresh() {
+  Future<AppUser> currentUser() {
     return guardApi(() async {
-      final response = await _dio.post('/auth/refresh');
-      final token = AuthToken.fromJson(responseMap(response));
-      await _saveToken(token);
-      return token;
+      final response = await _dio.get('/wx/userinfo');
+      return AppUser.fromJson(responseMap(response));
     });
   }
 
   Future<void> logout() {
     return guardApi(() async {
-      await _dio.post('/auth/logout');
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(HttpClient.tokenKey);
+      await AuthStorage.clearSession();
     });
   }
 
-  Future<void> _saveToken(AuthToken token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(HttpClient.tokenKey, token.accessToken);
+  Future<AuthSession> _saveSession(Map<String, dynamic> json) async {
+    final token = AuthToken.fromJson(json);
+    final user = AppUser.fromJson(json);
+    await AuthStorage.saveSession(
+      token: token.accessToken,
+      refreshToken: token.refreshToken,
+      userId: user.id,
+    );
+    return AuthSession(token: token, user: user);
   }
+}
+
+class AuthSession {
+  final AuthToken token;
+  final AppUser user;
+
+  const AuthSession({required this.token, required this.user});
 }
 
 class AuthToken {

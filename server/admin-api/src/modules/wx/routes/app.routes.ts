@@ -9,6 +9,7 @@ import { wxAuthenticate } from '../middleware/wxAuth.middleware';
 import { prisma } from '../../../lib/prisma';
 import { paginated, success, badRequest } from '../../../types/response';
 import { normalizeCollectionName, canDeleteCollection } from '../utils/collectionRules';
+import { getAiChatSessionMessages, getAiChatSessions, sendAiChatMessage } from '../../../services/aiChatRag.service';
 
 const router: ExpressRouter = Router();
 
@@ -382,6 +383,100 @@ router.delete('/shopping-lists/:id', asyncHandler(async (req, res) => {
 // ============ 浏览历史 ============
 
 /** 记录浏览历史 */
+// ============ AI chat ============
+
+router.post('/ai-chat', asyncHandler(async (req, res) => {
+  const userId = (req as any).userId;
+  const { text, sessionId } = req.body as { text?: string; sessionId?: number | string };
+  const promptText = String(text || '').trim();
+  if (!promptText) {
+    res.status(400).json(badRequest('Missing chat message'));
+    return;
+  }
+
+  try {
+    const result = await sendAiChatMessage({
+      userId,
+      text: promptText,
+      sessionId: sessionId ? Number(sessionId) : undefined,
+    });
+    res.json(success(result));
+  } catch (err: any) {
+    console.error('[WX AI Chat] Error:', err);
+    res.status(500).json(badRequest(`AI chat failed: ${err.message}`));
+  }
+}));
+
+router.get('/ai-chat/sessions', asyncHandler(async (req, res) => {
+  const userId = (req as any).userId;
+  const sessions = await getAiChatSessions(userId);
+  res.json(success(sessions));
+}));
+
+router.get('/ai-chat/sessions/:id/messages', asyncHandler(async (req, res) => {
+  const userId = (req as any).userId;
+  const sessionId = parseInt(req.params.id);
+  const messages = await getAiChatSessionMessages(userId, sessionId);
+  if (!messages) {
+    res.status(404).json({ code: 404, message: 'AI chat session not found', timestamp: Date.now() });
+    return;
+  }
+  res.json(success(messages));
+}));
+
+router.get('/browse-history', asyncHandler(async (req, res) => {
+  const userId = (req as any).userId;
+  const page = parseInt(req.query.page as string) || 1;
+  const pageSize = Math.min(parseInt(req.query.pageSize as string) || 20, 100);
+
+  const [list, total] = await Promise.all([
+    prisma.browseHistory.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: {
+        recipe: {
+          select: {
+            id: true,
+            title: true,
+            coverImage: true,
+            description: true,
+            difficulty: true,
+            cookingTime: true,
+            collectCount: true,
+            authorName: true,
+            authorAvatar: true,
+          },
+        },
+      },
+    }),
+    prisma.browseHistory.count({ where: { userId } }),
+  ]);
+
+  const data = list
+    .filter(item => item.recipe)
+    .map(item => ({
+      id: item.id,
+      recipeId: item.recipeId,
+      source: item.source || '',
+      viewedAt: item.createdAt.getTime(),
+      recipe: {
+        id: item.recipe.id,
+        title: item.recipe.title,
+        coverImage: item.recipe.coverImage || '',
+        description: item.recipe.description || '',
+        difficulty: item.recipe.difficulty?.toLowerCase() || 'normal',
+        cookingTime: item.recipe.cookingTime,
+        collectCount: item.recipe.collectCount || 0,
+        authorName: item.recipe.authorName || '',
+        authorAvatar: item.recipe.authorAvatar || '',
+      },
+    }));
+
+  res.json(paginated(data, { page, pageSize, total }));
+}));
+
 router.post('/browse-history', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const { recipeId } = req.body;
