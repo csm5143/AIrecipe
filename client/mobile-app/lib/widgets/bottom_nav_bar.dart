@@ -129,27 +129,22 @@ class _GlassBottomNavBarState extends ConsumerState<GlassBottomNavBar>
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [const Color(0xF2FFFFFF), const Color(0xD9FFFFFF)],
+              colors: [const Color(0x66FFFFFF), const Color(0x4DFFFFFF)],
             ),
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: const Color(0x22000000), width: 0.7),
+            border: Border.all(color: const Color(0x1A000000), width: 0.5),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF1C1C1E).withAlpha(24),
-                blurRadius: 34,
-                offset: const Offset(0, 14),
-              ),
-              const BoxShadow(
-                color: Color(0x80FFFFFF),
-                blurRadius: 0,
-                offset: Offset(0, 1),
+                color: const Color(0xFF000000).withAlpha(8),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(28),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
               child: Row(
                 children: List.generate(5, (i) {
                   final active = i == _activeIndex || (i == 2 && isOpen);

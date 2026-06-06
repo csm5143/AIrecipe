@@ -2,6 +2,7 @@ class Post {
   final String id;
   final String content;
   final String imageUrl;
+  final List<String> imageUrls;
   final String authorName;
   final String authorAvatar;
   final int likes;
@@ -13,6 +14,7 @@ class Post {
     required this.id,
     required this.content,
     required this.imageUrl,
+    this.imageUrls = const [],
     required this.authorName,
     this.authorAvatar = '',
     this.likes = 0,
@@ -28,13 +30,20 @@ class Post {
       json['content'],
       description.isNotEmpty ? description : title,
     );
+    final images = _stringListValue(json['imageUrls']);
+    final imageUrl = _stringValue(
+      json['image_url'] ?? json['imageUrl'] ?? json['coverImage'],
+    );
 
     return Post(
       id: _stringValue(json['id']),
       content: content,
-      imageUrl: _stringValue(
-        json['image_url'] ?? json['imageUrl'] ?? json['coverImage'],
-      ),
+      imageUrl: imageUrl,
+      imageUrls: images.isNotEmpty
+          ? images
+          : imageUrl.isNotEmpty
+          ? [imageUrl]
+          : const [],
       authorName: _stringValue(json['author_name'] ?? json['authorName']),
       authorAvatar: _stringValue(json['author_avatar'] ?? json['authorAvatar']),
       likes: _intValue(json['likes'] ?? json['favoriteCount']),
@@ -56,6 +65,7 @@ class Post {
       'id': id,
       'content': content,
       'image_url': imageUrl,
+      'imageUrls': imageUrls,
       'author_name': authorName,
       'author_avatar': authorAvatar,
       'likes': likes,
@@ -64,6 +74,14 @@ class Post {
       'time_ago': timeAgo,
     };
   }
+}
+
+List<String> _stringListValue(dynamic value) {
+  if (value is! List) return const [];
+  return value
+      .map((item) => item?.toString().trim() ?? '')
+      .where((item) => item.isNotEmpty)
+      .toList();
 }
 
 String _stringValue(dynamic value, [String fallback = '']) {

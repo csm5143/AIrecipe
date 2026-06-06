@@ -16,3 +16,9 @@ final ingredientApiProvider = Provider<IngredientApi>((ref) => IngredientApi());
 final contentApiProvider = Provider<ContentApi>((ref) => ContentApi());
 
 final userApiProvider = Provider<UserApi>((ref) => UserApi());
+
+final feedbackApiProvider = Provider<FeedbackApi>((ref) => FeedbackApi());
+
+final uploadApiProvider = Provider<UploadApi>((ref) => UploadApi());
+
+final notificationApiProvider = Provider<NotificationApi>((ref) => NotificationApi());

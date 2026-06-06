@@ -1,17 +1,19 @@
 import { Request, Response } from 'express';
+import { Difficulty } from '@prisma/client';
 import { prisma } from '../../../lib/prisma';
 import { badRequest, notFound, paginated, success } from '../../../types/response';
+import { createNotification } from '../../../services/notification.service';
 
 type RecipeStatusInput = 'draft' | 'pending';
 
-function normalizeDifficulty(value: string) {
+function normalizeDifficulty(value: string): Difficulty {
   switch (value) {
     case 'easy':
-      return 'EASY';
+      return Difficulty.EASY;
     case 'hard':
-      return 'HARD';
+      return Difficulty.HARD;
     default:
-      return 'MEDIUM';
+      return Difficulty.MEDIUM;
   }
 }
 
@@ -22,6 +24,15 @@ function normalizeSubmitStatus(value: unknown): 'DRAFT' | 'PENDING' {
 function buildRecipeData(body: any, statusInput: RecipeStatusInput) {
   const status = normalizeSubmitStatus(statusInput);
   const title = (body.title || '').toString().trim();
+  const imageUrls = normalizeImageUrls(body.imageUrls);
+  const steps =
+    Array.isArray(body.steps) && body.steps.length > 0
+      ? body.steps
+      : imageUrls.map((url, index) => ({
+          step: index + 1,
+          description: '',
+          image: url,
+        }));
 
   if (status === 'PENDING' && !title) {
     throw new Error('Title is required before submitting for review');
@@ -29,13 +40,13 @@ function buildRecipeData(body: any, statusInput: RecipeStatusInput) {
 
   return {
     title: title || 'Untitled recipe',
-    coverImage: body.coverImage || '',
+    coverImage: body.coverImage || imageUrls[0] || '',
     description: body.description?.toString().trim() || '',
     difficulty: normalizeDifficulty(body.difficulty),
     cookingTime: parseInt(body.cookingTime) || 30,
     servings: parseInt(body.servings) || 2,
     ingredients: Array.isArray(body.ingredients) ? body.ingredients : [],
-    steps: Array.isArray(body.steps) ? body.steps : [],
+    steps,
     tips: body.tips || '',
     tags: Array.isArray(body.tags) ? body.tags : [],
     mealTimes: Array.isArray(body.mealTimes) ? body.mealTimes : [],
@@ -43,6 +54,21 @@ function buildRecipeData(body: any, statusInput: RecipeStatusInput) {
     status,
     publishedAt: status === 'PENDING' ? null : undefined,
   };
+}
+
+function normalizeImageUrls(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => item?.toString().trim() || '')
+    .filter(Boolean);
+}
+
+function imageUrlsFromSteps(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item: any) => item?.image || item?.imageUrl || '')
+    .map((url: any) => url?.toString().trim() || '')
+    .filter(Boolean);
 }
 
 async function getAuthor(userId: number) {
@@ -249,6 +275,21 @@ export async function toggleLike(req: Request, res: Response) {
     await prisma.favorite.create({ data: { userId, recipeId: id } });
     favoriteCount += 1;
     liked = true;
+
+    // 通知菜谱作者（不自赞）
+    if (recipe.authorId && recipe.authorId !== userId) {
+      const liker = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { nickname: true },
+      });
+      createNotification({
+        userId: recipe.authorId,
+        type: 'RECIPE_LIKED',
+        title: '有人赞了你的菜谱',
+        content: `${liker?.nickname || '有用户'} 赞了你的菜谱「${recipe.title}」`,
+        data: { recipeId: recipe.id, recipeTitle: recipe.title, likerId: userId, likerName: liker?.nickname || '' },
+      });
+    }
   }
 
   await prisma.recipe.update({
@@ -290,6 +331,7 @@ function formatRecipeResponse(item: any) {
     servings: item.servings,
     ingredients: item.ingredients || [],
     steps: item.steps || [],
+    imageUrls: imageUrlsFromSteps(item.steps),
     tips: item.tips || '',
     tags: item.tags || [],
     mealTimes: item.mealTimes || [],

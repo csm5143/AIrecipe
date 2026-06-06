@@ -8,7 +8,7 @@ class UserApi {
   Future<AppUser> getUserProfile(String id) {
     return guardApi(() async {
       final response = await _dio.get(
-        id == 'me' ? '/wx/userinfo' : '/users/$id',
+        id == 'me' ? '/wx/userinfo' : '/wx/app/users/$id',
       );
       return AppUser.fromJson(responseMap(response));
     });
@@ -31,13 +31,13 @@ class UserApi {
 
   Future<void> followUser(String id) {
     return guardApi(() async {
-      await _dio.post('/users/$id/follow');
+      await _dio.post('/wx/app/users/$id/follow');
     });
   }
 
   Future<void> unfollowUser(String id) {
     return guardApi(() async {
-      await _dio.delete('/users/$id/follow');
+      await _dio.delete('/wx/app/users/$id/follow');
     });
   }
 }

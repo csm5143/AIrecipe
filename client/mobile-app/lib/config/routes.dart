@@ -4,6 +4,7 @@ import '../pages/home/home_page.dart';
 import '../pages/ai/ai_entry_page.dart';
 import '../pages/ai/chat_page.dart';
 import '../pages/collection/collection_page.dart';
+import '../pages/collection/collection_detail_page.dart';
 import '../pages/mine/mine_page.dart';
 import '../pages/login/login_page.dart';
 import '../pages/recipe_detail/recipe_detail_page.dart';
@@ -90,7 +91,9 @@ final goRouter = GoRouter(
     GoRoute(
       path: '/ai/chat',
       builder: (context, state) => ChatPage(
-        initialPrompt: state.extra is String ? state.extra as String : '',
+        initialPrompt: state.extra is String
+            ? state.extra as String
+            : state.uri.queryParameters['prompt'] ?? '',
         initialSessionId: state.uri.queryParameters['session'] ?? '',
       ),
     ),
@@ -163,6 +166,11 @@ final goRouter = GoRouter(
     GoRoute(
       path: '/settings/about',
       builder: (context, state) => const AboutPage(),
+    ),
+    GoRoute(
+      path: '/collection/:id',
+      builder: (context, state) =>
+          CollectionDetailPage(collectionId: state.pathParameters['id'] ?? '0'),
     ),
     GoRoute(path: '/drafts', builder: (context, state) => const DraftsPage()),
     GoRoute(path: '/history', builder: (context, state) => const HistoryPage()),

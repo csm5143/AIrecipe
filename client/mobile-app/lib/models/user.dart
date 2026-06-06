@@ -9,6 +9,8 @@ class AppUser {
   final int following;
   final int works;
   final int collections;
+  final bool isFollowing;
+  final List<PublicCollection> publicCollections;
 
   const AppUser({
     required this.id,
@@ -21,6 +23,8 @@ class AppUser {
     this.following = 0,
     this.works = 0,
     this.collections = 0,
+    this.isFollowing = false,
+    this.publicCollections = const [],
   });
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
@@ -35,6 +39,10 @@ class AppUser {
       following: _intValue(json['following']),
       works: _intValue(json['works']),
       collections: _intValue(json['collections']),
+      isFollowing: _boolValue(json['isFollowing'] ?? json['is_following']),
+      publicCollections: _listValue(
+        json['publicCollections'],
+      ).map((item) => PublicCollection.fromJson(mapValue(item))).toList(),
     );
   }
 
@@ -50,6 +58,46 @@ class AppUser {
       'following': following,
       'works': works,
       'collections': collections,
+      'is_following': isFollowing,
+      'public_collections': publicCollections
+          .map((item) => item.toJson())
+          .toList(),
+    };
+  }
+}
+
+class PublicCollection {
+  final String id;
+  final String name;
+  final String description;
+  final String coverImage;
+  final int itemCount;
+
+  const PublicCollection({
+    required this.id,
+    required this.name,
+    this.description = '',
+    this.coverImage = '',
+    this.itemCount = 0,
+  });
+
+  factory PublicCollection.fromJson(Map<String, dynamic> json) {
+    return PublicCollection(
+      id: _stringValue(json['id']),
+      name: _stringValue(json['name']),
+      description: _stringValue(json['description']),
+      coverImage: _stringValue(json['coverImage'] ?? json['cover_image']),
+      itemCount: _intValue(json['itemCount'] ?? json['item_count']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'coverImage': coverImage,
+      'itemCount': itemCount,
     };
   }
 }
@@ -62,4 +110,24 @@ int _intValue(dynamic value, [int fallback = 0]) {
   if (value is int) return value;
   if (value is num) return value.toInt();
   return int.tryParse(value?.toString() ?? '') ?? fallback;
+}
+
+bool _boolValue(dynamic value, [bool fallback = false]) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  final normalized = value?.toString().toLowerCase();
+  if (normalized == 'true') return true;
+  if (normalized == 'false') return false;
+  return fallback;
+}
+
+List<dynamic> _listValue(dynamic value) {
+  if (value is List) return value;
+  return const [];
+}
+
+Map<String, dynamic> mapValue(dynamic value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) return Map<String, dynamic>.from(value);
+  return <String, dynamic>{};
 }

@@ -1,5 +1,3 @@
-import 'dart:io';
-import 'package:dio/dio.dart';
 import '../../models/ingredient.dart';
 import 'api_helpers.dart';
 import 'http_client.dart';
@@ -42,18 +40,21 @@ class IngredientApi {
     });
   }
 
-  Future<List<Ingredient>> recognizeImage(File file) {
+  Future<List<String>> recognizeImageUrl(String imageUrl) {
     return guardApi(() async {
-      final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(file.path),
-      });
       final response = await _dio.post(
-        '/ingredients/recognize',
-        data: formData,
+        '/app/recognize',
+        data: {'imageUrl': imageUrl},
       );
-      return responseList(
-        response,
-      ).map((item) => Ingredient.fromJson(mapValue(item))).toList();
+      final body = responseMap(response);
+      final ingredients = body['ingredients'];
+      if (ingredients is List) {
+        return ingredients
+            .map((item) => item.toString().trim())
+            .where((item) => item.isNotEmpty)
+            .toList();
+      }
+      return const [];
     });
   }
 }

@@ -1,26 +1,34 @@
+import 'dart:io';
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+
 import '../../config/theme.dart';
+import '../../models/ingredient.dart';
+import '../../providers/api_providers.dart';
+import '../../providers/collection_provider.dart';
 import '../../widgets/capsule_toast.dart';
 
-class ScanPage extends StatefulWidget {
+class ScanPage extends ConsumerStatefulWidget {
   const ScanPage({super.key});
 
   @override
-  State<ScanPage> createState() => _ScanPageState();
+  ConsumerState<ScanPage> createState() => _ScanPageState();
 }
 
-class _ScanPageState extends State<ScanPage>
+class _ScanPageState extends ConsumerState<ScanPage>
     with SingleTickerProviderStateMixin {
+  final _picker = ImagePicker();
   late final AnimationController _scanCtrl;
-  bool _hasScanned = false;
 
-  static const _detectedItems = [
-    _DetectedIngredient('番茄', '2 个', '98%', Icons.local_pizza_outlined),
-    _DetectedIngredient('鸡蛋', '4 个', '95%', Icons.egg_alt_outlined),
-    _DetectedIngredient('生菜', '1 棵', '92%', Icons.eco_outlined),
-  ];
+  File? _imageFile;
+  List<_DetectedIngredient> _detectedItems = const [];
+  bool _hasScanned = false;
+  bool _recognizing = false;
+  bool _adding = false;
 
   @override
   void initState() {
@@ -37,32 +45,13 @@ class _ScanPageState extends State<ScanPage>
     super.dispose();
   }
 
-  void _capture() {
-    setState(() => _hasScanned = true);
-    showCapsuleToast(context, '已识别 3 种食材', icon: Icons.auto_awesome);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          Positioned.fill(
-            child: Image.network(
-              'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=900&q=80',
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFFE7F0E8), Color(0xFFF7E7D7)],
-                  ),
-                ),
-              ),
-            ),
-          ),
+          Positioned.fill(child: _CameraPreviewBackground(file: _imageFile)),
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -102,7 +91,7 @@ class _ScanPageState extends State<ScanPage>
                   const Spacer(),
                   _GlassIconButton(
                     icon: Icons.help_outline,
-                    onTap: () => showCapsuleToast(context, '请让食材完整出现在取景框内'),
+                    onTap: () => showCapsuleToast(context, '请让食材完整出现在画面内'),
                   ),
                 ],
               ),
@@ -171,18 +160,21 @@ class _ScanPageState extends State<ScanPage>
                         );
                       },
                     ),
-                    if (_hasScanned) ...[
-                      const Positioned(
-                        left: 52,
-                        top: 104,
-                        child: _DetectBox(label: '番茄', confidence: '98%'),
-                      ),
-                      const Positioned(
-                        right: 44,
-                        top: 238,
-                        child: _DetectBox(label: '鸡蛋', confidence: '95%'),
-                      ),
-                    ],
+                    if (_hasScanned)
+                      ..._detectedItems.take(2).toList().asMap().entries.map((
+                        entry,
+                      ) {
+                        final first = entry.key == 0;
+                        return Positioned(
+                          left: first ? 52 : null,
+                          right: first ? null : 44,
+                          top: first ? 104 : 238,
+                          child: _DetectBox(
+                            label: entry.value.name,
+                            confidence: entry.value.confidence,
+                          ),
+                        );
+                      }),
                   ],
                 ),
               ),
@@ -199,35 +191,178 @@ class _ScanPageState extends State<ScanPage>
                 children: [
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 260),
-                    child: _hasScanned
-                        ? _ResultPanel(
-                            key: const ValueKey('result'),
-                            items: _detectedItems,
-                            onAdd: () => showCapsuleToast(
-                              context,
-                              '已加入小冰箱',
-                              icon: Icons.kitchen_outlined,
-                            ),
-                            onRecipe: () => context.push('/ai/chat'),
-                          )
-                        : const _HintPill(
-                            key: ValueKey('hint'),
-                            text: '将食材放入取景框，点击快门开始识别',
-                          ),
+                    child: _buildBottomPanel(),
                   ),
                   const SizedBox(height: 14),
                   _CaptureBar(
                     hasScanned: _hasScanned,
-                    onFlash: () => showCapsuleToast(context, '闪光灯已切换'),
-                    onCapture: _capture,
-                    onAlbum: () => showCapsuleToast(context, '相册选择稍后接入'),
-                    onReset: () => setState(() => _hasScanned = false),
+                    isBusy: _recognizing,
+                    onFlash: () => showCapsuleToast(context, '闪光灯请在系统相机中设置'),
+                    onCapture: () => _pickAndRecognize(ImageSource.camera),
+                    onAlbum: () => _pickAndRecognize(ImageSource.gallery),
+                    onReset: _reset,
                   ),
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBottomPanel() {
+    if (_recognizing) {
+      return const _HintPill(
+        key: ValueKey('recognizing'),
+        text: '正在识别食材...',
+        loading: true,
+      );
+    }
+
+    if (_hasScanned) {
+      return _ResultPanel(
+        key: const ValueKey('result'),
+        items: _detectedItems,
+        adding: _adding,
+        onAdd: _addToFridge,
+        onRecipe: _generateRecipe,
+      );
+    }
+
+    return const _HintPill(key: ValueKey('hint'), text: '将食材放入画面，点击快门开始识别');
+  }
+
+  Future<void> _pickAndRecognize(ImageSource source) async {
+    if (_recognizing) return;
+
+    try {
+      final picked = await _picker.pickImage(source: source, imageQuality: 85);
+      if (!mounted || picked == null) return;
+
+      final file = File(picked.path);
+      setState(() {
+        _imageFile = file;
+        _detectedItems = const [];
+        _hasScanned = false;
+        _recognizing = true;
+      });
+
+      final imageUrl = await ref
+          .read(uploadApiProvider)
+          .uploadImage(file.path, folder: 'ai-scan');
+      final names = await ref
+          .read(ingredientApiProvider)
+          .recognizeImageUrl(imageUrl);
+      final items = _uniqueNames(
+        names,
+      ).map(_DetectedIngredient.fromName).toList(growable: false);
+
+      if (!mounted) return;
+      setState(() {
+        _detectedItems = items;
+        _hasScanned = true;
+      });
+      showCapsuleToast(
+        context,
+        items.isEmpty ? '未识别到清晰食材' : '已识别 ${items.length} 种食材',
+        icon: Icons.auto_awesome,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      showCapsuleToast(context, '识别失败：$error', icon: Icons.error_outline);
+    } finally {
+      if (mounted) {
+        setState(() => _recognizing = false);
+      }
+    }
+  }
+
+  Future<void> _addToFridge() async {
+    if (_detectedItems.isEmpty || _adding) return;
+
+    setState(() => _adding = true);
+    try {
+      final api = ref.read(ingredientApiProvider);
+      for (final item in _detectedItems) {
+        await api.addToFridge(
+          Ingredient(
+            id: '',
+            name: item.name,
+            amount: '1',
+            unit: '份',
+            category: 'other',
+          ),
+        );
+      }
+      await ref.read(ingredientListProvider.notifier).load();
+
+      if (!mounted) return;
+      showCapsuleToast(context, '已加入小冰箱', icon: Icons.kitchen_outlined);
+    } catch (error) {
+      if (!mounted) return;
+      showCapsuleToast(context, '添加失败：$error', icon: Icons.error_outline);
+    } finally {
+      if (mounted) {
+        setState(() => _adding = false);
+      }
+    }
+  }
+
+  void _generateRecipe() {
+    if (_detectedItems.isEmpty) {
+      showCapsuleToast(context, '请先识别食材', icon: Icons.info_outline);
+      return;
+    }
+
+    final prompt = _detectedItems.map((item) => item.name).join('、');
+    context.push('/ai/chat?prompt=${Uri.encodeQueryComponent(prompt)}');
+  }
+
+  void _reset() {
+    setState(() {
+      _imageFile = null;
+      _detectedItems = const [];
+      _hasScanned = false;
+    });
+  }
+
+  List<String> _uniqueNames(List<String> names) {
+    final seen = <String>{};
+    final unique = <String>[];
+    for (final rawName in names) {
+      final name = rawName.replaceAll(RegExp(r'^[\d\.\-\s、]+'), '').trim();
+      if (name.isEmpty || seen.contains(name)) continue;
+      seen.add(name);
+      unique.add(name);
+    }
+    return unique;
+  }
+}
+
+class _CameraPreviewBackground extends StatelessWidget {
+  final File? file;
+
+  const _CameraPreviewBackground({required this.file});
+
+  @override
+  Widget build(BuildContext context) {
+    final imageFile = file;
+    if (imageFile != null) {
+      return Image.file(imageFile, fit: BoxFit.cover);
+    }
+
+    return Image.network(
+      'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=900&q=80',
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFE7F0E8), Color(0xFFF7E7D7)],
+          ),
+        ),
       ),
     );
   }
@@ -333,8 +468,9 @@ class _DetectBox extends StatelessWidget {
 
 class _HintPill extends StatelessWidget {
   final String text;
+  final bool loading;
 
-  const _HintPill({super.key, required this.text});
+  const _HintPill({super.key, required this.text, this.loading = false});
 
   @override
   Widget build(BuildContext context) {
@@ -344,14 +480,29 @@ class _HintPill extends StatelessWidget {
         color: const Color(0xE6FFFFFF),
         borderRadius: BorderRadius.circular(22),
       ),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (loading) ...[
+            const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Flexible(
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -359,12 +510,14 @@ class _HintPill extends StatelessWidget {
 
 class _ResultPanel extends StatelessWidget {
   final List<_DetectedIngredient> items;
+  final bool adding;
   final VoidCallback onAdd;
   final VoidCallback onRecipe;
 
   const _ResultPanel({
     super.key,
     required this.items,
+    required this.adding,
     required this.onAdd,
     required this.onRecipe,
   });
@@ -411,15 +564,33 @@ class _ResultPanel extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              ...items.map((item) => _IngredientRow(item: item)),
+              if (items.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    '暂未识别到清晰食材，可以重新拍摄一张更明亮的照片。',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                )
+              else
+                ...items.map((item) => _IngredientRow(item: item)),
               const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: onAdd,
-                      icon: const Icon(Icons.kitchen_outlined, size: 18),
-                      label: const Text('加入冰箱'),
+                      onPressed: items.isEmpty || adding ? null : onAdd,
+                      icon: adding
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.kitchen_outlined, size: 18),
+                      label: Text(adding ? '加入中' : '加入冰箱'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.textPrimary,
                         side: const BorderSide(color: AppColors.divider),
@@ -432,7 +603,7 @@ class _ResultPanel extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: FilledButton.icon(
-                      onPressed: onRecipe,
+                      onPressed: items.isEmpty ? null : onRecipe,
                       icon: const Icon(Icons.auto_awesome, size: 18),
                       label: const Text('生成菜谱'),
                       style: FilledButton.styleFrom(
@@ -500,6 +671,7 @@ class _IngredientRow extends StatelessWidget {
 
 class _CaptureBar extends StatelessWidget {
   final bool hasScanned;
+  final bool isBusy;
   final VoidCallback onFlash;
   final VoidCallback onCapture;
   final VoidCallback onAlbum;
@@ -507,6 +679,7 @@ class _CaptureBar extends StatelessWidget {
 
   const _CaptureBar({
     required this.hasScanned,
+    required this.isBusy,
     required this.onFlash,
     required this.onCapture,
     required this.onAlbum,
@@ -531,10 +704,10 @@ class _CaptureBar extends StatelessWidget {
             children: [
               _RoundToolButton(
                 icon: hasScanned ? Icons.refresh : Icons.flash_on,
-                onTap: hasScanned ? onReset : onFlash,
+                onTap: isBusy ? null : (hasScanned ? onReset : onFlash),
               ),
               GestureDetector(
-                onTap: onCapture,
+                onTap: isBusy ? null : onCapture,
                 child: Container(
                   width: 78,
                   height: 78,
@@ -558,20 +731,27 @@ class _CaptureBar extends StatelessWidget {
                         shape: BoxShape.circle,
                         border: Border.all(color: const Color(0x33000000)),
                       ),
-                      child: Icon(
-                        hasScanned ? Icons.check : Icons.center_focus_strong,
-                        color: hasScanned
-                            ? Colors.white
-                            : AppColors.textPrimary,
-                        size: 30,
-                      ),
+                      child: isBusy
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Icon(
+                              hasScanned
+                                  ? Icons.check
+                                  : Icons.center_focus_strong,
+                              color: hasScanned
+                                  ? Colors.white
+                                  : AppColors.textPrimary,
+                              size: 30,
+                            ),
                     ),
                   ),
                 ),
               ),
               _RoundToolButton(
                 icon: Icons.photo_library_outlined,
-                onTap: onAlbum,
+                onTap: isBusy ? null : onAlbum,
               ),
             ],
           ),
@@ -583,7 +763,7 @@ class _CaptureBar extends StatelessWidget {
 
 class _RoundToolButton extends StatelessWidget {
   final IconData icon;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _RoundToolButton({required this.icon, required this.onTap});
 
@@ -591,14 +771,17 @@ class _RoundToolButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: const Color(0x80FFFFFF),
-          borderRadius: BorderRadius.circular(24),
+      child: Opacity(
+        opacity: onTap == null ? 0.5 : 1,
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: const Color(0x80FFFFFF),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Icon(icon, color: AppColors.textPrimary),
         ),
-        child: Icon(icon, color: AppColors.textPrimary),
       ),
     );
   }
@@ -610,5 +793,36 @@ class _DetectedIngredient {
   final String confidence;
   final IconData icon;
 
-  const _DetectedIngredient(this.name, this.amount, this.confidence, this.icon);
+  const _DetectedIngredient({
+    required this.name,
+    required this.amount,
+    required this.confidence,
+    required this.icon,
+  });
+
+  factory _DetectedIngredient.fromName(String name) {
+    return _DetectedIngredient(
+      name: name,
+      amount: '1 份',
+      confidence: '已识别',
+      icon: _iconFor(name),
+    );
+  }
+
+  static IconData _iconFor(String name) {
+    if (name.contains('蛋')) return Icons.egg_alt_outlined;
+    if (name.contains('菜') || name.contains('葱') || name.contains('香')) {
+      return Icons.eco_outlined;
+    }
+    if (name.contains('肉') || name.contains('鸡') || name.contains('牛')) {
+      return Icons.restaurant_menu_outlined;
+    }
+    if (name.contains('鱼') || name.contains('虾')) {
+      return Icons.set_meal_outlined;
+    }
+    if (name.contains('米') || name.contains('面')) {
+      return Icons.rice_bowl_outlined;
+    }
+    return Icons.local_pizza_outlined;
+  }
 }

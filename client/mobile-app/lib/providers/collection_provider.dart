@@ -41,8 +41,15 @@ final postByIdProvider = FutureProvider.family<Post, String>((ref, id) {
 final notificationListProvider = FutureProvider<List<NotificationItem>>((
   ref,
 ) async {
-  final notices = await ref.read(contentApiProvider).getNotices();
-  return notices.map(NotificationItem.fromJson).toList();
+  final result = await ref.read(notificationApiProvider).getNotifications();
+  final list = result['list'] as List? ?? [];
+  return list
+      .map((item) => NotificationItem.fromJson(item as Map<String, dynamic>))
+      .toList();
+});
+
+final unreadNotificationCountProvider = FutureProvider<int>((ref) async {
+  return ref.read(notificationApiProvider).getUnreadCount();
 });
 
 class FridgeNotifier extends StateNotifier<List<Ingredient>> {

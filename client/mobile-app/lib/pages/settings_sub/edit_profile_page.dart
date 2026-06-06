@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../config/theme.dart';
+import '../../providers/api_providers.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/capsule_toast.dart';
 
@@ -18,12 +20,31 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   final _bioCtrl = TextEditingController();
   String _gender = 'UNKNOWN';
   bool _didHydrate = false;
+  bool _uploading = false;
 
   @override
   void dispose() {
     _nickCtrl.dispose();
     _bioCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAvatar() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, maxWidth: 512);
+    if (picked == null || !mounted) return;
+
+    setState(() => _uploading = true);
+    try {
+      final url = await ref.read(uploadApiProvider).uploadAvatar(picked.path);
+      await ref.read(authControllerProvider.notifier).updateProfile({'avatar': url});
+      if (!mounted) return;
+      showCapsuleToast(context, '头像已更新', icon: Icons.check_circle_outline);
+    } catch (_) {
+      if (mounted) showCapsuleToast(context, '上传失败，请稍后再试', icon: Icons.error_outline);
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
   }
 
   Future<void> _save() async {
@@ -89,50 +110,55 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         child: Column(
           children: [
             const SizedBox(height: 16),
-            Center(
-              child: Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 64,
-                    backgroundColor: AppColors.surfaceSecondary,
-                    backgroundImage: (user?.avatar.isNotEmpty ?? false)
-                        ? NetworkImage(user!.avatar)
-                        : null,
-                    child: (user?.avatar.isNotEmpty ?? false)
-                        ? null
-                        : const Icon(
-                            Icons.person,
-                            size: 64,
-                            color: AppColors.textSecondary,
+            GestureDetector(
+              onTap: _uploading ? null : _pickAvatar,
+              child: Center(
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 64,
+                      backgroundColor: AppColors.surfaceSecondary,
+                      backgroundImage: (user?.avatar.isNotEmpty ?? false)
+                          ? NetworkImage(user!.avatar)
+                          : null,
+                      child: _uploading
+                          ? const CircularProgressIndicator(strokeWidth: 2)
+                          : (user?.avatar.isNotEmpty ?? false)
+                              ? null
+                              : const Icon(
+                                  Icons.person,
+                                  size: 64,
+                                  color: AppColors.textSecondary,
+                                ),
+                    ),
+                    Positioned(
+                      bottom: 4,
+                      right: 4,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: AppColors.textPrimary,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.background,
+                            width: 2,
                           ),
-                  ),
-                  Positioned(
-                    bottom: 4,
-                    right: 4,
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: AppColors.textPrimary,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.background,
-                          width: 2,
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          size: 16,
+                          color: AppColors.surface,
                         ),
                       ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        size: 16,
-                        color: AppColors.surface,
-                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              '头像上传稍后接入',
+              _uploading ? '上传中...' : '点击更换头像',
               style: Theme.of(
                 context,
               ).textTheme.labelSmall?.copyWith(color: AppColors.textSecondary),

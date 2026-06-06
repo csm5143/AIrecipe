@@ -1,10 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/glass_theme.dart';
 import '../../config/theme.dart';
+import '../../data/api/app_exception.dart';
 import '../../models/post.dart';
+import '../../providers/api_providers.dart';
 import '../../providers/collection_provider.dart';
 import '../../widgets/capsule_toast.dart';
 
@@ -33,7 +36,7 @@ class PostDetailPage extends ConsumerWidget {
                 : context.go('/'),
           ),
         ),
-        body: _PostDetailMessage(
+        body: _MessageState(
           message: error.toString(),
           onRetry: () => ref.invalidate(postByIdProvider(postId)),
         ),
@@ -43,79 +46,70 @@ class PostDetailPage extends ConsumerWidget {
   }
 }
 
-class _PostDetailMessage extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-
-  const _PostDetailMessage({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.article_outlined,
-              size: 42,
-              color: AppColors.textSecondary,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 12),
-            TextButton(onPressed: onRetry, child: const Text('重试')),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PostDetailContent extends StatefulWidget {
+class _PostDetailContent extends ConsumerStatefulWidget {
   final Post post;
 
   const _PostDetailContent({required this.post});
 
   @override
-  State<_PostDetailContent> createState() => _PostDetailContentState();
+  ConsumerState<_PostDetailContent> createState() => _PostDetailContentState();
 }
 
-class _PostDetailContentState extends State<_PostDetailContent> {
+class _PostDetailContentState extends ConsumerState<_PostDetailContent> {
   final _scrollController = ScrollController();
-  final _commentController = TextEditingController();
-  final _commentFocus = FocusNode();
   final _commentsKey = GlobalKey();
-  bool _liked = false;
-  bool _bookmarked = false;
-  bool _following = false;
+  var _liked = false;
+  var _likeBusy = false;
+  late int _likes = widget.post.likes;
 
   @override
   void dispose() {
     _scrollController.dispose();
-    _commentController.dispose();
-    _commentFocus.dispose();
     super.dispose();
+  }
+
+  Future<void> _toggleLike() async {
+    if (_likeBusy) return;
+    setState(() => _likeBusy = true);
+    try {
+      final updated = await ref.read(postApiProvider).likePost(widget.post.id);
+      if (!mounted) return;
+      setState(() {
+        _liked = !_liked;
+        _likes = updated.likes;
+      });
+      ref.invalidate(postByIdProvider(widget.post.id));
+      ref.invalidate(postListProvider);
+    } catch (error) {
+      final message = error is AppException ? error.message : error.toString();
+      if (mounted) {
+        showCapsuleToast(context, message, icon: Icons.error_outline);
+      }
+    } finally {
+      if (mounted) setState(() => _likeBusy = false);
+    }
+  }
+
+  void _bookmark() {
+    showCapsuleToast(context, '收藏功能开发中', icon: Icons.bookmark_border);
+  }
+
+  Future<void> _share() async {
+    final link = 'airecipe://post/${widget.post.id}';
+    await Clipboard.setData(ClipboardData(text: link));
+    if (!mounted) return;
+    showCapsuleToast(context, '链接已复制', icon: Icons.ios_share);
   }
 
   void _scrollToComments() {
     final context = _commentsKey.currentContext;
-    if (context != null) {
-      Scrollable.ensureVisible(
-        context,
-        duration: const Duration(milliseconds: 420),
-        curve: Curves.easeOutCubic,
-        alignment: 0.08,
-      );
-    }
-    Future.delayed(const Duration(milliseconds: 260), () {
-      if (mounted) _commentFocus.requestFocus();
-    });
+    if (context == null) return;
+    Scrollable.ensureVisible(
+      context,
+      duration: const Duration(milliseconds: 420),
+      curve: Curves.easeOutCubic,
+      alignment: 0.08,
+    );
   }
 
   void _showMoreMenu() {
@@ -141,28 +135,32 @@ class _PostDetailContentState extends State<_PostDetailContent> {
               _SheetAction(
                 icon: Icons.ios_share,
                 label: '分享帖子',
-                onTap: () => _closeWithSnack('分享面板稍后接入'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _share();
+                },
               ),
               _SheetAction(
                 icon: Icons.flag_outlined,
                 label: '举报内容',
-                onTap: () => _closeWithSnack('已收到举报入口'),
+                onTap: () {
+                  Navigator.pop(context);
+                  showCapsuleToast(context, '举报入口开发中');
+                },
               ),
               _SheetAction(
                 icon: Icons.visibility_off_outlined,
                 label: '不感兴趣',
-                onTap: () => _closeWithSnack('将减少类似内容推荐'),
+                onTap: () {
+                  Navigator.pop(context);
+                  showCapsuleToast(context, '将减少类似内容推荐');
+                },
               ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  void _closeWithSnack(String message) {
-    Navigator.pop(context);
-    showCapsuleToast(context, message);
   }
 
   @override
@@ -199,12 +197,7 @@ class _PostDetailContentState extends State<_PostDetailContent> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _AuthorRow(
-                        post: post,
-                        following: _following,
-                        onToggleFollow: () =>
-                            setState(() => _following = !_following),
-                      ),
+                      _AuthorRow(post: post),
                       const SizedBox(height: 16),
                       Text(
                         post.content,
@@ -212,20 +205,18 @@ class _PostDetailContentState extends State<_PostDetailContent> {
                           context,
                         ).textTheme.bodyLarge?.copyWith(height: 1.55),
                       ),
-                      const SizedBox(height: 16),
-                      _PostImage(imageUrl: post.imageUrl),
+                      if (post.imageUrls.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        _PostImages(imageUrls: post.imageUrls),
+                      ],
                       const SizedBox(height: 16),
                       _EngagementRow(
-                        likes: post.likes + (_liked ? 1 : 0),
+                        likes: _likes,
                         comments: post.comments,
-                        favorites: post.favorites + (_bookmarked ? 1 : 0),
+                        favorites: post.favorites,
                       ),
                       const SizedBox(height: 28),
-                      _CommentsSection(
-                        key: _commentsKey,
-                        controller: _commentController,
-                        focusNode: _commentFocus,
-                      ),
+                      _CommentsSection(key: _commentsKey),
                     ],
                   ),
                 ),
@@ -238,10 +229,11 @@ class _PostDetailContentState extends State<_PostDetailContent> {
             bottom: 16 + MediaQuery.of(context).padding.bottom,
             child: _BottomActionBar(
               liked: _liked,
-              bookmarked: _bookmarked,
-              onLike: () => setState(() => _liked = !_liked),
-              onBookmark: () => setState(() => _bookmarked = !_bookmarked),
+              likeBusy: _likeBusy,
+              onLike: _toggleLike,
+              onBookmark: _bookmark,
               onComment: _scrollToComments,
+              onShare: _share,
             ),
           ),
         ],
@@ -252,14 +244,8 @@ class _PostDetailContentState extends State<_PostDetailContent> {
 
 class _AuthorRow extends StatelessWidget {
   final Post post;
-  final bool following;
-  final VoidCallback onToggleFollow;
 
-  const _AuthorRow({
-    required this.post,
-    required this.following,
-    required this.onToggleFollow,
-  });
+  const _AuthorRow({required this.post});
 
   @override
   Widget build(BuildContext context) {
@@ -297,7 +283,7 @@ class _AuthorRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  post.authorName,
+                  post.authorName.isEmpty ? '小厨子用户' : post.authorName,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
@@ -311,29 +297,6 @@ class _AuthorRow extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-          ),
-          GestureDetector(
-            onTap: onToggleFollow,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-              decoration: BoxDecoration(
-                color: following
-                    ? AppColors.surfaceSecondary
-                    : AppColors.textPrimary,
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Text(
-                following ? '已关注' : '关注',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: following
-                      ? AppColors.textSecondary
-                      : AppColors.surface,
-                ),
-              ),
             ),
           ),
         ],
@@ -353,30 +316,44 @@ class _PostImage extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: AspectRatio(
         aspectRatio: 1,
-        child: imageUrl.isEmpty
-            ? const _PostImageFallback()
-            : CachedNetworkImage(
-                imageUrl: imageUrl,
-                fit: BoxFit.cover,
-                errorWidget: (_, _, _) => const _PostImageFallback(),
-              ),
+        child: CachedNetworkImage(
+          imageUrl: imageUrl,
+          fit: BoxFit.cover,
+          errorWidget: (_, _, _) => Container(
+            color: AppColors.surfaceSecondary,
+            child: const Icon(
+              Icons.restaurant,
+              size: 48,
+              color: AppColors.textPlaceholder,
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
-class _PostImageFallback extends StatelessWidget {
-  const _PostImageFallback();
+class _PostImages extends StatelessWidget {
+  final List<String> imageUrls;
+
+  const _PostImages({required this.imageUrls});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.surfaceSecondary,
-      child: const Icon(
-        Icons.restaurant,
-        size: 48,
-        color: AppColors.textPlaceholder,
+    if (imageUrls.length == 1) {
+      return _PostImage(imageUrl: imageUrls.first);
+    }
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: imageUrls.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
       ),
+      itemBuilder: (context, index) => _PostImage(imageUrl: imageUrls[index]),
     );
   }
 }
@@ -399,13 +376,7 @@ class _EngagementRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 24,
-            offset: Offset(0, 4),
-          ),
-        ],
+        boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 24)],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -456,153 +427,34 @@ class _Metric extends StatelessWidget {
 }
 
 class _CommentsSection extends StatelessWidget {
-  final TextEditingController controller;
-  final FocusNode focusNode;
-
-  const _CommentsSection({
-    super.key,
-    required this.controller,
-    required this.focusNode,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('评论', style: Theme.of(context).textTheme.headlineMedium),
-            Row(
-              children: [
-                Text('最新', style: Theme.of(context).textTheme.labelMedium),
-                const SizedBox(width: 12),
-                Text(
-                  '最热',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _CommentTile(
-          name: 'Mia',
-          time: '12分钟前',
-          content: '这个饼底看起来太漂亮了，边缘烤色刚刚好。',
-        ),
-        _CommentTile(name: '小食家', time: '1小时前', content: '秘密酱汁也想看，已经收藏等更新。'),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.divider),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  minLines: 1,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    hintText: '写下你的评论',
-                    hintStyle: TextStyle(color: AppColors.textPlaceholder),
-                  ),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.send_rounded, color: AppColors.accent),
-                onPressed: () {
-                  controller.clear();
-                  focusNode.unfocus();
-                  showCapsuleToast(
-                    context,
-                    '评论已暂存',
-                    icon: Icons.mode_comment_outlined,
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CommentTile extends StatelessWidget {
-  final String name;
-  final String time;
-  final String content;
-
-  const _CommentTile({
-    required this.name,
-    required this.time,
-    required this.content,
-  });
+  const _CommentsSection({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const CircleAvatar(
-            radius: 18,
-            backgroundColor: AppColors.surfaceSecondary,
-            child: Icon(Icons.person, size: 18, color: AppColors.textSecondary),
+          Text('评论', style: Theme.of(context).textTheme.headlineMedium),
+          const SizedBox(height: 12),
+          const Text(
+            '评论接口暂未开放，后续会在这里展示真实评论列表。',
+            style: TextStyle(color: AppColors.textSecondary, height: 1.5),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      name,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      time,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  content,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => showCapsuleToast(
+              context,
+              '评论功能开发中',
+              icon: Icons.mode_comment_outlined,
             ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(
-            Icons.favorite_border,
-            size: 18,
-            color: AppColors.textPlaceholder,
+            icon: const Icon(Icons.mode_comment_outlined),
+            label: const Text('写评论'),
           ),
         ],
       ),
@@ -612,17 +464,19 @@ class _CommentTile extends StatelessWidget {
 
 class _BottomActionBar extends StatelessWidget {
   final bool liked;
-  final bool bookmarked;
+  final bool likeBusy;
   final VoidCallback onLike;
   final VoidCallback onBookmark;
   final VoidCallback onComment;
+  final VoidCallback onShare;
 
   const _BottomActionBar({
     required this.liked,
-    required this.bookmarked,
+    required this.likeBusy,
     required this.onLike,
     required this.onBookmark,
     required this.onComment,
+    required this.onShare,
   });
 
   @override
@@ -638,13 +492,14 @@ class _BottomActionBar extends StatelessWidget {
           _IconAction(
             icon: liked ? Icons.favorite : Icons.favorite_border,
             active: liked,
-            onTap: onLike,
+            onTap: likeBusy ? null : onLike,
           ),
           _IconAction(
-            icon: bookmarked ? Icons.bookmark : Icons.bookmark_border,
-            active: bookmarked,
+            icon: Icons.bookmark_border,
+            active: false,
             onTap: onBookmark,
           ),
+          _IconAction(icon: Icons.ios_share, active: false, onTap: onShare),
           const SizedBox(width: 8),
           Expanded(
             child: SizedBox(
@@ -671,7 +526,7 @@ class _BottomActionBar extends StatelessWidget {
 class _IconAction extends StatelessWidget {
   final IconData icon;
   final bool active;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _IconAction({
     required this.icon,
@@ -684,7 +539,7 @@ class _IconAction extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        width: 48,
+        width: 44,
         height: 48,
         child: AnimatedScale(
           scale: active ? 1.08 : 1,
@@ -717,6 +572,40 @@ class _SheetAction extends StatelessWidget {
       leading: Icon(icon, color: AppColors.textPrimary),
       title: Text(label, style: Theme.of(context).textTheme.bodyMedium),
       onTap: onTap,
+    );
+  }
+}
+
+class _MessageState extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _MessageState({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.article_outlined,
+              size: 42,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            TextButton(onPressed: onRetry, child: const Text('重试')),
+          ],
+        ),
+      ),
     );
   }
 }

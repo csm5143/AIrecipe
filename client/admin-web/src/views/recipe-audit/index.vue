@@ -369,10 +369,14 @@ async function fetchRecipes() {
     };
     
     let res;
-    if (!filters.status || filters.status === 'pending') {
+    if (filters.status === 'pending') {
       res = await recipeAuditApi.getPendingRecipes(params);
     } else {
-      res = await recipeAuditApi.getProcessedRecipes({ ...params, status: filters.status as any });
+      // 全部/已通过/已拒绝 都走 processed 接口，status 为空时不过滤
+      res = await recipeAuditApi.getProcessedRecipes({
+        ...params,
+        status: filters.status || undefined,
+      } as any);
     }
     
     let data = res.data?.list || [];

@@ -10,6 +10,7 @@ class RecipeApi {
     String? filter,
     String? keyword,
     String? category,
+    String? authorId,
   }) {
     return guardApi(() async {
       final response = await _dio.get(
@@ -20,6 +21,7 @@ class RecipeApi {
           if (filter != null && filter.isNotEmpty) 'filter': filter,
           if (keyword != null && keyword.isNotEmpty) 'keyword': keyword,
           if (category != null && category.isNotEmpty) 'category': category,
+          if (authorId != null && authorId.isNotEmpty) 'authorId': authorId,
         },
       );
       return responseList(
@@ -99,17 +101,11 @@ class RecipeApi {
     });
   }
 
-  Future<Recipe> likeRecipe(String id) {
+  /// 点赞/取消点赞（toggle）
+  Future<Map<String, dynamic>> toggleLike(String id) {
     return guardApi(() async {
-      final response = await _dio.post('/recipes/$id/like');
-      return Recipe.fromJson(responseMap(response));
-    });
-  }
-
-  Future<Recipe> unlikeRecipe(String id) {
-    return guardApi(() async {
-      final response = await _dio.delete('/recipes/$id/like');
-      return Recipe.fromJson(responseMap(response));
+      final response = await _dio.post('/user-recipes/$id/like');
+      return responseMap(response);
     });
   }
 }

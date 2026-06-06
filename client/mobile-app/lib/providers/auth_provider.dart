@@ -108,6 +108,31 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> changePassword(String oldPassword, String newPassword) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _ref
+          .read(authApiProvider)
+          .changePassword(oldPassword: oldPassword, newPassword: newPassword);
+      state = state.copyWith(isLoading: false);
+    } catch (error) {
+      state = state.copyWith(isLoading: false, error: _toAppException(error));
+      rethrow;
+    }
+  }
+
+  Future<void> bindPhone(String phone) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _ref.read(authApiProvider).bindPhone(phone);
+      final user = await _ref.read(authApiProvider).currentUser();
+      state = state.copyWith(isLoading: false, user: user);
+    } catch (error) {
+      state = state.copyWith(isLoading: false, error: _toAppException(error));
+      rethrow;
+    }
+  }
+
   Future<void> logout() async {
     await _ref.read(authApiProvider).logout();
     state = const AuthState(isInitialized: true);

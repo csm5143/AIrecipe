@@ -15,6 +15,7 @@ export async function getDashboardStats(req: Request, res: Response) {
     weeklyUsers,
     weeklyRecipes,
     recentFeedbacks,
+    viewAgg,
   ] = await Promise.all([
     prisma.user.count({ where: { deletedAt: null } }),
     prisma.recipe.count({ where: { isDeleted: false } }),
@@ -38,6 +39,7 @@ export async function getDashboardStats(req: Request, res: Response) {
       orderBy: { createdAt: 'desc' },
       include: { user: { select: { nickname: true, avatar: true } } },
     }),
+    prisma.recipe.aggregate({ _sum: { viewCount: true } }),
   ]);
 
   // 统计每周用户/菜谱趋势（最近7天）
@@ -86,7 +88,8 @@ export async function getDashboardStats(req: Request, res: Response) {
     avatar: f.user?.avatar || '',
   }));
 
-  const result = { totalUsers, totalRecipes, totalCollections, totalFeedbacks, todayNewUsers, weeklyStats, recentFeedbacks: feedbackList };
+  const totalViews = viewAgg._sum.viewCount ?? 0;
+  const result = { totalUsers, totalRecipes, totalCollections, totalFeedbacks, todayNewUsers, totalViews, weeklyStats, recentFeedbacks: feedbackList };
   res.json(success(result));
 }
 

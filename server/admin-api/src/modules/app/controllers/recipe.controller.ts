@@ -20,6 +20,13 @@ export function buildWhereClause(query: any): any {
     where.category = query.category;
   }
 
+  if (query.authorId) {
+    const authorId = parseInt(query.authorId as string);
+    if (!isNaN(authorId)) {
+      where.authorId = authorId;
+    }
+  }
+
   // Collect all tag requirements to avoid overwrite (P0 bug fix)
   const tagValues: string[] = [];
   if (query.dishType) {

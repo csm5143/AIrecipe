@@ -116,50 +116,55 @@ class _CollectionCard extends StatelessWidget {
         ? collection['coverImages'] as List
         : const [];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: const [
-                BoxShadow(color: Color(0x06000000), blurRadius: 20),
-              ],
-              border: Border.all(color: const Color(0x08000000)),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: coverImages.isEmpty
-                  ? Container(
-                      color: AppColors.surfaceSecondary,
-                      child: const Center(
-                        child: Icon(
-                          Icons.collections_bookmark,
-                          size: 40,
-                          color: AppColors.textPlaceholder,
+    final id = collection['id']?.toString() ?? '';
+
+    return GestureDetector(
+      onTap: id.isNotEmpty ? () => context.push('/collection/$id') : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x06000000), blurRadius: 20),
+                ],
+                border: Border.all(color: const Color(0x08000000)),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: coverImages.isEmpty
+                    ? Container(
+                        color: AppColors.surfaceSecondary,
+                        child: const Center(
+                          child: Icon(
+                            Icons.collections_bookmark,
+                            size: 40,
+                            color: AppColors.textPlaceholder,
+                          ),
                         ),
-                      ),
-                    )
-                  : _CoverGrid(images: coverImages),
+                      )
+                    : _CoverGrid(images: coverImages),
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          '$count 个菜谱',
-          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-        ),
-      ],
+          const SizedBox(height: 8),
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '$count 个菜谱',
+            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+          ),
+        ],
+      ),
     );
   }
 }

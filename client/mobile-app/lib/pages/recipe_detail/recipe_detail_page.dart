@@ -522,6 +522,8 @@ class _BottomActionBar extends ConsumerStatefulWidget {
 }
 
 class _BottomActionBarState extends ConsumerState<_BottomActionBar> {
+  bool _isLiked = false;
+  bool _savingLike = false;
   bool _bookmarked = false;
   bool _savingFavorite = false;
   bool _savingBasket = false;
@@ -537,11 +539,11 @@ class _BottomActionBarState extends ConsumerState<_BottomActionBar> {
       child: Row(
         children: [
           _ActionIcon(
-            active: _bookmarked,
+            active: _isLiked,
             activeIcon: Icons.favorite,
             inactiveIcon: Icons.favorite_border,
             activeColor: AppColors.accent,
-            onTap: _savingFavorite ? null : _saveToCollection,
+            onTap: _savingLike ? null : _toggleLike,
           ),
           _ActionIcon(
             active: _bookmarked,
@@ -575,6 +577,20 @@ class _BottomActionBarState extends ConsumerState<_BottomActionBar> {
         ],
       ),
     );
+  }
+
+  Future<void> _toggleLike() async {
+    setState(() => _savingLike = true);
+    try {
+      final result = await ref.read(recipeApiProvider).toggleLike(widget.recipe.id);
+      if (!mounted) return;
+      final liked = result['liked'] == true;
+      setState(() => _isLiked = liked);
+    } catch (_) {
+      if (mounted) showCapsuleToast(context, '操作失败', icon: Icons.error_outline);
+    } finally {
+      if (mounted) setState(() => _savingLike = false);
+    }
   }
 
   Future<void> _saveToCollection() async {

@@ -1,24 +1,37 @@
 import { Request, Response } from 'express';
 import { paginated, success } from '../../../types/response';
 import { prisma } from '../../../lib/prisma';
+import { createNotification } from '../../../services/notification.service';
+import { getAdminId, getAdminName } from '../../../utils/adminHelper';
+
+function buildAuditWhere(query: any): any {
+  const where: any = { source: 'USER' };
+  const status = query.status as string;
+
+  if (status === 'pending') {
+    where.status = 'PENDING';
+  } else if (status === 'approved') {
+    where.status = 'PUBLISHED';
+  } else if (status === 'rejected') {
+    where.status = 'REJECTED';
+  }
+  // status 为空时不过滤，返回全部状态
+
+  if (query.keyword) {
+    where.OR = [
+      { title: { contains: query.keyword as string, mode: 'insensitive' } },
+      { authorName: { contains: query.keyword as string, mode: 'insensitive' } },
+    ];
+  }
+  return where;
+}
 
 export async function getPendingRecipes(req: Request, res: Response) {
   const page = parseInt(req.query.page as string) || 1;
   const pageSize = Math.min(parseInt(req.query.pageSize as string) || 20, 100);
 
   try {
-    const where: any = {
-      source: 'USER',
-      status: 'PENDING',
-    };
-
-    if (req.query.keyword) {
-      where.OR = [
-        { title: { contains: req.query.keyword as string, mode: 'insensitive' } },
-        { authorName: { contains: req.query.keyword as string, mode: 'insensitive' } },
-      ];
-    }
-
+    const where = buildAuditWhere({ ...req.query, status: 'pending' });
     const [data, total] = await Promise.all([
       prisma.recipe.findMany({
         where,
@@ -28,9 +41,7 @@ export async function getPendingRecipes(req: Request, res: Response) {
       }),
       prisma.recipe.count({ where }),
     ]);
-
     const formattedData = data.map(formatRecipeResponse);
-
     res.json(paginated(formattedData, { page, pageSize, total }));
   } catch (error) {
     console.error('[RecipeAudit] 获取待审核列表失败', error);
@@ -41,21 +52,9 @@ export async function getPendingRecipes(req: Request, res: Response) {
 export async function getProcessedRecipes(req: Request, res: Response) {
   const page = parseInt(req.query.page as string) || 1;
   const pageSize = Math.min(parseInt(req.query.pageSize as string) || 20, 100);
-  const status = req.query.status as string;
 
   try {
-    const where: any = {
-      source: 'USER',
-      status: status === 'approved' ? 'PUBLISHED' : 'REJECTED',
-    };
-
-    if (req.query.keyword) {
-      where.OR = [
-        { title: { contains: req.query.keyword as string, mode: 'insensitive' } },
-        { authorName: { contains: req.query.keyword as string, mode: 'insensitive' } },
-      ];
-    }
-
+    const where = buildAuditWhere(req.query);
     const [data, total] = await Promise.all([
       prisma.recipe.findMany({
         where,
@@ -65,12 +64,10 @@ export async function getProcessedRecipes(req: Request, res: Response) {
       }),
       prisma.recipe.count({ where }),
     ]);
-
     const formattedData = data.map(formatRecipeResponse);
-
     res.json(paginated(formattedData, { page, pageSize, total }));
   } catch (error) {
-    console.error('[RecipeAudit] 获取已审核列表失败', error);
+    console.error('[RecipeAudit] 获取列表失败', error);
     res.json(paginated([], { page, pageSize, total: 0 }));
   }
 }
@@ -129,10 +126,12 @@ export async function auditRecipe(req: Request, res: Response) {
     }
 
     const newStatus = action === 'approve' ? 'PUBLISHED' : 'REJECTED';
+    const adminId = getAdminId(req);
     const updateData: any = {
       status: newStatus,
       rejectReason: action === 'reject' ? reason : null,
       reviewedAt: new Date(),
+      reviewedBy: adminId,
     };
 
     if (action === 'approve') {
@@ -144,11 +143,45 @@ export async function auditRecipe(req: Request, res: Response) {
       data: updateData,
     });
 
+    // 给作者发送审核通知
+    if (recipe.authorId) {
+      if (action === 'approve') {
+        createNotification({
+          userId: recipe.authorId,
+          type: 'RECIPE_APPROVED',
+          title: '你的菜谱已通过审核',
+          content: `菜谱「${recipe.title}」已通过审核，现在所有人可见`,
+          data: { recipeId: recipe.id, recipeTitle: recipe.title },
+        });
+      } else {
+        createNotification({
+          userId: recipe.authorId,
+          type: 'RECIPE_REJECTED',
+          title: '你的菜谱未通过审核',
+          content: `菜谱「${recipe.title}」未通过审核${reason ? `：${reason}` : ''}`,
+          data: { recipeId: recipe.id, recipeTitle: recipe.title, reason: reason || '' },
+        });
+      }
+    }
+
     res.json(success(null, action === 'approve' ? '审核通过' : '已拒绝'));
   } catch (error) {
     console.error('[RecipeAudit] 审核操作失败', error);
     res.status(500).json({ code: 500, message: '操作失败' });
   }
+}
+
+function buildAuditHistory(recipe: any): any[] {
+  const history: any[] = [];
+  if (recipe.reviewedAt) {
+    history.push({
+      action: recipe.status === 'PUBLISHED' ? 'approve' : 'reject',
+      reason: recipe.rejectReason || '',
+      auditorName: (recipe as any)._auditorName || '管理员',
+      createdAt: recipe.reviewedAt.getTime(),
+    });
+  }
+  return history;
 }
 
 function formatRecipeResponse(item: any) {
@@ -186,5 +219,7 @@ function formatRecipeResponse(item: any) {
     publishedAt: item.publishedAt ? item.publishedAt.getTime() : null,
     createdAt: item.createdAt.getTime(),
     updatedAt: item.updatedAt.getTime(),
+    // 审核记录 — 前端详情对话框展示
+    auditHistory: buildAuditHistory(item),
   };
 }

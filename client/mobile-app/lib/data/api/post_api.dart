@@ -28,12 +28,20 @@ class PostApi {
     return guardApi(() async {
       final content = (data['content'] ?? '').toString().trim();
       final title = (data['title'] ?? content).toString().trim();
+      final imageUrls = data['imageUrls'] is List
+          ? List<String>.from(data['imageUrls'] as List)
+          : const <String>[];
+
       final response = await _dio.post(
         '/user-recipes',
         data: {
           'title': title.isEmpty ? '我的美食动态' : title,
           'description': content,
-          'coverImage': data['imageUrl'] ?? data['coverImage'] ?? '',
+          'coverImage':
+              data['imageUrl'] ??
+              data['coverImage'] ??
+              (imageUrls.isNotEmpty ? imageUrls.first : ''),
+          'imageUrls': imageUrls,
           'status': data['status'] ?? 'pending',
           'ingredients': data['ingredients'] ?? const [],
           'steps': data['steps'] ?? const [],

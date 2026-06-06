@@ -10,6 +10,8 @@ import { prisma } from '../../../lib/prisma';
 import { paginated, success, badRequest } from '../../../types/response';
 import { normalizeCollectionName, canDeleteCollection } from '../utils/collectionRules';
 import { getAiChatSessionMessages, getAiChatSessions, sendAiChatMessage } from '../../../services/aiChatRag.service';
+import { createNotification } from '../../../services/notification.service';
+import notificationRoutes from '../../notification/routes/notification.routes';
 
 const router: ExpressRouter = Router();
 
@@ -195,6 +197,128 @@ router.delete('/collections/:id/items/:recipeId', asyncHandler(async (req, res) 
 // ============ 反馈 ============
 
 /** 提交反馈 */
+// ============ User profile ============
+
+router.get('/users/:id', asyncHandler(async (req, res) => {
+  const currentUserId = (req as any).userId;
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    res.status(400).json(badRequest('Invalid user id'));
+    return;
+  }
+
+  const user = await prisma.user.findFirst({
+    where: { id, deletedAt: null },
+    select: {
+      id: true,
+      nickname: true,
+      avatar: true,
+      bio: true,
+      gender: true,
+      collections: {
+        where: { isPublic: true },
+        orderBy: { updatedAt: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          coverImage: true,
+          itemCount: true,
+          updatedAt: true,
+        },
+      },
+      _count: {
+        select: {
+          followers: true,
+          following: true,
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    res.status(404).json({ code: 404, message: 'User not found', timestamp: Date.now() });
+    return;
+  }
+
+  const [works, collectionCount, isFollowing] = await Promise.all([
+    prisma.recipe.count({
+      where: { authorId: id, isDeleted: false, status: 'PUBLISHED' as any },
+    }),
+    prisma.collectionItem.count({
+      where: { collection: { userId: id, isPublic: true } },
+    }),
+    currentUserId === id
+      ? Promise.resolve(false)
+      : prisma.follow
+          .findUnique({
+            where: { followerId_followingId: { followerId: currentUserId, followingId: id } },
+          })
+          .then(Boolean),
+  ]);
+
+  res.json(success({
+    id: user.id,
+    nickname: user.nickname || '',
+    avatar: user.avatar || '',
+    bio: user.bio || '',
+    gender: user.gender,
+    followers: user._count.followers,
+    following: user._count.following,
+    works,
+    collections: collectionCount,
+    isFollowing,
+    publicCollections: user.collections.map(c => ({
+      id: c.id,
+      name: c.name,
+      description: c.description || '',
+      coverImage: c.coverImage || '',
+      itemCount: c.itemCount,
+      updatedAt: c.updatedAt.getTime(),
+    })),
+  }));
+}));
+
+router.post('/users/:id/follow', asyncHandler(async (req, res) => {
+  const followerId = (req as any).userId;
+  const followingId = parseInt(req.params.id);
+  if (isNaN(followingId) || followerId === followingId) {
+    res.status(400).json(badRequest('Invalid user id'));
+    return;
+  }
+
+  const existingFollow = await prisma.follow.findUnique({
+    where: { followerId_followingId: { followerId, followingId } },
+  });
+
+  if (!existingFollow) {
+    await prisma.follow.create({ data: { followerId, followingId } });
+
+    // 通知被关注者
+    const follower = await prisma.user.findUnique({
+      where: { id: followerId },
+      select: { nickname: true },
+    });
+    createNotification({
+      userId: followingId,
+      type: 'NEW_FOLLOWER',
+      title: '你有新的关注者',
+      content: `${follower?.nickname || '有用户'} 关注了你`,
+      data: { followerId, followerName: follower?.nickname || '' },
+    });
+  }
+  res.json(success(null, 'Followed'));
+}));
+
+router.delete('/users/:id/follow', asyncHandler(async (req, res) => {
+  const followerId = (req as any).userId;
+  const followingId = parseInt(req.params.id);
+  if (!isNaN(followingId)) {
+    await prisma.follow.deleteMany({ where: { followerId, followingId } });
+  }
+  res.json(success(null, 'Unfollowed'));
+}));
+
 router.post('/feedback', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const { type, content, contact, images } = req.body;
@@ -493,5 +617,8 @@ router.post('/browse-history', asyncHandler(async (req, res) => {
   });
   res.json(success(null, '已记录'));
 }));
+
+// ============ 通知 ============
+router.use('/notifications', notificationRoutes);
 
 export default router;

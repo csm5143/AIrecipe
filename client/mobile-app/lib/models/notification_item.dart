@@ -8,6 +8,7 @@ class NotificationItem {
   final String timeAgo;
   final bool isUnread;
   final NotificationType type;
+  final String? targetId; // recipeId 或 followerId，用于深度链接
 
   const NotificationItem({
     required this.id,
@@ -19,38 +20,39 @@ class NotificationItem {
     this.timeAgo = '',
     this.isUnread = false,
     this.type = NotificationType.system,
+    this.targetId,
   });
 
   factory NotificationItem.fromJson(Map<String, dynamic> json) {
-    final publishedAt = _dateTimeValue(
-      json['publishedAt'] ?? json['published_at'],
-    );
+    // 后端返回 createdAt 为 epoch 毫秒
+    final createdAt = _dateFromEpoch(json['createdAt']);
     final title = _stringValue(json['title']);
     final content = _stringValue(json['content']);
     final type = notificationTypeFromJson(json['type']);
+    // data 字段包含结构化元数据
+    final extraData = json['data'] is Map
+        ? json['data'] as Map<String, dynamic>
+        : <String, dynamic>{};
 
     return NotificationItem(
       id: _stringValue(json['id']),
       fromUserName: _stringValue(
-        json['from_user_name'] ?? json['fromUserName'],
-        title.isEmpty ? '系统通知' : title,
+        extraData['followerName'] ?? extraData['likerName'] ?? json['fromUserName'],
+        title,
       ),
-      fromUserAvatar: _stringValue(
-        json['from_user_avatar'] ?? json['fromUserAvatar'],
+      fromUserAvatar: _stringValue(json['fromUserAvatar']),
+      action: content.isNotEmpty ? content : _defaultAction(type),
+      targetName: _stringValue(
+        extraData['recipeTitle'] ?? json['targetName'],
       ),
-      action: _stringValue(
-        json['action'],
-        content.isEmpty ? _defaultAction(type) : content,
-      ),
-      targetName: _stringValue(json['target_name'] ?? json['targetName']),
-      targetImage:
-          json['target_image']?.toString() ?? json['targetImage']?.toString(),
-      timeAgo: _stringValue(
-        json['time_ago'] ?? json['timeAgo'],
-        _relativeTime(publishedAt),
-      ),
-      isUnread: _boolValue(json['is_unread'] ?? json['isUnread']),
+      targetImage: json['targetImage']?.toString(),
+      timeAgo: _relativeTime(createdAt),
+      isUnread: json['isRead'] == false,
       type: type,
+      targetId: _stringValue(
+        extraData['recipeId'] ?? extraData['followerId'],
+        json['targetId']?.toString() ?? '',
+      ),
     );
   }
 
@@ -72,11 +74,25 @@ class NotificationItem {
 enum NotificationType { like, comment, follow, system, ai, achievement }
 
 NotificationType notificationTypeFromJson(dynamic value) {
-  final normalized = value?.toString().toLowerCase();
-  if (normalized == 'activity' || normalized == 'update') {
-    return NotificationType.system;
+  final raw = value?.toString().toUpperCase() ?? '';
+  // 后端 NotificationType 枚举 → Flutter 枚举映射
+  switch (raw) {
+    case 'RECIPE_APPROVED':
+    case 'RECIPE_REJECTED':
+    case 'RECIPE_LIKED':
+      return NotificationType.like;
+    case 'NEW_FOLLOWER':
+      return NotificationType.follow;
+    case 'COMMENT':
+      return NotificationType.comment;
+    case 'SYSTEM':
+    case 'ANNOUNCEMENT':
+      return NotificationType.system;
+    default:
+      break;
   }
-
+  // 兼容前端旧值
+  final normalized = raw.toLowerCase();
   return NotificationType.values.firstWhere(
     (type) => type.name == normalized,
     orElse: () => NotificationType.system,
@@ -98,6 +114,14 @@ bool _boolValue(dynamic value, [bool fallback = false]) {
   if (normalized == 'true') return true;
   if (normalized == 'false') return false;
   return fallback;
+}
+
+DateTime? _dateFromEpoch(dynamic value) {
+  if (value == null) return null;
+  if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+  final ms = int.tryParse(value.toString());
+  if (ms != null) return DateTime.fromMillisecondsSinceEpoch(ms);
+  return null;
 }
 
 DateTime? _dateTimeValue(dynamic value) {

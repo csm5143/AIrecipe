@@ -39,6 +39,24 @@ class AuthApi {
     });
   }
 
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) {
+    return guardApi(() async {
+      await _dio.put(
+        '/wx/change-password',
+        data: {'oldPassword': oldPassword, 'newPassword': newPassword},
+      );
+    });
+  }
+
+  Future<void> bindPhone(String phone) {
+    return guardApi(() async {
+      await _dio.post('/wx/bind-phone', data: {'phone': phone});
+    });
+  }
+
   Future<AuthSession> _saveSession(Map<String, dynamic> json) async {
     final token = AuthToken.fromJson(json);
     final user = AppUser.fromJson(json);

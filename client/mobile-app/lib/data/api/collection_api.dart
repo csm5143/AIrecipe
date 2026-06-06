@@ -58,6 +58,19 @@ class CollectionApi {
     });
   }
 
+  Future<Map<String, dynamic>> getCollectionDetail(String id) {
+    return guardApi(() async {
+      final response = await _dio.get('/wx/app/collections/$id');
+      return responseMap(response);
+    });
+  }
+
+  Future<void> removeFromCollection(String collectionId, String recipeId) {
+    return guardApi(() async {
+      await _dio.delete('/wx/app/collections/$collectionId/items/$recipeId');
+    });
+  }
+
   Future<List<Map<String, dynamic>>> getShoppingLists() {
     return guardApi(() async {
       final response = await _dio.get('/wx/app/shopping-lists');

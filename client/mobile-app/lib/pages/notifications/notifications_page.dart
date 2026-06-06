@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../config/theme.dart';
 import '../../models/notification_item.dart';
+import '../../providers/api_providers.dart';
 import '../../providers/collection_provider.dart';
 import '../../widgets/capsule_toast.dart';
 
@@ -16,7 +17,6 @@ class NotificationsPage extends ConsumerStatefulWidget {
 }
 
 class _NotificationsPageState extends ConsumerState<NotificationsPage> {
-  final Set<String> _readIds = {};
   final Set<String> _deletedIds = {};
 
   @override
@@ -42,13 +42,19 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           TextButton(
             onPressed: visibleNotifications.isEmpty
                 ? null
-                : () {
-                    setState(
-                      () => _readIds.addAll(
-                        visibleNotifications.map((item) => item.id),
-                      ),
-                    );
-                    showCapsuleToast(context, '已将通知标记为已读');
+                : () async {
+                    try {
+                      await ref.read(notificationApiProvider).markAllRead();
+                      ref.invalidate(notificationListProvider);
+                      ref.invalidate(unreadNotificationCountProvider);
+                      if (mounted) {
+                        showCapsuleToast(context, '已将通知标记为已读');
+                      }
+                    } catch (_) {
+                      if (mounted) {
+                        showCapsuleToast(context, '操作失败', icon: Icons.error_outline);
+                      }
+                    }
                   },
             child: Text(
               '全部已读',
@@ -96,10 +102,21 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   Widget _buildTile(NotificationItem notification) {
     return _NotificationTile(
       notification: notification,
-      isUnread: notification.isUnread && !_readIds.contains(notification.id),
-      onDelete: () {
-        setState(() => _deletedIds.add(notification.id));
-        showCapsuleToast(context, '已删除这条通知', icon: Icons.delete_outline);
+      isUnread: notification.isUnread,
+      onDelete: () async {
+        try {
+          await ref.read(notificationApiProvider).deleteNotification(notification.id);
+          ref.invalidate(notificationListProvider);
+          ref.invalidate(unreadNotificationCountProvider);
+          if (mounted) {
+            showCapsuleToast(context, '已删除', icon: Icons.delete_outline);
+          }
+        } catch (_) {
+          setState(() => _deletedIds.add(notification.id));
+          if (mounted) {
+            showCapsuleToast(context, '已删除这条通知', icon: Icons.delete_outline);
+          }
+        }
       },
     );
   }
@@ -124,7 +141,7 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _NotificationTile extends StatelessWidget {
+class _NotificationTile extends ConsumerWidget {
   final NotificationItem notification;
   final bool isUnread;
   final VoidCallback onDelete;
@@ -136,7 +153,7 @@ class _NotificationTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Dismissible(
       key: ValueKey(notification.id),
       direction: DismissDirection.endToStart,
@@ -152,7 +169,14 @@ class _NotificationTile extends StatelessWidget {
       ),
       onDismissed: (_) => onDelete(),
       child: GestureDetector(
-        onTap: () => _openNotificationTarget(context, notification),
+        onTap: () {
+          if (notification.isUnread) {
+            ref.read(notificationApiProvider).markRead(notification.id);
+            ref.invalidate(notificationListProvider);
+            ref.invalidate(unreadNotificationCountProvider);
+          }
+          _openNotificationTarget(context, notification);
+        },
         child: Container(
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(16),
@@ -361,20 +385,36 @@ void _openNotificationTarget(
   BuildContext context,
   NotificationItem notification,
 ) {
+  // 优先深度链接到具体内容
+  final targetId = notification.targetId;
+  if (targetId != null && targetId.isNotEmpty) {
+    switch (notification.type) {
+      case NotificationType.like:
+        context.go('/recipe/$targetId');
+        return;
+      case NotificationType.follow:
+        context.go('/user/$targetId');
+        return;
+      default:
+        context.go('/recipe/$targetId');
+        return;
+    }
+  }
+
   switch (notification.type) {
     case NotificationType.ai:
-      context.push('/ai/chat');
+      context.go('/ai/chat');
       return;
     case NotificationType.follow:
     case NotificationType.achievement:
     case NotificationType.system:
-      context.push('/mine');
+      context.go('/mine');
       return;
     case NotificationType.like:
-      context.push('/my-collections');
+      context.go('/my-collections');
       return;
     case NotificationType.comment:
-      context.push('/collection');
+      context.go('/collection');
       return;
   }
 }
