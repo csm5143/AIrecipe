@@ -35,7 +35,7 @@ class _MinePageState extends ConsumerState<MinePage>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 3, vsync: this);
+    _tabCtrl = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -47,6 +47,7 @@ class _MinePageState extends ConsumerState<MinePage>
   @override
   Widget build(BuildContext context) {
     final myRecipesAsync = ref.watch(myRecipeListProvider);
+    final likedRecipesAsync = ref.watch(likedRecipesProvider);
     final myRecipes = myRecipesAsync.valueOrNull ?? const <Recipe>[];
     final myCollections = ref.watch(myCollectionProvider);
     final notifications =
@@ -97,71 +98,71 @@ class _MinePageState extends ConsumerState<MinePage>
                         GestureDetector(
                           onTap: () => context.push('/settings/edit-profile'),
                           child: Center(
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              Container(
-                                width: 96,
-                                height: 96,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: AppColors.surface,
-                                    width: 4,
-                                  ),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Color(0x1A000000),
-                                      blurRadius: 16,
-                                    ),
-                                  ],
-                                ),
-                                child: CircleAvatar(
-                                  radius: 44,
-                                  backgroundColor: AppColors.surfaceSecondary,
-                                  backgroundImage:
-                                      (user?.avatar.isNotEmpty ?? false)
-                                      ? NetworkImage(user!.avatar)
-                                      : null,
-                                  child: (user?.avatar.isNotEmpty ?? false)
-                                      ? null
-                                      : const Icon(
-                                          Icons.person,
-                                          size: 44,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                ),
-                              ),
-                              Positioned(
-                                bottom: 0,
-                                right: -4,
-                                child: Container(
-                                  width: 32,
-                                  height: 32,
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Container(
+                                  width: 96,
+                                  height: 96,
                                   decoration: BoxDecoration(
-                                    color: AppColors.textPrimary,
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: AppColors.background,
-                                      width: 2,
+                                      color: AppColors.surface,
+                                      width: 4,
                                     ),
                                     boxShadow: const [
                                       BoxShadow(
                                         color: Color(0x1A000000),
-                                        blurRadius: 4,
+                                        blurRadius: 16,
                                       ),
                                     ],
                                   ),
-                                  child: const Icon(
-                                    Icons.add_a_photo,
-                                    size: 16,
-                                    color: AppColors.surface,
+                                  child: CircleAvatar(
+                                    radius: 44,
+                                    backgroundColor: AppColors.surfaceSecondary,
+                                    backgroundImage:
+                                        (user?.avatar.isNotEmpty ?? false)
+                                        ? NetworkImage(user!.avatar)
+                                        : null,
+                                    child: (user?.avatar.isNotEmpty ?? false)
+                                        ? null
+                                        : const Icon(
+                                            Icons.person,
+                                            size: 44,
+                                            color: AppColors.textSecondary,
+                                          ),
                                   ),
                                 ),
-                              ),
-                            ],
+                                Positioned(
+                                  bottom: 0,
+                                  right: -4,
+                                  child: Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.textPrimary,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: AppColors.background,
+                                        width: 2,
+                                      ),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                          color: Color(0x1A000000),
+                                          blurRadius: 4,
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(
+                                      Icons.add_a_photo,
+                                      size: 16,
+                                      color: AppColors.surface,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
                         ),
                         const SizedBox(height: 12),
                         GestureDetector(
@@ -173,7 +174,9 @@ class _MinePageState extends ConsumerState<MinePage>
                                 user?.nickname.isNotEmpty == true
                                     ? user!.nickname
                                     : '未命名用户',
-                                style: Theme.of(context).textTheme.headlineLarge,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.headlineLarge,
                               ),
                               const SizedBox(width: 6),
                               Icon(
@@ -234,6 +237,7 @@ class _MinePageState extends ConsumerState<MinePage>
                             Tab(text: '作品'),
                             Tab(text: '动态'),
                             Tab(text: '收藏'),
+                            Tab(text: '点赞'),
                           ],
                         ),
                         // 鈹€鈹€ TabBarView with constrained height 鈹€鈹€
@@ -268,6 +272,22 @@ class _MinePageState extends ConsumerState<MinePage>
                                 collections: myCollections,
                                 onOpenAll: () =>
                                     context.push('/my-collections'),
+                              ),
+                              likedRecipesAsync.when(
+                                loading: () =>
+                                    const _MineMessage(message: '正在加载你点赞的菜谱'),
+                                error: (error, _) => _MineMessage(
+                                  message: error.toString(),
+                                  actionLabel: '重试',
+                                  onAction: () =>
+                                      ref.invalidate(likedRecipesProvider),
+                                ),
+                                data: (recipes) => _MineRecipeGrid(
+                                  recipes: recipes,
+                                  emptyMessage: '还没有点赞过菜谱。',
+                                  onTap: (recipe) =>
+                                      context.push('/recipe/${recipe.id}'),
+                                ),
                               ),
                             ],
                           ),
@@ -575,13 +595,18 @@ class _Stat extends StatelessWidget {
 class _MineRecipeGrid extends StatelessWidget {
   final List<Recipe> recipes;
   final ValueChanged<Recipe> onTap;
+  final String emptyMessage;
 
-  const _MineRecipeGrid({required this.recipes, required this.onTap});
+  const _MineRecipeGrid({
+    required this.recipes,
+    required this.onTap,
+    this.emptyMessage = '还没有作品，发布或保存草稿后会显示在这里。',
+  });
 
   @override
   Widget build(BuildContext context) {
     if (recipes.isEmpty) {
-      return const _MineMessage(message: '还没有作品，发布或保存草稿后会显示在这里。');
+      return _MineMessage(message: emptyMessage);
     }
 
     return Padding(

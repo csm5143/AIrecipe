@@ -7,6 +7,7 @@ import {
   updateRecipe,
   deleteRecipe,
   batchDeleteRecipes,
+  batchUpdateRecipes,
   publishRecipe,
   offlineRecipe,
   importRecipes,
@@ -27,6 +28,7 @@ router.post('/', asyncHandler(authorize('SUPER_ADMIN', 'ADMIN', 'EDITOR')), asyn
 router.put('/:id', asyncHandler(authorize('SUPER_ADMIN', 'ADMIN', 'EDITOR')), asyncHandler(updateRecipe));
 router.delete('/:id', asyncHandler(authorize('SUPER_ADMIN', 'ADMIN', 'EDITOR')), asyncHandler(deleteRecipe));
 router.post('/batch-delete', asyncHandler(authorize('SUPER_ADMIN', 'ADMIN', 'EDITOR')), asyncHandler(batchDeleteRecipes));
+router.patch('/batch', asyncHandler(authorize('SUPER_ADMIN', 'ADMIN', 'EDITOR')), asyncHandler(batchUpdateRecipes));
 router.post('/:id/publish', asyncHandler(authorize('SUPER_ADMIN', 'ADMIN', 'EDITOR')), asyncHandler(publishRecipe));
 router.post('/:id/offline', asyncHandler(authorize('SUPER_ADMIN', 'ADMIN', 'EDITOR')), asyncHandler(offlineRecipe));
 router.post('/import', asyncHandler(authorize('SUPER_ADMIN', 'ADMIN', 'EDITOR')), asyncHandler(importRecipes));

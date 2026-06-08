@@ -4,6 +4,7 @@ export interface Admin {
   id: number;
   username: string;
   nickname?: string;
+  email?: string;
   avatar?: string;
   role: 'SUPER_ADMIN' | 'ADMIN' | 'EDITOR' | 'AUDITOR';
   status: 'ACTIVE' | 'DISABLED' | 'BANNED';
@@ -35,6 +36,7 @@ export const adminApi = {
     username: string;
     password: string;
     nickname?: string;
+    email?: string;
     role?: string;
     status?: string;
   }) {
@@ -43,6 +45,7 @@ export const adminApi = {
 
   update(id: number, data: {
     nickname?: string;
+    email?: string;
     role?: string;
     status?: string;
     avatar?: string;
@@ -60,5 +63,18 @@ export const adminApi = {
 
   restore(id: number) {
     return request.post<any, any>(`/admins/${id}/restore`);
+  },
+
+  forgotPassword(data: { username: string; email: string }) {
+    return request.post<any, any>('/admin/auth/forgot-password', data);
+  },
+
+  resetPasswordByCode(data: {
+    username: string;
+    email: string;
+    verifyCode: string;
+    newPassword: string;
+  }) {
+    return request.post<any, any>('/admin/auth/reset-password', data);
   },
 };

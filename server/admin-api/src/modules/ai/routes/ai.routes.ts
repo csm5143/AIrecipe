@@ -15,7 +15,7 @@ import { generateImage, getTemplates, generateRecipeCover } from '../../../servi
 import { generateNoticeContent } from '../../../services/aiText.service';
 import { success, badRequest, notFound } from '../../../types/response';
 import { prisma } from '../../../lib/prisma';
-import { COSService } from '../../../services/cos.service';
+import { COSService, COS_FOLDERS } from '../../../services/cos.service';
 
 const router: ExpressRouter = Router();
 router.use(asyncHandler(authenticate));
@@ -119,7 +119,7 @@ router.post('/adopt-image', asyncHandler(contentRole), asyncHandler(async (req, 
     const si = Number(stepIndex) || 0;
 
     if (targetType === 'recipe-cover') {
-      const baseKey = `recipes/${safeName}.png`;
+      const baseKey = `${COS_FOLDERS.RECIPE_COVER}/${safeName}.png`;
       const key = await COSService.uniqueKey(baseKey);
       cosResult = await COSService.uploadWithKey(buf, key);
       if (rid) {
@@ -129,7 +129,7 @@ router.post('/adopt-image', asyncHandler(contentRole), asyncHandler(async (req, 
         });
       }
     } else if (targetType === 'recipe-step') {
-      const baseKey = `recipes/steps/step_${si}_${safeName}.png`;
+      const baseKey = `${COS_FOLDERS.RECIPE_STEPS}/step_${si}_${safeName}.png`;
       const key = await COSService.uniqueKey(baseKey);
       cosResult = await COSService.uploadWithKey(buf, key);
       if (rid && stepIndex >= 0) {
@@ -146,9 +146,9 @@ router.post('/adopt-image', asyncHandler(contentRole), asyncHandler(async (req, 
         }
       }
     } else if (targetType === 'banner' || targetType === 'card') {
-      cosResult = await COSService.uploadWithKey(buf, `banners/${targetType}_${safeName}.png`);
+      cosResult = await COSService.uploadWithKey(buf, `${COS_FOLDERS.BANNERS}/${targetType}_${safeName}.png`);
     } else {
-      cosResult = await COSService.uploadWithKey(buf, `ai-generated/${safeName}.png`);
+      cosResult = await COSService.uploadWithKey(buf, `${COS_FOLDERS.AI_GENERATED}/${safeName}.png`);
     }
 
     res.json(success({ url: cosResult.url }, '图片已应用'));

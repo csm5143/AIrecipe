@@ -10,6 +10,7 @@ import '../pages/login/login_page.dart';
 import '../pages/recipe_detail/recipe_detail_page.dart';
 import '../pages/post_detail/post_detail_page.dart';
 import '../pages/notifications/notifications_page.dart';
+import '../pages/notifications/notification_detail_page.dart';
 import '../pages/settings/settings_page.dart';
 import '../pages/user_profile/user_profile_page.dart';
 import '../pages/search/search_page.dart';
@@ -45,6 +46,7 @@ final goRouter = GoRouter(
       '/collection',
       '/mine',
       '/notifications',
+      '/notification',
       '/settings',
       '/publish',
       '/drafts',
@@ -110,6 +112,12 @@ final goRouter = GoRouter(
     GoRoute(
       path: '/notifications',
       builder: (context, state) => const NotificationsPage(),
+    ),
+    GoRoute(
+      path: '/notification/:id',
+      builder: (context, state) => NotificationDetailPage(
+        notificationId: state.pathParameters['id'] ?? '0',
+      ),
     ),
     GoRoute(
       path: '/settings',

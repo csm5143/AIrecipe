@@ -69,8 +69,8 @@
         </el-table-column>
         <el-table-column prop="gender" label="性别" width="80" align="center">
           <template #default="{ row }">
-            <el-tag v-if="row.gender === 'MALE'" size="small" type="primary">男</el-tag>
-            <el-tag v-else-if="row.gender === 'FEMALE'" size="small" type="danger">女</el-tag>
+            <el-tag v-if="row.gender === 'male'" size="small" type="primary">男</el-tag>
+            <el-tag v-else-if="row.gender === 'female'" size="small" type="danger">女</el-tag>
             <span v-else class="text-muted">-</span>
           </template>
         </el-table-column>
@@ -99,7 +99,7 @@
               v-model="row.status"
               active-value="ACTIVE"
               inactive-value="DISABLED"
-              @change="handleStatusChange(row)"
+              @change="handleStatusChange(row as UserRow)"
             />
           </template>
         </el-table-column>
@@ -111,11 +111,11 @@
         <el-table-column label="操作" width="140" fixed="right" align="center">
           <template #default="{ row }">
             <div class="action-buttons">
-              <el-button type="primary" link @click="handleDetail(row)">
+              <el-button type="primary" link @click="handleDetail(row as UserRow)">
                 <el-icon><View /></el-icon>
                 详情
               </el-button>
-              <el-button type="danger" link @click="handleDelete(row)">
+              <el-button type="danger" link @click="handleDelete(row as UserRow)">
                 <el-icon><Delete /></el-icon>
               </el-button>
             </div>
@@ -178,7 +178,7 @@
     </el-dialog>
 
     <!-- 用户详情抽屉 -->
-    <el-drawer v-model="detailVisible" :title="null" direction="rtl" size="880px" :show-close="false" class="user-detail-drawer">
+    <el-drawer v-model="detailVisible" title="" direction="rtl" size="880px" :show-close="false" class="user-detail-drawer">
       <template #header>
         <div class="drawer-header" v-if="currentUser">
           <div class="drawer-user-info">
@@ -220,17 +220,13 @@
             <span class="qs-value">{{ currentUser.fridgeCount || 0 }}</span>
             <span class="qs-label">冰箱</span>
           </div>
-          <div class="quick-stat-item">
-            <span class="qs-value">{{ currentUser.aiScanCount || 0 }}</span>
-            <span class="qs-label">AI扫描</span>
-          </div>
         </div>
 
         <el-tabs v-model="activeDetailTab" class="user-detail-tabs">
           <!-- 基本信息 -->
           <el-tab-pane label="基本信息" name="info">
             <el-descriptions :column="2" border>
-              <el-descriptions-item label="性别">{{ currentUser.gender === 'MALE' ? '男' : currentUser.gender === 'FEMALE' ? '女' : '-' }}</el-descriptions-item>
+              <el-descriptions-item label="性别">{{ currentUser.gender === 'male' ? '男' : currentUser.gender === 'female' ? '女' : '-' }}</el-descriptions-item>
               <el-descriptions-item label="状态">
                 <el-tag :type="currentUser.status === 'ACTIVE' ? 'success' : 'danger'" size="small">
                   {{ currentUser.status === 'ACTIVE' ? '正常' : '禁用' }}
@@ -336,33 +332,6 @@
             <div v-else class="empty-tab">
               <el-icon><Goods /></el-icon>
               <span>冰箱是空的</span>
-            </div>
-          </el-tab-pane>
-
-          <!-- AI 扫描 -->
-          <el-tab-pane label="AI 扫描" name="aiscans">
-            <div v-if="userDetailData.aiScans?.length" class="list-items">
-              <div v-for="scan in userDetailData.aiScans" :key="scan.id" class="list-item-card compact">
-                <div class="item-cover" v-if="scan.imageUrl">
-                  <img :src="getFullImageUrl(scan.imageUrl)" />
-                </div>
-                <div class="item-cover item-cover-placeholder" v-else>
-                  <el-icon><Cpu /></el-icon>
-                </div>
-                <div class="item-info">
-                  <div class="item-title">扫描记录 #{{ scan.id }}</div>
-                  <div class="item-meta">
-                    <el-tag size="small" :type="scan.status === 'SUCCESS' ? 'success' : scan.status === 'FAILED' ? 'danger' : 'warning'">
-                      {{ scan.status === 'SUCCESS' ? '成功' : scan.status === 'FAILED' ? '失败' : '处理中' }}
-                    </el-tag>
-                    · {{ scan.createdAt }}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div v-else class="empty-tab">
-              <el-icon><Cpu /></el-icon>
-              <span>暂无扫描记录</span>
             </div>
           </el-tab-pane>
 
@@ -491,7 +460,7 @@
 import { ref, reactive, onMounted, watch } from 'vue';
 import {
   Search, Refresh, Download, View, Delete, Collection, ChatDotRound,
-  Plus, Upload, Check, Folder, Food, ShoppingCart, Goods, Cpu, Clock, Bell,
+  Plus, Upload, Folder, Food, ShoppingCart, Goods, Clock, Bell,
   Close, Loading,
 } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -507,7 +476,7 @@ const detailVisible = ref(false);
 const showCreateDialog = ref(false);
 const creating = ref(false);
 const currentUser = ref<UserRow | null>(null);
-const selectedRows = ref<any[]>([]);
+const selectedRows = ref<UserRow[]>([]);
 const avatarUploading = ref(false);
 const editVisible = ref(false);
 const editSaving = ref(false);
@@ -564,7 +533,7 @@ const pagination = reactive({
 
 const tableData = ref<UserRow[]>([]);
 
-function handleSelectionChange(rows: any[]) {
+function handleSelectionChange(rows: UserRow[]) {
   selectedRows.value = rows;
 }
 
@@ -603,7 +572,7 @@ async function handleAvatarChange(file: File) {
   avatarUploading.value = true;
   try {
     const result = await uploadAvatar(file as any, String(currentUser.value.id));
-    const avatarUrl = result.url || (result.data as any)?.url || '';
+    const avatarUrl = result.url || '';
     currentUser.value.avatar = avatarUrl;
     // 同步更新列表中的头像
     const row = tableData.value.find(r => r.id === currentUser.value!.id);
@@ -634,7 +603,6 @@ async function fetchUserDetail(userId: number) {
         favorites: data.favorites || [],
         collections: data.collections || [],
         fridgeItems: data.fridgeItems || [],
-        aiScans: data.aiScans || [],
         browseHistory: data.browseHistory || [],
         notifications: data.notifications || [],
         feedbacks: data.feedbacks || [],
@@ -660,13 +628,14 @@ async function fetchUserShoppingLists(userId: number) {
 
 function handleStatusToggle() {
   if (!currentUser.value) return;
-  const newStatus = currentUser.value.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
+  const user = currentUser.value;
+  const newStatus = user.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
   const action = newStatus === 'ACTIVE' ? '启用' : '禁用';
   ElMessageBox.confirm(`确定要${action}该用户账号？`, '确认', { type: 'warning' })
     .then(async () => {
-      await userApi.updateStatus(currentUser.value!.id, newStatus);
-      currentUser.value.status = newStatus;
-      const row = tableData.value.find(r => r.id === currentUser.value!.id);
+      await userApi.updateStatus(user.id, newStatus);
+      user.status = newStatus;
+      const row = tableData.value.find(r => r.id === user.id);
       if (row) row.status = newStatus;
       ElMessage.success(`用户已${action}`);
     })
@@ -730,7 +699,7 @@ function handleEditUser() {
 }
 
 async function handleSaveEdit() {
-  if (!editFormRef.value) return;
+  if (!editFormRef.value || !currentUser.value) return;
   try {
     await editFormRef.value.validate();
   } catch {
@@ -740,7 +709,7 @@ async function handleSaveEdit() {
   try {
     const payload: any = {};
     if (editForm.nickname) payload.nickname = editForm.nickname;
-    if (editForm.gender) payload.gender = editForm.gender.toUpperCase();
+    if (editForm.gender) payload.gender = editForm.gender;
     if (editForm.avatar) payload.avatar = editForm.avatar;
     if (editForm.bio !== undefined) payload.bio = editForm.bio;
     await userApi.update(currentUser.value!.id, payload);
@@ -809,7 +778,7 @@ async function handleCreate() {
     if (createForm.nickname) payload.nickname = createForm.nickname;
     if (createForm.phone) payload.phone = createForm.phone;
     if (createForm.password) payload.password = createForm.password;
-    if (createForm.gender) payload.gender = createForm.gender.toUpperCase();
+    if (createForm.gender) payload.gender = createForm.gender;
     if (createForm.avatar) payload.avatar = createForm.avatar;
     if (createForm.bio) payload.bio = createForm.bio;
 

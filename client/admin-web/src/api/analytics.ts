@@ -35,9 +35,9 @@ export interface DashboardStats {
 export interface AiKeyTokenStat {
   model: string;
   name: string;
-  totalTokens: number;
+  totalTokens: number | null;
   usedTokens: number;
-  remaining: number;
+  remaining: number | null;
   isActive: boolean;
 }
 

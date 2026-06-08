@@ -30,7 +30,10 @@ export type PermissionModule =
   | 'collection'
   | 'user'
   | 'feedback'
-  | 'ai-scan'
+  | 'reports'
+  | 'notifications'
+  | 'ai-usage'
+  | 'ai-control'
   | 'content'
   | 'recipe-audit'
   | 'recycle'
@@ -44,13 +47,14 @@ export const ROUTE_MODULE_MAP: Record<string, PermissionModule> = {
   '/recipes': 'recipe',
   '/recipes/create': 'recipe',
   '/recipes/:id/edit': 'recipe',
-  '/recipes/featured': 'recipe',
-  '/recipes/hot': 'recipe',
   '/ingredients': 'ingredient',
   '/collections': 'collection',
   '/users': 'user',
   '/feedbacks': 'feedback',
-  '/ai-scans': 'ai-scan',
+  '/reports': 'reports',
+  '/notifications': 'notifications',
+  '/ai-usage': 'ai-usage',
+  '/ai-control': 'ai-control',
   '/content': 'content',
   '/image-create': 'content',
   '/recipe-audit': 'recipe-audit',
@@ -65,18 +69,18 @@ export const ROUTE_MODULE_MAP: Record<string, PermissionModule> = {
 export const ROLE_PERMISSION_MAP: Record<Role, PermissionModule[]> = {
   SUPER_ADMIN: [
     'ALL', 'recipe', 'ingredient', 'collection',
-    'user', 'feedback', 'ai-scan', 'content', 'recipe-audit',
+    'user', 'feedback', 'reports', 'notifications', 'ai-usage', 'ai-control', 'content', 'recipe-audit',
     'recycle', 'admin-manage', 'settings',
   ],
   ADMIN: [
     'ALL', 'recipe', 'ingredient', 'collection',
-    'feedback', 'ai-scan', 'content',
+    'feedback', 'reports', 'notifications', 'ai-usage', 'ai-control', 'content',
   ],
   EDITOR: [
     'ALL', 'recipe', 'ingredient', 'collection',
   ],
   AUDITOR: [
-    'ALL', 'feedback', 'recipe-audit',
+    'ALL', 'feedback', 'reports', 'recipe-audit',
   ],
 };
 
@@ -88,6 +92,7 @@ export const ROUTE_ROLE_GUARD: Record<string, Role[]> = {
   '/recycle': ['SUPER_ADMIN', 'ADMIN'],
   '/users': ['SUPER_ADMIN', 'ADMIN'],
   '/content': ['SUPER_ADMIN', 'ADMIN'],
+  '/ai-control': ['SUPER_ADMIN', 'ADMIN'],
 };
 
 /**

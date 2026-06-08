@@ -14,16 +14,22 @@ export const cosConfig = {
 
 // 文件夹类型
 export const COS_FOLDERS = {
-  AVATARS: 'avatars',           // 用户头像
-  RECIPES: 'recipes',           // 菜谱图片
-  RECIPE_COVER: 'recipes',      // 菜谱封面
-  RECIPE_STEPS: 'recipes/steps', // 菜谱步骤图
-  FAVORITES: 'favorites',       // 收藏夹封面
-  FEEDBACK: 'feedback',         // 用户反馈
-  BANNERS: 'banners',           // Banner轮播图
-  CATEGORIES: 'categories',     // 分类图标
-  INGREDIENTS: 'ingredients',   // 食材图片
-  TMP: 'tmp',                   // 临时文件
+  ADMINS: 'admins',
+  AVATARS: 'avatars',
+  RECIPES: 'recipes',
+  RECIPE_COVER: 'recipes',
+  RECIPE_STEPS: 'recipes/steps',
+  FAVORITES: 'favorites',
+  USER_RECIPES: 'user-recipes',
+  FEEDBACK: 'feedback',
+  BANNERS: 'banners',
+  CATEGORIES: 'categories',
+  INGREDIENTS: 'ingredients',
+  SETTINGS: 'settings',
+  AI_CHAT: 'ai-chat',
+  AI_SCAN: 'ai-scan',
+  AI_GENERATED: 'ai-generated',
+  TMP: 'tmp',
 } as const;
 
 export type COSFolderType = typeof COS_FOLDERS[keyof typeof COS_FOLDERS];

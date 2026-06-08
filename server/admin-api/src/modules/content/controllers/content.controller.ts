@@ -5,6 +5,26 @@ import { paginated, success, notFound, badRequest } from '../../../types/respons
 import { ContentStatus, LinkType } from '@prisma/client';
 import { createOperationLog } from '../../../utils/adminHelper';
 
+function normalizeNoticeStatus(status: unknown): ContentStatus {
+  if (status === 'PUBLISHED') return 'ACTIVE';
+  if (status === 'OFFLINE') return 'INACTIVE';
+  if (status === 'DRAFT') return 'DRAFT';
+  return (status as ContentStatus) || 'DRAFT';
+}
+
+function mapNoticeStatus(status: ContentStatus) {
+  if (status === 'ACTIVE') return 'PUBLISHED';
+  if (status === 'INACTIVE') return 'OFFLINE';
+  return status;
+}
+
+function mapNotice(notice: any) {
+  return {
+    ...notice,
+    status: mapNoticeStatus(notice.status),
+  };
+}
+
 export async function getBanners(req: Request, res: Response) {
   const page = parseInt(req.query.page as string) || 1;
   const pageSize = parseInt(req.query.pageSize as string) || 20;
@@ -129,17 +149,24 @@ export async function deleteBanner(req: Request, res: Response) {
 export async function getNotices(req: Request, res: Response) {
   const page = parseInt(req.query.page as string) || 1;
   const pageSize = parseInt(req.query.pageSize as string) || 20;
+  const { status } = req.query;
+  const where: Prisma.NoticeWhereInput = {};
+
+  if (status) {
+    where.status = normalizeNoticeStatus(status);
+  }
 
   const [total, list] = await Promise.all([
-    prisma.notice.count(),
+    prisma.notice.count({ where }),
     prisma.notice.findMany({
+      where,
       skip: (page - 1) * pageSize,
       take: pageSize,
       orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
     }),
   ]);
 
-  res.json(paginated(list, { page, pageSize, total }));
+  res.json(paginated(list.map(mapNotice), { page, pageSize, total }));
 }
 
 export async function getNoticeById(req: Request, res: Response) {
@@ -155,7 +182,7 @@ export async function getNoticeById(req: Request, res: Response) {
     return;
   }
 
-  res.json(success(notice));
+  res.json(success(mapNotice(notice)));
 }
 
 export async function createNotice(req: Request, res: Response) {
@@ -173,12 +200,12 @@ export async function createNotice(req: Request, res: Response) {
       content,
       type: type || 'NORMAL',
       target: target || 'ALL',
-      status: (status as ContentStatus) || 'ACTIVE',
+      status: normalizeNoticeStatus(status),
       publishedAt: publishedAt ? new Date(publishedAt) : new Date(),
     },
   });
 
-  res.json(success(result, '创建成功'));
+  res.json(success(mapNotice(result), '创建成功'));
 }
 
 export async function updateNotice(req: Request, res: Response) {
@@ -203,12 +230,12 @@ export async function updateNotice(req: Request, res: Response) {
       ...(content !== undefined && { content }),
       ...(type !== undefined && { type }),
       ...(target !== undefined && { target }),
-      ...(status !== undefined && { status }),
+      ...(status !== undefined && { status: normalizeNoticeStatus(status) }),
       ...(publishedAt !== undefined && { publishedAt: publishedAt ? new Date(publishedAt) : null }),
     },
   });
 
-  res.json(success(result, '更新成功'));
+  res.json(success(mapNotice(result), '更新成功'));
 }
 
 export async function deleteNotice(req: Request, res: Response) {

@@ -210,6 +210,13 @@
               </el-radio-group>
             </el-form-item>
 
+            <el-form-item label="运营推荐">
+              <div class="switch-stack">
+                <el-switch v-model="form.isHot" active-text="热门" />
+                <el-switch v-model="form.isFeatured" active-text="精选" />
+              </div>
+            </el-form-item>
+
             <el-form-item label="标签">
               <div class="tags-input">
                 <el-tag
@@ -304,6 +311,8 @@ const form = reactive({
   goal: '',
   ageBand: '',
   childrenMeal: false,
+  isHot: false,
+  isFeatured: false,
   nutrition: {
     calories: 0,
     protein: 0,
@@ -323,7 +332,7 @@ async function handleCoverChange(file: any) {
   coverPreview.value = URL.createObjectURL(file.raw);
   try {
     const result = await uploadFile(file.raw, 'RECIPE_COVER');
-    form.coverImage = result.url || (result.data as any)?.url || '';
+    form.coverImage = result.url || '';
   } catch {
     ElMessage.error('封面上传失败');
   }
@@ -350,7 +359,7 @@ async function handleStepImageChange(file: any, index: number) {
   form.steps[index].image = blobUrl;
   try {
     const result = await uploadFile(file.raw, 'RECIPE_STEPS');
-    form.steps[index].image = result.url || (result.data as any)?.url || blobUrl;
+    form.steps[index].image = result.url || blobUrl;
   } catch {
     ElMessage.error('步骤图上传失败');
   }
@@ -390,6 +399,8 @@ async function handleSubmit() {
       mealTimes: form.mealTimes.length > 0 ? form.mealTimes : undefined,
       fitnessMeal: form.fitnessMeal || undefined,
       childrenMeal: form.childrenMeal || undefined,
+      isHot: form.isHot,
+      isFeatured: form.isFeatured,
       ageBand: form.childrenMeal ? form.ageBand : undefined,
       fitnessCategory: form.fitnessMeal ? form.fitnessCategory : undefined,
       goal: form.fitnessMeal ? form.goal : undefined,
@@ -407,7 +418,7 @@ async function handleSubmit() {
 
 function handleCancel() {
   ElMessageBox.confirm('未保存的数据将丢失，确定要取消吗？', '确认', {
-    confirmText: '确定离开', cancelText: '继续编辑', type: 'warning',
+    confirmButtonText: '确定离开', cancelButtonText: '继续编辑', type: 'warning',
   }).then(() => router.push('/recipes')).catch(() => {});
 }
 </script>
@@ -596,5 +607,12 @@ function handleCancel() {
   .el-button {
     width: 100%;
   }
+}
+
+.switch-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
 }
 </style>

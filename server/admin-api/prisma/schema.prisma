@@ -25,6 +25,7 @@ model User {
   openid       String?        @unique  // 微信小程序
   unionid      String?        @unique  // 微信UnionID
   phone        String?        @unique  // 手机号（APP）
+  email        String?        @unique  // 邮箱（APP/Web）
   password     String?        // 账号密码（Web）
   
   // 用户基本信息
@@ -33,6 +34,7 @@ model User {
   gender       Gender         @default(UNKNOWN)
   birthday     DateTime?
   bio          String?        // 个人简介
+  healthProfile Json?
   
   // 账号状态
   status       AccountStatus  @default(ACTIVE)
@@ -48,13 +50,17 @@ model User {
   favorites     Favorite[]     // 收藏
   collections  Collection[]   // 收藏夹
   feedbacks     Feedback[]     // 反馈记录
-  aiScans      AiScan[]       // AI扫描记录
   fridgeItems  FridgeItem[]   // 冰箱食材
   shoppingLists ShoppingList[] // 购物清单
   browseHistory BrowseHistory[] // 浏览记录
   notifications Notification[]  // 通知记录
+  activityLogs  UserActivityLog[] // 用户活动日志
+  verificationTokens VerificationToken[] // 验证码记录
   aiChatSessions AiChatSession[]
   aiChatMessages AiChatMessage[]
+  userMemories  UserMemory[]
+  scheduledTasks ScheduledTask[]
+  ingredientRecognitionLogs IngredientRecognitionLog[]
   following     Follow[]       @relation("follower")
   followers    Follow[]       @relation("following")
   
@@ -75,6 +81,7 @@ model Admin {
   password     String
   nickname     String?
   phone        String?
+  email        String?
   avatar       String?
   role         AdminRole     @default(EDITOR)
   status       AccountStatus @default(ACTIVE)
@@ -86,7 +93,6 @@ model Admin {
   
   operationLogs OperationLog[]
   feedbackReplies FeedbackReply[]
-  adminLogs AdminLog[]
   recycleItems RecycleBin[]
 
   @@map("admins")
@@ -107,6 +113,40 @@ model OperationLog {
   @@index([adminId])
   @@index([createdAt])
   @@map("operation_logs")
+}
+
+model VerificationToken {
+  id        Int               @id @default(autoincrement())
+  userId    Int?
+  email     String?
+  phone     String?
+  code      String
+  type      VerificationType
+  attempts  Int               @default(0)
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime          @default(now())
+
+  user      User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email, type, createdAt])
+  @@index([phone, type, createdAt])
+  @@index([userId])
+  @@map("verification_tokens")
+}
+
+model EmailLog {
+  id        Int       @id @default(autoincrement())
+  toEmail   String
+  subject   String
+  type      String
+  status    String
+  error     String?
+  createdAt DateTime  @default(now())
+
+  @@index([toEmail, createdAt])
+  @@index([type, status])
+  @@map("email_logs")
 }
 
 // =====================================================
@@ -177,12 +217,9 @@ model Recipe {
   isDeleted   Boolean       @default(false)  // 软删除标记
 
   // 关联
-  recipeIngredients RecipeIngredient[]
   favorites    Favorite[]
   browseHistory BrowseHistory[]
   collectionItems CollectionItem[]
-  featuredRecipe FeaturedRecipe?
-  
   @@index([source, status])
   @@index([category])
   @@index([isFeatured])
@@ -192,39 +229,7 @@ model Recipe {
   @@map("recipes")
 }
 
-// 精选菜谱管理
-model FeaturedRecipe {
-  id        Int      @id @default(autoincrement())
-  recipeId  Int      @unique
-  weight    Int      @default(0)
-  note      String?
-  addedBy   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-
-  @@index([weight])
-  @@map("featured_recipes")
-}
-
 // 食谱-食材关联表
-model RecipeIngredient {
-  id           Int         @id @default(autoincrement())
-  recipeId     Int
-  ingredientId Int?
-  name         String
-  amount       String
-  unit         String?
-  isOptional   Boolean     @default(false)
-  sortOrder    Int         @default(0)
-  
-  recipe       Recipe      @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  ingredient   Ingredient? @relation(fields: [ingredientId], references: [id])
-  
-  @@index([recipeId])
-  @@map("recipe_ingredients")
-}
 
 // 食材字典表
 model Ingredient {
@@ -242,7 +247,6 @@ model Ingredient {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  recipeIngredients RecipeIngredient[]
 
   @@index([category])
   @@index([createdAt])
@@ -404,27 +408,6 @@ model ShoppingItem {
 // 八、AI功能
 // =====================================================
 
-model AiScan {
-  id           Int       @id @default(autoincrement())
-  userId       Int
-  imageUrl     String
-  result       Json      // AI识别结果
-  recipes      Json?     // 推荐菜谱
-  status       ScanStatus @default(PROCESSING)
-  errorMsg     String?
-  tokensUsed   Int?      // 本次调用消耗 Token 数
-  apiKeyName   String?   // 使用的 Key 名称
-  model        String?   // 使用的模型名称
-  createdAt    DateTime  @default(now())
-
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([createdAt])
-  @@index([model])
-  @@map("ai_scans")
-}
-
 // AI API Key 管理
 model AiApiKey {
   id           Int      @id @default(autoincrement())
@@ -433,13 +416,60 @@ model AiApiKey {
   baseUrl      String   // API Base URL
   model        String   // 模型名称，如 gpt-4o-mini
   keyType      String?  // 'image' | 'text' | 'multimodal' — null=兼容旧数据
-  totalTokens  Int      // 用户填写的总量上限
+  usage        String?  // 'chat' | 'vision' | 'image' | null(通用) — 用途分类
+  totalTokens  Int?     // 用户填写的总量上限，空值表示不限量
   usedTokens   Int      @default(0)  // 累计已消耗
   isActive     Boolean  @default(false)
+  pricePerMTok Float?   // 每百万 token 价格（美元），用于计算费用
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  usageLogs    AiUsageLog[]
+
   @@map("ai_api_keys")
+}
+
+model AiUsageLog {
+  id        Int       @id @default(autoincrement())
+  apiKeyId  Int
+  model     String    // 模型名称
+  usage     String?   // chat/vision/image
+  purpose   String    // 用途描述，如"AI聊天"、"食材识别"、"AI生图"
+  tokensIn  Int       @default(0)
+  tokensOut Int       @default(0)
+  cost      Float?    // 费用（美元）
+  userId    Int?      // 如果是用户调用
+  userName  String?   // 调用用户名称快照
+  input     String?   // 输入摘要
+  output    String?   // 输出摘要
+  duration  Int?      // 响应时间 ms
+  success   Boolean   @default(true)
+  error     String?   // 失败原因
+  createdAt DateTime  @default(now())
+
+  apiKey    AiApiKey  @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([apiKeyId, createdAt])
+  @@index([usage, createdAt])
+  @@index([userId, createdAt])
+  @@index([success, createdAt])
+  @@map("ai_usage_logs")
+}
+
+model IngredientRecognitionLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  imageUrl    String
+  ingredients Json
+  model       String?
+  tokensUsed  Int?
+  rawResponse Json?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("ingredient_recognition_logs")
 }
 
 // AI 生图 Prompt 模板
@@ -470,6 +500,7 @@ model AiChatMessage {
   model       String?
   tokensUsed  Int?
   ragContext  Json?
+  toolCalls   Json?
   metadata    Json?
   createdAt   DateTime   @default(now())
 
@@ -480,6 +511,60 @@ model AiChatMessage {
   @@index([userId, createdAt])
   @@index([role])
   @@map("ai_chat_messages")
+}
+
+model UserMemory {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  type        String
+  content     String
+  metadata    Json?
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, type])
+  @@map("user_memories")
+}
+
+model ScheduledTask {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  type        String
+  title       String
+  body        String
+  data        Json?
+  triggerAt   DateTime
+  fired       Boolean   @default(false)
+  firedAt     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([triggerAt, fired])
+  @@index([userId, fired])
+  @@map("scheduled_tasks")
+}
+
+model AiSkill {
+  id              Int       @id @default(autoincrement())
+  name            String    @unique
+  displayName     String
+  description     String?
+  triggerKeywords Json?
+  tools           Json?
+  systemPrompt    String?
+  priority        Int       @default(0)
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([isActive, priority])
+  @@map("ai_skills")
 }
 
 model AiRagDocument {
@@ -634,48 +719,35 @@ model Notification {
   @@map("notifications")
 }
 
+// 用户活动日志
+model UserActivityLog {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  action      String    // login, register, upload_recipe, ai_scan, ai_chat, like, follow, browse, create_recipe
+  targetId    String?   // 关联对象ID
+  detail      String?   // 描述
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([action])
+  @@index([createdAt])
+  @@map("user_activity_logs")
+}
+
 // =====================================================
 // 十二、扩展预留表（可扩展功能）
 // =====================================================
 
 // 扩展属性表 - 支持动态字段
-model ExtensionData {
-  id           Int       @id @default(autoincrement())
-  entityType   String    // 实体类型：user/recipe/ingredient
-  entityId     Int
-  key          String
-  value        Json
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  
-  @@unique([entityType, entityId, key])
-  @@index([entityType, entityId])
-  @@map("extension_data")
-}
 
 // =====================================================
 // 十一、管理员操作日志
 // =====================================================
 
-model AdminLog {
-  id         Int       @id @default(autoincrement())
-  adminId    Int
-  adminName  String?
-  action     String    // create|update|delete|publish|offline|login|logout
-  module     String    // recipe|user|ingredient|feedback|content|system
-  target     String?   // 操作对象描述
-  detail     String?   // 详情
-  ip         String?
-  createdAt  DateTime  @default(now())
-
-  admin      Admin     @relation(fields: [adminId], references: [id])
-
-  @@index([adminId])
-  @@index([module])
-  @@index([action])
-  @@index([createdAt])
-  @@map("admin_logs")
-}
 
 // =====================================================
 // 十二、回收站
@@ -702,34 +774,8 @@ model RecycleBin {
 }
 
 // 扩展表1 - 菜谱版本管理
-model RecipeVersion {
-  id           Int       @id @default(autoincrement())
-  recipeId     Int
-  version      Int
-  changes      Json
-  createdBy    Int?
-  createdAt    DateTime  @default(now())
-  
-  @@unique([recipeId, version])
-  @@index([recipeId])
-  @@map("recipe_versions")
-}
 
 // 扩展表2 - 定时任务
-model ScheduledTask {
-  id           Int       @id @default(autoincrement())
-  name         String
-  type         String
-  cron         String?
-  handler      String
-  data         Json?
-  status       String    @default("pending")
-  lastRunAt    DateTime?
-  nextRunAt    DateTime?
-  createdAt    DateTime  @default(now())
-  
-  @@map("scheduled_tasks")
-}
 
 // =====================================================
 // 十三、系统配置
@@ -824,17 +870,18 @@ enum FeedbackStatus {
   CLOSED
 }
 
-enum ScanStatus {
-  PROCESSING
-  SUCCESS
-  FAILED
-}
-
 enum AiChatRole {
   USER
   ASSISTANT
   SYSTEM
   TOOL
+}
+
+enum VerificationType {
+  REGISTER
+  RESETPASSWORD
+  BIND
+  ADMIN_RESET
 }
 
 enum AiChatSessionStatus {

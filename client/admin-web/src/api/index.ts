@@ -1,6 +1,8 @@
 export { default as request } from './request';
 export { authApi } from './auth';
 export { feedbackApi } from './feedback';
+export { reportApi } from './report';
+export { adminNotificationApi } from './admin-notification';
 export { ingredientApi } from './ingredient';
 export { systemApi } from './system';
 export { recipeApi } from './recipe';
@@ -10,3 +12,4 @@ export { logsApi } from './logs';
 export { recycleApi } from './recycle';
 export { contentApi } from './content';
 export { adminApi } from './admin';
+export { aiControlApi } from './ai-control';

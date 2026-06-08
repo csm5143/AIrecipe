@@ -119,11 +119,6 @@ export async function getUserById(req: Request, res: Response) {
         take: 50,
         orderBy: { addedAt: 'desc' },
       },
-      aiScans: {
-        take: 10,
-        orderBy: { createdAt: 'desc' },
-        select: { id: true, imageUrl: true, status: true, createdAt: true },
-      },
       browseHistory: {
         take: 20,
         orderBy: { createdAt: 'desc' },
@@ -143,7 +138,7 @@ export async function getUserById(req: Request, res: Response) {
         take: 10,
         orderBy: { createdAt: 'desc' },
       },
-      _count: { select: { feedbacks: true, fridgeItems: true, aiScans: true } },
+      _count: { select: { feedbacks: true, fridgeItems: true } },
     },
   });
   if (!user) {
@@ -181,7 +176,6 @@ export async function getUserById(req: Request, res: Response) {
     collectionCount: totalCollectionItems,
     feedbackCount: user._count.feedbacks,
     fridgeCount: user._count.fridgeItems,
-    aiScanCount: user._count.aiScans,
     favorites: Array.from(allCollectedRecipes.values()),
     collections: user.collections.map(c => ({
       id: c.id,
@@ -199,12 +193,6 @@ export async function getUserById(req: Request, res: Response) {
       unit: fi.unit,
       category: fi.category,
       addedAt: fi.addedAt.getTime(),
-    })),
-    aiScans: user.aiScans.map(s => ({
-      id: s.id,
-      imageUrl: s.imageUrl,
-      status: s.status,
-      createdAt: s.createdAt.toISOString().slice(0, 16).replace('T', ' '),
     })),
     browseHistory: user.browseHistory.map(bh => ({
       id: bh.id,

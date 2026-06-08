@@ -7,9 +7,12 @@ export interface AiKeyItem {
   baseUrl: string;
   model: string;
   keyType: string | null;  // 'image' | 'text' | 'multimodal' | null
-  totalTokens: number;
+  usage: string | null;    // 'chat' | 'vision' | 'image' | null
+  totalTokens: number | null;
   usedTokens: number;
-  remaining: number;
+  remaining: number | null;
+  pricePerMTok: number | null;
+  cost: number | null;
   isActive: boolean;
   createdAt: string;
 }
@@ -23,7 +26,9 @@ export const aiKeyApi = {
     baseUrl: string;
     model: string;
     keyType?: string;
-    totalTokens: number;
+    usage?: string | null;
+    totalTokens?: number | null;
+    pricePerMTok?: number | null;
   }) => request.post('/ai-keys', data),
 
   update: (id: number, data: Partial<{
@@ -32,7 +37,9 @@ export const aiKeyApi = {
     baseUrl: string;
     model: string;
     keyType: string;
-    totalTokens: number;
+    usage: string | null;
+    totalTokens: number | null;
+    pricePerMTok: number | null;
   }>) => request.put(`/ai-keys/${id}`, data),
 
   delete: (id: number) => request.delete(`/ai-keys/${id}`),

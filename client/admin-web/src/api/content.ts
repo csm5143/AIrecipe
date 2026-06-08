@@ -5,7 +5,8 @@ export type NavType = 'daily' | 'discover' | 'list' | 'search' | 'hot';
 export type Platform = 'MINIPROGRAM' | 'APP' | 'WEB' | 'ALL';
 export type BannerStatus = 'ACTIVE' | 'INACTIVE';
 export type NoticeStatus = 'DRAFT' | 'PUBLISHED' | 'OFFLINE';
-export type NoticeType = 'NORMAL' | 'IMPORTANT' | 'ACTIVITY';
+export type NoticeType = 'NORMAL' | 'IMPORTANT' | 'ACTIVITY' | 'SYSTEM' | 'UPDATE' | 'WELCOME';
+export type NoticeTarget = 'ALL' | 'NEW_USER' | 'ACTIVE_USER' | 'INACTIVE_USER';
 
 export interface Banner {
   id: number;
@@ -44,7 +45,7 @@ export interface Notice {
   title: string;
   content: string;
   type: NoticeType;
-  target: string;
+  target: NoticeTarget;
   status: NoticeStatus;
   publishedAt?: string;
   createdAt: string;
@@ -70,6 +71,7 @@ export interface BannerQuery {
 export interface NoticeQuery {
   page?: number;
   pageSize?: number;
+  status?: string;
 }
 
 export const contentApi = {
@@ -158,9 +160,9 @@ export const contentApi = {
   // ==================== Notice ====================
 
   getNotices(params: NoticeQuery = {}) {
-    const { page = 1, pageSize = 20 } = params;
+    const { page = 1, pageSize = 20, status } = params;
     return request.get<any, any>('/content/notices', {
-      params: { page, pageSize },
+      params: { page, pageSize, status },
     });
   },
 
@@ -172,6 +174,7 @@ export const contentApi = {
     title: string;
     content: string;
     type?: NoticeType;
+    target?: NoticeTarget;
     status?: NoticeStatus;
     publishedAt?: string;
   }) {
@@ -182,6 +185,7 @@ export const contentApi = {
     title: string;
     content: string;
     type: NoticeType;
+    target: NoticeTarget;
     status: NoticeStatus;
     publishedAt?: string;
   }>) {

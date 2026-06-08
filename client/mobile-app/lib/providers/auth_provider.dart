@@ -65,10 +65,36 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> login(String phone, String password) async {
+  ({String? phone, String? email}) _splitAccount(String account) {
+    final normalized = account.trim();
+    if (normalized.contains('@')) {
+      return (phone: null, email: normalized.toLowerCase());
+    }
+    return (phone: normalized, email: null);
+  }
+
+  Future<void> sendVerificationCode(String account, String type) async {
+    final target = _splitAccount(account);
+    await _ref
+        .read(authApiProvider)
+        .sendVerificationCode(
+          phone: target.phone,
+          email: target.email,
+          type: type,
+        );
+  }
+
+  Future<void> login(String account, String password) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final session = await _ref.read(authApiProvider).login(phone, password);
+      final target = _splitAccount(account);
+      final session = await _ref
+          .read(authApiProvider)
+          .accountLogin(
+            phone: target.phone,
+            email: target.email,
+            password: password,
+          );
       state = AuthState(isInitialized: true, user: session.user);
     } catch (error) {
       state = state.copyWith(
@@ -80,12 +106,24 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> register(String phone, String password, String nickname) async {
+  Future<void> register(
+    String account,
+    String password,
+    String nickname,
+    String verifyCode,
+  ) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
+      final target = _splitAccount(account);
       final session = await _ref
           .read(authApiProvider)
-          .register(phone, password, nickname);
+          .accountRegister(
+            phone: target.phone,
+            email: target.email,
+            password: password,
+            nickname: nickname,
+            verifyCode: verifyCode,
+          );
       state = AuthState(isInitialized: true, user: session.user);
     } catch (error) {
       state = state.copyWith(
@@ -121,10 +159,47 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> resetPassword(
+    String account,
+    String verifyCode,
+    String newPassword,
+  ) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final target = _splitAccount(account);
+      await _ref
+          .read(authApiProvider)
+          .resetPassword(
+            phone: target.phone,
+            email: target.email,
+            verifyCode: verifyCode,
+            newPassword: newPassword,
+          );
+      state = state.copyWith(isLoading: false);
+    } catch (error) {
+      state = state.copyWith(isLoading: false, error: _toAppException(error));
+      rethrow;
+    }
+  }
+
   Future<void> bindPhone(String phone) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _ref.read(authApiProvider).bindPhone(phone);
+      final user = await _ref.read(authApiProvider).currentUser();
+      state = state.copyWith(isLoading: false, user: user);
+    } catch (error) {
+      state = state.copyWith(isLoading: false, error: _toAppException(error));
+      rethrow;
+    }
+  }
+
+  Future<void> bindEmail(String email, String verifyCode) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _ref
+          .read(authApiProvider)
+          .bindEmail(email: email, verifyCode: verifyCode);
       final user = await _ref.read(authApiProvider).currentUser();
       state = state.copyWith(isLoading: false, user: user);
     } catch (error) {

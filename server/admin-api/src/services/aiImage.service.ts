@@ -3,7 +3,8 @@
  * 动态 Prompt 模板库（从数据库读取） + 动态参数替换 + COS 上传
  */
 import { prisma } from '../lib/prisma';
-import { COSService } from './cos.service';
+import { COSService, COS_FOLDERS } from './cos.service';
+import { logAiUsage } from './aiUsageLog.service';
 
 // ============ 类型 ============
 
@@ -22,8 +23,14 @@ export interface PromptTemplate {
 
 async function getActiveKey() {
   const key = await prisma.aiApiKey.findFirst({
-    where: { isActive: true, keyType: { in: ['image', 'multimodal'] } },
-    orderBy: [{ keyType: 'asc' }], // 'image' < 'multimodal' alphabetically, prefer dedicated image key
+    where: {
+      isActive: true,
+      AND: [
+        { OR: [{ usage: 'image' }, { usage: null }] },
+        { OR: [{ keyType: { in: ['image', 'multimodal'] } }, { keyType: null }] },
+      ],
+    },
+    orderBy: [{ usage: 'asc' }], // 'image' < null, prefer image-specific key
   });
   if (!key) return null;
   return { id: key.id, apiKey: key.apiKey, baseUrl: key.baseUrl, model: key.model };
@@ -179,17 +186,52 @@ export async function generateImage(params: GenerateImageParams): Promise<Genera
   }
   if (params.model) aiKey.model = params.model;
 
+  const start = Date.now();
   try {
     const rawUrl = await callImageAPI(aiKey, prompt, size, params.refImage);
-    if (!rawUrl) return { success: false, error: 'AI 未返回图片' };
+    if (!rawUrl) {
+      void logAiUsage({
+        apiKeyId: aiKey.id,
+        model: aiKey.model,
+        usage: 'image',
+        purpose: 'AI生图',
+        input: prompt,
+        duration: Date.now() - start,
+        success: false,
+        error: 'AI 未返回图片',
+      });
+      return { success: false, error: 'AI 未返回图片' };
+    }
 
-    const cosUrl = await downloadAndUpload(rawUrl, 'ai-generated', `img_${Date.now()}`);
+    const cosUrl = await downloadAndUpload(rawUrl, COS_FOLDERS.AI_GENERATED, `img_${Date.now()}`);
 
     await consumeTokens(aiKey.id, 600);
+
+    void logAiUsage({
+      apiKeyId: aiKey.id,
+      model: aiKey.model,
+      usage: 'image',
+      purpose: 'AI生图',
+      tokensOut: 600,
+      input: prompt,
+      output: cosUrl,
+      duration: Date.now() - start,
+      success: true,
+    });
 
     return { success: true, cosUrl, error: undefined };
   } catch (e: any) {
     console.error('[AIImage] 生成失败:', e.message);
+    void logAiUsage({
+      apiKeyId: aiKey.id,
+      model: aiKey.model,
+      usage: 'image',
+      purpose: 'AI生图',
+      input: prompt,
+      duration: Date.now() - start,
+      success: false,
+      error: e?.message || String(e),
+    });
     return { success: false, error: e.message };
   }
 }

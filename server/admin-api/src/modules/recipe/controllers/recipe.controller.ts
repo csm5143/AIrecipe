@@ -53,6 +53,8 @@ function buildPrismaWhere(query: any) {
     ];
   }
   if (query.difficulty) where.difficulty = query.difficulty as Difficulty;
+  if (query.isFeatured !== undefined) where.isFeatured = String(query.isFeatured) === 'true';
+  if (query.isHot !== undefined) where.isHot = String(query.isHot) === 'true';
   if (query.source) where.source = query.source;
   if (query.mealTime) where.mealTimes = { array_contains: query.mealTime };
   return where;
@@ -256,6 +258,41 @@ export async function batchDeleteRecipes(req: Request, res: Response) {
     await createOperationLog(getAdminId(req), getAdminName(req), 'delete', 'recipe', r.title, `批量删除了菜谱「${r.title}」`, req.ip || undefined);
   }
   res.json(success({ deleted: intIds.length }, `成功删除 ${intIds.length} 条记录`));
+}
+
+export async function batchUpdateRecipes(req: Request, res: Response) {
+  const { ids, data } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    res.status(400).json(badRequest('请传入要更新的 ID 列表'));
+    return;
+  }
+
+  const updateData: Prisma.RecipeUpdateManyMutationInput = {};
+  if (typeof data?.isFeatured === 'boolean') updateData.isFeatured = data.isFeatured;
+  if (typeof data?.isHot === 'boolean') updateData.isHot = data.isHot;
+
+  if (Object.keys(updateData).length === 0) {
+    res.status(400).json(badRequest('没有可更新的字段'));
+    return;
+  }
+
+  const intIds = ids.map((id: any) => parseInt(id)).filter((id: number) => !isNaN(id));
+  const result = await prisma.recipe.updateMany({
+    where: { id: { in: intIds }, isDeleted: false },
+    data: updateData,
+  });
+
+  await createOperationLog(
+    getAdminId(req),
+    getAdminName(req),
+    'update',
+    'recipe',
+    'batch',
+    `批量更新了 ${result.count} 条菜谱运营状态`,
+    req.ip || undefined,
+  );
+
+  res.json(success({ updated: result.count }, `成功更新 ${result.count} 条记录`));
 }
 
 export async function publishRecipe(req: Request, res: Response) {

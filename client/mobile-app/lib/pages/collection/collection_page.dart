@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -49,25 +50,17 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
               _ShoppingListView(
                 lists: shoppingLists,
                 onDelete: _deleteShoppingList,
+                onMerge: _mergeShoppingLists,
               )
             else
               _FridgeView(
                 items: fridgeItems,
                 onAdd: _showAddDialog,
                 onDelete: _deleteFridgeItem,
-                onAiRecipe: () => context.push('/ai/chat'),
               ),
           ],
         ),
       ),
-      floatingActionButton: _tab == 1
-          ? FloatingActionButton(
-              backgroundColor: AppColors.textPrimary,
-              foregroundColor: AppColors.surface,
-              onPressed: _showAddDialog,
-              child: const Icon(Icons.add),
-            )
-          : null,
     );
   }
 
@@ -93,6 +86,16 @@ class _CollectionPageState extends ConsumerState<CollectionPage> {
       if (mounted) showCapsuleToast(context, '食材已删除');
     } catch (error) {
       if (mounted) showCapsuleToast(context, '删除失败：$error');
+    }
+  }
+
+  Future<void> _mergeShoppingLists(
+      String name, List<Map<String, dynamic>> items) async {
+    try {
+      await ref.read(shoppingListProvider.notifier).create(name, items);
+      if (mounted) showCapsuleToast(context, '合并清单已创建');
+    } catch (error) {
+      if (mounted) showCapsuleToast(context, '合并失败：$error');
     }
   }
 
@@ -194,14 +197,90 @@ class _TabButton extends StatelessWidget {
   }
 }
 
-class _ShoppingListView extends StatelessWidget {
+class _ShoppingListView extends StatefulWidget {
   final List<Map<String, dynamic>> lists;
   final ValueChanged<String> onDelete;
+  final void Function(String name, List<Map<String, dynamic>> items) onMerge;
 
-  const _ShoppingListView({required this.lists, required this.onDelete});
+  const _ShoppingListView({
+    required this.lists,
+    required this.onDelete,
+    required this.onMerge,
+  });
+
+  @override
+  State<_ShoppingListView> createState() => _ShoppingListViewState();
+}
+
+class _ShoppingListViewState extends State<_ShoppingListView> {
+  final _selected = <String>{};
+  bool _mergeMode = false;
+
+  void _exitMergeMode() {
+    setState(() {
+      _selected.clear();
+      _mergeMode = false;
+    });
+  }
+
+  void _toggleSelect(String id) {
+    setState(() {
+      if (_selected.contains(id)) {
+        _selected.remove(id);
+        if (_selected.isEmpty) _mergeMode = false;
+      } else {
+        _selected.add(id);
+        _mergeMode = true;
+      }
+    });
+  }
+
+  void _doMerge() {
+    if (_selected.length < 2) {
+      showCapsuleToast(context, '请至少选择两个清单进行合并');
+      return;
+    }
+    final merged = <Map<String, dynamic>>[];
+    final seen = <String>{};
+    for (final list in widget.lists) {
+      final id = list['id']?.toString() ?? '';
+      if (!_selected.contains(id)) continue;
+      final items = list['items'] is List ? list['items'] as List : const [];
+      for (final raw in items) {
+        final item = raw is Map ? raw : const {};
+        final key = (item['name']?.toString() ?? '').trim();
+        if (key.isEmpty || seen.contains(key)) continue;
+        seen.add(key);
+        merged.add({
+          'name': key,
+          'amount': item['amount']?.toString() ?? '',
+          'unit': item['unit']?.toString() ?? '',
+        });
+      }
+    }
+    widget.onMerge('合并清单', merged);
+    _exitMergeMode();
+    showCapsuleToast(context, '已合并 ${merged.length} 种食材');
+  }
+
+  String _formatForClipboard(Map<String, dynamic> list) {
+    final name = list['name']?.toString() ?? '清单';
+    final items = list['items'] is List ? list['items'] as List : const [];
+    if (items.isEmpty) return name;
+    return '$name\n${items.map((raw) {
+      final item = raw is Map ? raw : const {};
+      final n = item['name']?.toString() ?? '';
+      final a = item['amount']?.toString() ?? '';
+      final u = item['unit']?.toString() ?? '';
+      final qty = a.isNotEmpty ? '$a$u' : '';
+      return qty.isNotEmpty ? '  · $n  $qty' : '  · $n';
+    }).join('\n')}';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final lists = widget.lists;
+
     if (lists.isEmpty) {
       return const _EmptyState(
         icon: Icons.shopping_basket_outlined,
@@ -211,75 +290,144 @@ class _ShoppingListView extends StatelessWidget {
     }
 
     return Column(
-      children: lists.map((list) {
-        final id = list['id']?.toString() ?? '';
-        final name = list['name']?.toString() ?? '未命名清单';
-        final items = list['items'] is List ? list['items'] as List : const [];
-
-        return _Panel(
-          margin: const EdgeInsets.only(bottom: 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.receipt_long,
-                    size: 20,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      name,
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: '删除',
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: id.isEmpty ? null : () => onDelete(id),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (items.isEmpty)
+      children: [
+        // 合并模式工具栏
+        if (_mergeMode)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.textPrimary,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
                 Text(
-                  '暂无食材',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                  '已选 ${_selected.length} 个',
+                  style: const TextStyle(
+                    color: AppColors.surface,
+                    fontWeight: FontWeight.w700,
                   ),
-                )
-              else
-                ...items.map((raw) {
-                  final item = raw is Map ? raw : const {};
-                  final itemName = item['name']?.toString() ?? '';
-                  final amount = item['amount']?.toString() ?? '';
-                  final unit = item['unit']?.toString() ?? '';
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 7),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.circle,
-                          size: 7,
-                          color: AppColors.textPlaceholder,
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: _exitMergeMode,
+                  child: const Text('取消',
+                    style: TextStyle(color: AppColors.surface)),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: _doMerge,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.surface,
+                    foregroundColor: AppColors.textPrimary,
+                  ),
+                  child: const Text('合并选中'),
+                ),
+              ],
+            ),
+          ),
+        // 清单卡片
+        ...lists.map((list) {
+          final id = list['id']?.toString() ?? '';
+          final name = list['name']?.toString() ?? '未命名清单';
+          final items = list['items'] is List ? list['items'] as List : const [];
+          final isSelected = _selected.contains(id);
+
+          return GestureDetector(
+            onLongPress: () => _toggleSelect(id),
+            child: _Panel(
+              margin: const EdgeInsets.only(bottom: 14),
+              child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    if (_mergeMode)
+                      GestureDetector(
+                        onTap: () => _toggleSelect(id),
+                        child: Container(
+                          width: 24, height: 24,
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isSelected
+                                ? AppColors.textPrimary
+                                : Colors.transparent,
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppColors.textPrimary
+                                  : AppColors.textPlaceholder,
+                              width: 2,
+                            ),
+                          ),
+                          child: isSelected
+                              ? const Icon(Icons.check, size: 16,
+                                  color: AppColors.surface)
+                              : null,
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(child: Text(itemName)),
-                        Text(
-                          '$amount$unit',
-                          style: Theme.of(context).textTheme.labelMedium
-                              ?.copyWith(color: AppColors.textSecondary),
-                        ),
-                      ],
+                      )
+                    else
+                      const Icon(Icons.receipt_long, size: 20,
+                          color: AppColors.textSecondary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(name,
+                        style: Theme.of(context).textTheme.headlineMedium),
                     ),
-                  );
-                }),
-            ],
+                    if (!_mergeMode) ...[
+                      IconButton(
+                        tooltip: '复制清单',
+                        icon: const Icon(Icons.copy, size: 18),
+                        color: AppColors.textPlaceholder,
+                        onPressed: () {
+                          Clipboard.setData(
+                              ClipboardData(text: _formatForClipboard(list)));
+                          showCapsuleToast(context, '已复制食材清单',
+                              icon: Icons.check);
+                        },
+                      ),
+                      IconButton(
+                        tooltip: '删除',
+                        icon: const Icon(Icons.delete_outline, size: 18),
+                        color: AppColors.textPlaceholder,
+                        onPressed: () => widget.onDelete(id),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (items.isEmpty)
+                  Text('暂无食材',
+                    style: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(color: AppColors.textSecondary))
+                else
+                  ...items.map((raw) {
+                    final item = raw is Map ? raw : const {};
+                    final itemName = item['name']?.toString() ?? '';
+                    final amount = item['amount']?.toString() ?? '';
+                    final unit = item['unit']?.toString() ?? '';
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 7),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.circle, size: 7,
+                              color: AppColors.textPlaceholder),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text(itemName)),
+                          Text('$amount$unit',
+                            style: Theme.of(context).textTheme.labelMedium
+                                ?.copyWith(color: AppColors.textSecondary)),
+                        ],
+                      ),
+                    );
+                  }),
+              ],
+            ),
           ),
         );
-      }).toList(),
+        }),
+      ],
     );
   }
 }
@@ -288,13 +436,11 @@ class _FridgeView extends StatelessWidget {
   final List<Ingredient> items;
   final VoidCallback onAdd;
   final ValueChanged<String> onDelete;
-  final VoidCallback onAiRecipe;
 
   const _FridgeView({
     required this.items,
     required this.onAdd,
     required this.onDelete,
-    required this.onAiRecipe,
   });
 
   @override
@@ -328,29 +474,11 @@ class _FridgeView extends StatelessWidget {
             title: '小冰箱还是空的',
             message: '添加食材后，其他端登录同一账号也能同步看到。',
           )
-        else ...[
+        else
           ...items.map(
             (item) =>
                 _FridgeTile(item: item, onDelete: () => onDelete(item.id)),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: onAiRecipe,
-              icon: const Icon(Icons.auto_awesome),
-              label: const Text('用冰箱食材问小厨子'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.textPrimary,
-                foregroundColor: AppColors.surface,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-            ),
-          ),
-        ],
       ],
     );
   }

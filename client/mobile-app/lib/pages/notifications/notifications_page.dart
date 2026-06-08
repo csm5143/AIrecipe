@@ -43,16 +43,21 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
             onPressed: visibleNotifications.isEmpty
                 ? null
                 : () async {
+                    final messengerContext = context;
                     try {
                       await ref.read(notificationApiProvider).markAllRead();
                       ref.invalidate(notificationListProvider);
                       ref.invalidate(unreadNotificationCountProvider);
-                      if (mounted) {
-                        showCapsuleToast(context, '已将通知标记为已读');
+                      if (messengerContext.mounted) {
+                        showCapsuleToast(messengerContext, '已将通知标记为已读');
                       }
                     } catch (_) {
-                      if (mounted) {
-                        showCapsuleToast(context, '操作失败', icon: Icons.error_outline);
+                      if (messengerContext.mounted) {
+                        showCapsuleToast(
+                          messengerContext,
+                          '操作失败',
+                          icon: Icons.error_outline,
+                        );
                       }
                     }
                   },
@@ -105,7 +110,9 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       isUnread: notification.isUnread,
       onDelete: () async {
         try {
-          await ref.read(notificationApiProvider).deleteNotification(notification.id);
+          await ref
+              .read(notificationApiProvider)
+              .deleteNotification(notification.id);
           ref.invalidate(notificationListProvider);
           ref.invalidate(unreadNotificationCountProvider);
           if (mounted) {
@@ -169,12 +176,12 @@ class _NotificationTile extends ConsumerWidget {
       ),
       onDismissed: (_) => onDelete(),
       child: GestureDetector(
-        onTap: () {
+        onTap: () async {
           if (notification.isUnread) {
-            ref.read(notificationApiProvider).markRead(notification.id);
-            ref.invalidate(notificationListProvider);
+            await ref.read(notificationApiProvider).markRead(notification.id);
             ref.invalidate(unreadNotificationCountProvider);
           }
+          if (!context.mounted) return;
           _openNotificationTarget(context, notification);
         },
         child: Container(
@@ -385,36 +392,5 @@ void _openNotificationTarget(
   BuildContext context,
   NotificationItem notification,
 ) {
-  // 优先深度链接到具体内容
-  final targetId = notification.targetId;
-  if (targetId != null && targetId.isNotEmpty) {
-    switch (notification.type) {
-      case NotificationType.like:
-        context.go('/recipe/$targetId');
-        return;
-      case NotificationType.follow:
-        context.go('/user/$targetId');
-        return;
-      default:
-        context.go('/recipe/$targetId');
-        return;
-    }
-  }
-
-  switch (notification.type) {
-    case NotificationType.ai:
-      context.go('/ai/chat');
-      return;
-    case NotificationType.follow:
-    case NotificationType.achievement:
-    case NotificationType.system:
-      context.go('/mine');
-      return;
-    case NotificationType.like:
-      context.go('/my-collections');
-      return;
-    case NotificationType.comment:
-      context.go('/collection');
-      return;
-  }
+  context.push('/notification/${notification.id}');
 }

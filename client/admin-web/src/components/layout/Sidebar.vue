@@ -51,8 +51,6 @@
               <span>菜谱</span>
             </template>
             <el-menu-item index="/recipes">菜谱列表</el-menu-item>
-            <el-menu-item index="/recipes/featured">精选菜谱</el-menu-item>
-            <el-menu-item index="/recipes/hot">热门菜谱</el-menu-item>
             <el-menu-item index="/recipes/create">创建菜谱</el-menu-item>
           </el-sub-menu>
 
@@ -73,7 +71,10 @@
       </div>
 
       <!-- 用户与反馈：SUPER_ADMIN / ADMIN / AUDITOR -->
-      <div v-if="canAccess('/users') || canAccess('/feedbacks')" class="menu-section">
+      <div
+        v-if="canAccess('/users') || canAccess('/feedbacks') || canAccess('/reports') || canAccess('/notifications') || canAccess('/ai-usage') || canAccess('/ai-control')"
+        class="menu-section"
+      >
         <div class="menu-title">用户与反馈</div>
         <el-menu
           :default-active="activeMenu"
@@ -92,10 +93,25 @@
             <template #title>反馈管理</template>
           </el-menu-item>
 
-            <el-menu-item v-if="canAccess('/ai-scans')" index="/ai-scans">
-              <el-icon><Cpu /></el-icon>
-              <template #title>AI 扫描记录</template>
-            </el-menu-item>
+          <el-menu-item v-if="canAccess('/reports')" index="/reports">
+            <el-icon><Warning /></el-icon>
+            <template #title>举报管理</template>
+          </el-menu-item>
+
+          <el-menu-item v-if="canAccess('/notifications')" index="/notifications">
+            <el-icon><Bell /></el-icon>
+            <template #title>通知中心</template>
+          </el-menu-item>
+
+          <el-menu-item v-if="canAccess('/ai-usage')" index="/ai-usage">
+            <el-icon><Cpu /></el-icon>
+            <template #title>AI使用记录</template>
+          </el-menu-item>
+
+          <el-menu-item v-if="canAccess('/ai-control')" index="/ai-control">
+            <el-icon><Monitor /></el-icon>
+            <template #title>AI控制台</template>
+          </el-menu-item>
 
           <el-menu-item v-if="canAccess('/recipe-audit')" index="/recipe-audit">
             <el-icon><Stamp /></el-icon>
@@ -146,7 +162,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { Odometer, Food, Goods, TrendCharts, User, ChatDotRound, Stamp, Delete, Setting, DArrowRight, DArrowLeft, Cpu } from '@element-plus/icons-vue';
+import { Odometer, Food, Goods, TrendCharts, User, ChatDotRound, Stamp, Delete, Setting, DArrowRight, DArrowLeft, Cpu, Warning, Bell, Monitor } from '@element-plus/icons-vue';
 import { useSiteSettingsStore } from '@/store/modules/siteSettings';
 import { usePermission } from '@/composables/usePermission';
 import { usePreferences } from '@/composables/usePreferences';

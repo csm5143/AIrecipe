@@ -8,12 +8,26 @@ function maskKey(key: string): string {
   return key.slice(0, 4) + '****' + key.slice(-4);
 }
 
+function parseOptionalNumber(value: unknown): number | null {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function remainingTokens(totalTokens: number | null, usedTokens: number) {
+  return totalTokens === null ? null : Math.max(0, totalTokens - usedTokens);
+}
+
+function usedCost(usedTokens: number, pricePerMTok: number | null) {
+  return pricePerMTok ? (usedTokens / 1_000_000) * pricePerMTok : null;
+}
+
 export async function getAiKeys(req: Request, res: Response) {
   const keys = await prisma.aiApiKey.findMany({
     orderBy: { createdAt: 'desc' },
   });
 
-  const list = keys.map(k => ({
+  const list = keys.map((k: any) => ({
     id: k.id,
     name: k.name,
     apiKey: maskKey(k.apiKey),
@@ -21,9 +35,12 @@ export async function getAiKeys(req: Request, res: Response) {
     baseUrl: k.baseUrl,
     model: k.model,
     keyType: k.keyType,
+    usage: k.usage,
     totalTokens: k.totalTokens,
     usedTokens: k.usedTokens,
-    remaining: Math.max(0, k.totalTokens - k.usedTokens),
+    remaining: remainingTokens(k.totalTokens, k.usedTokens),
+    pricePerMTok: k.pricePerMTok,
+    cost: usedCost(k.usedTokens, k.pricePerMTok),
     isActive: k.isActive,
     createdAt: k.createdAt.toISOString().slice(0, 16).replace('T', ' '),
   }));
@@ -32,26 +49,28 @@ export async function getAiKeys(req: Request, res: Response) {
 }
 
 export async function createAiKey(req: Request, res: Response) {
-  const { name, apiKey, baseUrl, model, keyType, totalTokens } = req.body;
+  const { name, apiKey, baseUrl, model, keyType, usage, totalTokens, pricePerMTok } = req.body;
 
-  if (!name || !apiKey || !baseUrl || !model || !totalTokens) {
+  if (!name || !apiKey || !baseUrl || !model) {
     res.status(400).json({ code: 400, message: '缺少必填字段', timestamp: Date.now() });
     return;
   }
 
-  // 如果是该类型的第一个 Key，自动设为激活
-  const where: any = keyType ? { keyType } : { keyType: null };
-  const count = await prisma.aiApiKey.count({ where });
+  // 如果是该用途的第一个 Key，自动设为激活
+  const firstWhere: any = usage ? { usage } : { usage: null };
+  const count = await prisma.aiApiKey.count({ where: firstWhere });
   const isFirst = count === 0;
 
-  const key = await prisma.aiApiKey.create({
+  const key = await (prisma.aiApiKey as any).create({
     data: {
       name,
       apiKey,
       baseUrl,
       model,
       keyType: keyType || null,
-      totalTokens: Number(totalTokens),
+      usage: usage || null,
+      totalTokens: parseOptionalNumber(totalTokens),
+      pricePerMTok: parseOptionalNumber(pricePerMTok),
       isActive: isFirst,
     },
   });
@@ -78,9 +97,12 @@ export async function createAiKey(req: Request, res: Response) {
     baseUrl: key.baseUrl,
     model: key.model,
     keyType: key.keyType,
+    usage: key.usage,
     totalTokens: key.totalTokens,
     usedTokens: key.usedTokens,
-    remaining: key.totalTokens,
+    remaining: remainingTokens(key.totalTokens, key.usedTokens),
+    pricePerMTok: key.pricePerMTok,
+    cost: usedCost(key.usedTokens, key.pricePerMTok),
     isActive: key.isActive,
     createdAt: key.createdAt.toISOString().slice(0, 16).replace('T', ' '),
   }, 'AI Key 创建成功'));
@@ -88,7 +110,7 @@ export async function createAiKey(req: Request, res: Response) {
 
 export async function updateAiKey(req: Request, res: Response) {
   const id = parseInt(req.params.id);
-  const { name, apiKey, baseUrl, model, keyType, totalTokens } = req.body;
+  const { name, apiKey, baseUrl, model, keyType, usage, totalTokens, pricePerMTok } = req.body;
 
   const existing = await prisma.aiApiKey.findUnique({ where: { id } });
   if (!existing) {
@@ -101,10 +123,12 @@ export async function updateAiKey(req: Request, res: Response) {
   if (apiKey !== undefined) updateData.apiKey = apiKey;
   if (baseUrl !== undefined) updateData.baseUrl = baseUrl;
   if (model !== undefined) updateData.model = model;
-  if (keyType !== undefined) updateData.keyType = keyType;
-  if (totalTokens !== undefined) updateData.totalTokens = Number(totalTokens);
+  if (keyType !== undefined) updateData.keyType = keyType || null;
+  if (usage !== undefined) updateData.usage = usage || null;
+  if (totalTokens !== undefined) updateData.totalTokens = parseOptionalNumber(totalTokens);
+  if (pricePerMTok !== undefined) updateData.pricePerMTok = parseOptionalNumber(pricePerMTok);
 
-  const updated = await prisma.aiApiKey.update({
+  const updated = await (prisma.aiApiKey as any).update({
     where: { id },
     data: updateData,
   });
@@ -130,9 +154,12 @@ export async function updateAiKey(req: Request, res: Response) {
     baseUrl: updated.baseUrl,
     model: updated.model,
     keyType: updated.keyType,
+    usage: updated.usage,
     totalTokens: updated.totalTokens,
     usedTokens: updated.usedTokens,
-    remaining: Math.max(0, updated.totalTokens - updated.usedTokens),
+    remaining: remainingTokens(updated.totalTokens, updated.usedTokens),
+    pricePerMTok: updated.pricePerMTok,
+    cost: usedCost(updated.usedTokens, updated.pricePerMTok),
     isActive: updated.isActive,
     createdAt: updated.createdAt.toISOString().slice(0, 16).replace('T', ' '),
   }, 'AI Key 更新成功'));
@@ -214,7 +241,9 @@ export async function getActiveAiKey(req: Request, res: Response) {
     model: key.model,
     totalTokens: key.totalTokens,
     usedTokens: key.usedTokens,
-    remaining: Math.max(0, key.totalTokens - key.usedTokens),
+    remaining: remainingTokens(key.totalTokens, key.usedTokens),
+    pricePerMTok: (key as any).pricePerMTok,
+    cost: usedCost(key.usedTokens, (key as any).pricePerMTok),
     isActive: key.isActive,
   }));
 }

@@ -65,14 +65,15 @@
               <el-tag v-if="key.isActive" type="success" size="small" effect="plain">使用中</el-tag>
             </div>
             <el-progress
-              :percentage="key.totalTokens > 0 ? Math.round((key.usedTokens / key.totalTokens) * 100) : 0"
+              v-if="key.totalTokens"
+              :percentage="Math.round((key.usedTokens / key.totalTokens) * 100)"
               :stroke-width="4"
               :show-text="false"
               style="margin: 4px 0;"
             />
             <div class="ai-token-item-stats">
-              <span>{{ formatToken(key.usedTokens) }} / {{ formatToken(key.totalTokens) }}</span>
-              <span>{{ key.totalTokens > 0 ? Math.round((key.remaining / key.totalTokens) * 100) : 0 }}%</span>
+              <span>{{ formatToken(key.usedTokens) }} / {{ key.totalTokens ? formatToken(key.totalTokens) : '不限' }}</span>
+              <span>{{ key.totalTokens && key.remaining !== null ? Math.round((key.remaining / key.totalTokens) * 100) + '%' : '不限' }}</span>
             </div>
           </div>
         </div>
@@ -230,9 +231,9 @@ const recentFeedbacks = ref<RecentFeedback[]>([]);
 const aiTokenKeys = ref<Array<{
   model: string;
   name: string;
-  totalTokens: number;
+  totalTokens: number | null;
   usedTokens: number;
-  remaining: number;
+  remaining: number | null;
   isActive: boolean;
 }>>([]);
 

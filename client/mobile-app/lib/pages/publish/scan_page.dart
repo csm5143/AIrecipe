@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -24,7 +24,7 @@ class _ScanPageState extends ConsumerState<ScanPage>
   final _picker = ImagePicker();
   late final AnimationController _scanCtrl;
 
-  File? _imageFile;
+  XFile? _imageFile;
   List<_DetectedIngredient> _detectedItems = const [];
   bool _hasScanned = false;
   bool _recognizing = false;
@@ -240,9 +240,8 @@ class _ScanPageState extends ConsumerState<ScanPage>
       final picked = await _picker.pickImage(source: source, imageQuality: 85);
       if (!mounted || picked == null) return;
 
-      final file = File(picked.path);
       setState(() {
-        _imageFile = file;
+        _imageFile = picked;
         _detectedItems = const [];
         _hasScanned = false;
         _recognizing = true;
@@ -250,7 +249,7 @@ class _ScanPageState extends ConsumerState<ScanPage>
 
       final imageUrl = await ref
           .read(uploadApiProvider)
-          .uploadImage(file.path, folder: 'ai-scan');
+          .uploadImage(picked, folder: 'ai-scan');
       final names = await ref
           .read(ingredientApiProvider)
           .recognizeImageUrl(imageUrl);
@@ -341,7 +340,7 @@ class _ScanPageState extends ConsumerState<ScanPage>
 }
 
 class _CameraPreviewBackground extends StatelessWidget {
-  final File? file;
+  final XFile? file;
 
   const _CameraPreviewBackground({required this.file});
 
@@ -349,7 +348,15 @@ class _CameraPreviewBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     final imageFile = file;
     if (imageFile != null) {
-      return Image.file(imageFile, fit: BoxFit.cover);
+      return FutureBuilder<Uint8List>(
+        future: imageFile.readAsBytes(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return Container(color: AppColors.textPrimary);
+          }
+          return Image.memory(snapshot.data!, fit: BoxFit.cover);
+        },
+      );
     }
 
     return Image.network(

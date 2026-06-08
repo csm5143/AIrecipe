@@ -23,6 +23,7 @@ router.patch('/:id/activate', asyncHandler(authorize('SUPER_ADMIN')), asyncHandl
 
 // 小程序端获取当前激活 Key（无需认证，直接暴露）
 const publicRouter: ExpressRouter = Router();
+publicRouter.get('/', asyncHandler(getActiveAiKey));
 publicRouter.get('/active', asyncHandler(getActiveAiKey));
 
 // 测试 AI Key 连接（管理员测试用）

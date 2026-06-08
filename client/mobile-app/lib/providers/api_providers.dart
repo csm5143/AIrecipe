@@ -19,6 +19,10 @@ final userApiProvider = Provider<UserApi>((ref) => UserApi());
 
 final feedbackApiProvider = Provider<FeedbackApi>((ref) => FeedbackApi());
 
+final favoritesApiProvider = Provider<FavoritesApi>((ref) => FavoritesApi());
+
 final uploadApiProvider = Provider<UploadApi>((ref) => UploadApi());
 
-final notificationApiProvider = Provider<NotificationApi>((ref) => NotificationApi());
+final notificationApiProvider = Provider<NotificationApi>(
+  (ref) => NotificationApi(),
+);

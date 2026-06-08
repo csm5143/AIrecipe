@@ -38,6 +38,10 @@ final browseHistoryProvider = FutureProvider<List<Recipe>>((ref) {
   return ref.read(recipeApiProvider).getBrowseHistory();
 });
 
+final likedRecipesProvider = FutureProvider<List<Recipe>>((ref) {
+  return ref.read(favoritesApiProvider).getLikedRecipes();
+});
+
 class RecipeListNotifier extends StateNotifier<List<Recipe>> {
   final Ref _ref;
   String? _currentCategory;

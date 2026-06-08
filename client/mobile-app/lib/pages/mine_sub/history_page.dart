@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../config/theme.dart';
 import '../../models/recipe.dart';
+import '../../providers/api_providers.dart';
 import '../../providers/recipe_provider.dart';
+import '../../widgets/capsule_toast.dart';
 
 class HistoryPage extends ConsumerWidget {
   const HistoryPage({super.key});
@@ -25,6 +27,14 @@ class HistoryPage extends ConsumerWidget {
               : context.go('/mine'),
         ),
         title: const Text('浏览历史'),
+        actions: [
+          TextButton(
+            onPressed: historyAsync.valueOrNull?.isEmpty == false
+                ? () => _confirmClear(context, ref)
+                : null,
+            child: const Text('清空'),
+          ),
+        ],
       ),
       body: historyAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -56,6 +66,39 @@ class HistoryPage extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  Future<void> _confirmClear(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('清空浏览历史'),
+        content: const Text('确认清空全部浏览记录吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('清空'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    try {
+      await ref.read(collectionApiProvider).clearBrowseHistory();
+      ref.invalidate(browseHistoryProvider);
+      if (context.mounted) {
+        showCapsuleToast(context, '浏览历史已清空', icon: Icons.delete_outline);
+      }
+    } catch (error) {
+      if (context.mounted) {
+        showCapsuleToast(context, error.toString(), icon: Icons.error_outline);
+      }
+    }
   }
 }
 

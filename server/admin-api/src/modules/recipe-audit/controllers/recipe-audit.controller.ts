@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import { paginated, success } from '../../../types/response';
 import { prisma } from '../../../lib/prisma';
 import { createNotification } from '../../../services/notification.service';
-import { getAdminId, getAdminName } from '../../../utils/adminHelper';
+import { sendRecipeAuditResult } from '../../../services/email.service';
+import { getAdminId, getAdminName, createOperationLog } from '../../../utils/adminHelper';
 
 function buildAuditWhere(query: any): any {
   const where: any = { source: 'USER' };
@@ -143,8 +144,27 @@ export async function auditRecipe(req: Request, res: Response) {
       data: updateData,
     });
 
+    // 记录操作日志
+    createOperationLog(
+      adminId,
+      getAdminName(req),
+      action === 'approve' ? 'audit_approve' : 'audit_reject',
+      'recipe',
+      String(recipe.id),
+      `${action === 'approve' ? '通过' : '拒绝'}了菜谱审核「${recipe.title}」${reason ? `：${reason}` : ''}`,
+      req.ip || undefined,
+    );
+
     // 给作者发送审核通知
     if (recipe.authorId) {
+      const author = await prisma.user.findUnique({
+        where: { id: recipe.authorId },
+        select: { email: true },
+      });
+      if (author?.email) {
+        sendRecipeAuditResult(author.email, recipe.title, action === 'approve', reason || undefined);
+      }
+
       if (action === 'approve') {
         createNotification({
           userId: recipe.authorId,

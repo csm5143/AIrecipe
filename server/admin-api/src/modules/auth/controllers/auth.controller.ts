@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import config from '../../../config';
 import { prisma } from '../../../lib/prisma';
 import { UnauthorizedException, BadRequestException } from '../../system/middleware/errorHandler';
+import { createOperationLog } from '../../../utils/adminHelper';
 
 interface LoginDto {
   username: string;
@@ -19,6 +20,10 @@ export async function login(req: Request, res: Response) {
 
   const admin = await prisma.admin.findUnique({ where: { username, isDeleted: false } });
   if (!admin || !bcrypt.compareSync(password, admin.password)) {
+    const target = admin || await prisma.admin.findUnique({ where: { id: 1 } });
+    if (target) {
+      await createOperationLog(target.id, target.username, 'login_failed', 'auth', username, `登录失败：${username}`, req.ip || undefined);
+    }
     throw new UnauthorizedException('用户名或密码错误');
   }
 
@@ -35,6 +40,7 @@ export async function login(req: Request, res: Response) {
   );
 
   const { password: _, ...safeAdmin } = admin;
+  await createOperationLog(admin.id, admin.username, 'login', 'auth', username, '管理员登录成功', req.ip || undefined);
 
   res.json({
     code: 200,
@@ -50,6 +56,10 @@ export async function login(req: Request, res: Response) {
 }
 
 export async function logout(req: Request, res: Response) {
+  const admin = (req as any).admin;
+  if (admin?.id) {
+    await createOperationLog(admin.id, admin.username || String(admin.id), 'logout', 'auth', admin.username || String(admin.id), '管理员退出登录', req.ip || undefined);
+  }
   res.json({
     code: 200,
     message: '退出成功',
@@ -114,6 +124,7 @@ export async function refreshToken(req: Request, res: Response) {
 interface UpdateProfileDto {
   nickname?: string;
   phone?: string;
+  email?: string;
 }
 
 export async function updateProfile(req: Request, res: Response) {
@@ -122,9 +133,9 @@ export async function updateProfile(req: Request, res: Response) {
     throw new UnauthorizedException('未登录');
   }
 
-  const { nickname, phone } = req.body as UpdateProfileDto;
-  if (!nickname && !phone) {
-    throw new BadRequestException('至少需要提供昵称或手机号其中一项');
+  const { nickname, phone, email } = req.body as UpdateProfileDto;
+  if (!nickname && !phone && !email) {
+    throw new BadRequestException('至少需要提供昵称、手机号或邮箱其中一项');
   }
 
   const updated = await prisma.admin.update({
@@ -132,10 +143,12 @@ export async function updateProfile(req: Request, res: Response) {
     data: {
       ...(nickname !== undefined && { nickname }),
       ...(phone !== undefined && { phone }),
+      ...(email !== undefined && { email }),
     },
   });
 
   const { password: _, ...safeAdmin } = updated;
+  await createOperationLog(adminId, updated.username, 'updateProfile', 'auth', updated.username, '更新个人资料', req.ip || undefined);
 
   res.json({
     code: 200,
@@ -184,6 +197,8 @@ export async function changePassword(req: Request, res: Response) {
     where: { id: adminId },
     data: { password: passwordHash },
   });
+
+  await createOperationLog(adminId, admin.username, 'changePassword', 'auth', admin.username, '修改登录密码', req.ip || undefined);
 
   res.json({
     code: 200,

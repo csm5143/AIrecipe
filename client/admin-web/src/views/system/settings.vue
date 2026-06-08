@@ -285,13 +285,16 @@
                 </div>
               </div>
 
-              <div class="key-model">{{ key.model }} <el-tag v-if="key.keyType" size="small" :type="key.keyType==='image'?'warning':key.keyType==='text'?'primary':'success'">{{ keyTypeLabel(key.keyType) }}</el-tag></div>
+              <div class="key-model">{{ key.model }}
+                <el-tag v-if="key.keyType" size="small" :type="key.keyType==='image'?'warning':key.keyType==='text'?'primary':'success'">{{ keyTypeLabel(key.keyType) }}</el-tag>
+                <el-tag v-if="key.usage" size="small" :type="key.usage==='chat'?'primary':key.usage==='vision'?'warning':'danger'" effect="plain">{{ usageLabel(key.usage) }}</el-tag>
+              </div>
 
               <div class="key-url">{{ key.baseUrl }}</div>
 
-              <div class="key-progress">
+              <div v-if="key.totalTokens" class="key-progress">
                 <el-progress
-                  :percentage="key.totalTokens > 0 ? Math.min(100, Math.round((key.usedTokens / key.totalTokens) * 100)) : 0"
+                  :percentage="Math.min(100, Math.round((key.usedTokens / key.totalTokens) * 100))"
                   :stroke-width="6"
                   :color="getProgressColor(key)"
                 />
@@ -302,13 +305,17 @@
                   <span class="key-stat-label">已用</span>
                   <span class="key-stat-value used">{{ formatToken(key.usedTokens) }}</span>
                 </div>
-                <div class="key-stat">
+                <div v-if="key.totalTokens" class="key-stat">
                   <span class="key-stat-label">剩余</span>
-                  <span class="key-stat-value remaining">{{ formatToken(key.remaining) }}</span>
+                  <span class="key-stat-value remaining">{{ formatToken(key.remaining || 0) }}</span>
                 </div>
                 <div class="key-stat">
                   <span class="key-stat-label">总量</span>
-                  <span class="key-stat-value">{{ formatToken(key.totalTokens) }}</span>
+                  <span class="key-stat-value">{{ key.totalTokens ? formatToken(key.totalTokens) : '不限' }}</span>
+                </div>
+                <div class="key-stat">
+                  <span class="key-stat-label">成本</span>
+                  <span class="key-stat-value">{{ formatCost(key.cost) }}</span>
                 </div>
               </div>
 
@@ -413,7 +420,16 @@ Model: gpt-4o-mini
             <el-option label="识图/文本（Text & Vision）" value="text" />
             <el-option label="多模态通用（Multimodal）" value="multimodal" />
           </el-select>
-          <div class="input-hint">生图 Key 用于图片创作；识图/文本 Key 用于拍照识别和文案生成；多模态通用两者皆可。同类型内只能有一个激活。</div>
+          <div class="input-hint">生图 Key 用于图片创作；识图/文本 Key 用于拍照识别和文案生成；多模态通用两者皆可。</div>
+        </el-form-item>
+        <el-form-item label="使用场景">
+          <el-select v-model="keyForm.usage" clearable placeholder="选择此 Key 的使用场景" style="width: 100%">
+            <el-option label="AI 聊天" value="chat" />
+            <el-option label="食材识别" value="vision" />
+            <el-option label="AI 生图" value="image" />
+            <el-option label="通用（兼容旧版）" value="" />
+          </el-select>
+          <div class="input-hint">聊天、食材识别、生图可分别配置不同模型，互不干扰。</div>
         </el-form-item>
         <el-form-item>
           <el-button
@@ -435,9 +451,13 @@ Model: gpt-4o-mini
             </template>
           </span>
         </el-form-item>
-        <el-form-item label="总量 Token" required>
+        <el-form-item label="总量 Token">
           <el-input-number v-model="keyForm.totalTokens" :min="1" :step="10000" style="width: 100%;" />
-          <span class="input-hint">填入该 Key 的额度上限，用于计算剩余量</span>
+          <span class="input-hint">可留空，留空表示不设置额度上限</span>
+        </el-form-item>
+        <el-form-item label="每百万 Token 单价（美元）">
+          <el-input-number v-model="keyForm.pricePerMTok" :min="0" :precision="4" :step="0.1" style="width: 100%;" />
+          <span class="input-hint">用于估算 AI 调用成本，支持从粘贴内容自动识别</span>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -540,7 +560,9 @@ const keyForm = reactive({
   baseUrl: 'https://api.openai.com/v1',
   model: 'gpt-4o-mini',
   keyType: '' as string,
-  totalTokens: 1000000,
+  usage: '' as string,
+  totalTokens: null as number | null,
+  pricePerMTok: null as number | null,
 });
 
 // 识别粘贴
@@ -556,6 +578,7 @@ function doSmartPaste() {
   let model = '';
   let name = '';
   let keyType = '';
+  let pricePerMTok: number | null = null;
 
   // ============ 格式0: JSON（API中转站/NewAPI/OneAPI 等） ============
   if (raw.startsWith('{')) {
@@ -587,6 +610,9 @@ function doSmartPaste() {
       if (/image|生图/i.test(typeHint)) keyType = 'image';
       else if (/text|文本/i.test(typeHint)) keyType = 'text';
       else if (/multimodal|多模态|vision/i.test(typeHint)) keyType = 'multimodal';
+
+      const price = json.pricePerMTok || json.price_per_mtok || json.price || json.cost;
+      if (price !== undefined && price !== null && !Number.isNaN(Number(price))) pricePerMTok = Number(price);
     } catch (_) { /* 不是合法JSON, 继续尝试其他格式 */ }
   }
 
@@ -626,6 +652,9 @@ function doSmartPaste() {
 
       match = trimmed.match(/^[Nn]ame[：:=]\s*(.+)/i);
       if (match) name = match[1].trim();
+
+      match = trimmed.match(/(?:price|cost|价格|单价).*?[：:=]\s*\$?\s*([0-9]+(?:\.[0-9]+)?)/i);
+      if (match) pricePerMTok = Number(match[1]);
     }
   }
 
@@ -667,6 +696,7 @@ function doSmartPaste() {
   if (baseUrl) keyForm.baseUrl = baseUrl;
   if (model) keyForm.model = model;
   if (keyType) keyForm.keyType = keyType;
+  if (pricePerMTok !== null) keyForm.pricePerMTok = pricePerMTok;
   if (name) keyForm.name = name;
 
   smartPasteOpen.value = false;
@@ -849,8 +879,23 @@ async function handleSaveEmail() {
   }
 }
 
-function handleTestEmail() {
-  ElMessage.info('测试邮件功能正在开发中');
+async function handleTestEmail() {
+  const defaultEmail = emailForm.fromEmail || '';
+  try {
+    const { value: to } = await ElMessageBox.prompt('请输入接收测试邮件的地址', '发送测试邮件', {
+      confirmButtonText: '发送',
+      cancelButtonText: '取消',
+      inputValue: defaultEmail,
+      inputPlaceholder: 'example@qq.com',
+      inputType: 'email',
+    });
+    if (!to) return;
+    await systemApi.sendTestEmail(to);
+    ElMessage.success(`测试邮件已发送至 ${to}，请检查收件箱`);
+  } catch (error: any) {
+    if (error === 'cancel' || error === 'close') return;
+    ElMessage.error('邮件发送失败，请确认 SMTP 配置正确');
+  }
 }
 
 function handleResetSite() {
@@ -884,7 +929,9 @@ function openAddDialog() {
   keyForm.baseUrl = 'https://api.openai.com/v1';
   keyForm.model = 'gpt-4o-mini';
   keyForm.keyType = '';
-  keyForm.totalTokens = 1000000;
+  keyForm.usage = '';
+  keyForm.totalTokens = null;
+  keyForm.pricePerMTok = null;
   testResult.value = null;
   showDialog.value = true;
 }
@@ -896,7 +943,9 @@ function openEditDialog(key: AiKeyItem) {
   keyForm.baseUrl = key.baseUrl;
   keyForm.model = key.model;
   keyForm.keyType = key.keyType || '';
+  keyForm.usage = key.usage || '';
   keyForm.totalTokens = key.totalTokens;
+  keyForm.pricePerMTok = key.pricePerMTok;
   testResult.value = null;
   showDialog.value = true;
 }
@@ -926,7 +975,7 @@ async function handleTestConnection() {
 }
 
 async function handleSaveKey() {
-  if (!keyForm.name || !keyForm.apiKey || !keyForm.baseUrl || !keyForm.model || !keyForm.totalTokens) {
+  if (!keyForm.name || !keyForm.baseUrl || !keyForm.model || (!editingKey.value && !keyForm.apiKey)) {
     ElMessage.warning('请填写完整信息');
     return;
   }
@@ -939,7 +988,9 @@ async function handleSaveKey() {
         baseUrl: keyForm.baseUrl,
         model: keyForm.model,
         keyType: keyForm.keyType,
+        usage: keyForm.usage || null,
         totalTokens: keyForm.totalTokens,
+        pricePerMTok: keyForm.pricePerMTok,
       });
     } else {
       await aiKeyApi.create({
@@ -948,7 +999,9 @@ async function handleSaveKey() {
         baseUrl: keyForm.baseUrl,
         model: keyForm.model,
         keyType: keyForm.keyType || undefined,
+        usage: keyForm.usage || null,
         totalTokens: keyForm.totalTokens,
+        pricePerMTok: keyForm.pricePerMTok,
       });
     }
     showDialog.value = false;
@@ -987,7 +1040,7 @@ async function handleDelete(key: AiKeyItem) {
 }
 
 function getProgressColor(key: AiKeyItem): string {
-  const pct = key.totalTokens > 0 ? (key.usedTokens / key.totalTokens) : 0;
+  const pct = key.totalTokens ? (key.usedTokens / key.totalTokens) : 0;
   if (pct >= 0.9) return '#f85149';
   if (pct >= 0.7) return '#f0883e';
   return '#3fb950';
@@ -1000,10 +1053,22 @@ function keyTypeLabel(kt: string | null): string {
   return '';
 }
 
+function usageLabel(u: string | null): string {
+  if (u === 'chat') return '聊天';
+  if (u === 'vision') return '识食材';
+  if (u === 'image') return '生图';
+  return '';
+}
+
 function formatToken(num: number): string {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
   if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
   return num.toLocaleString();
+}
+
+function formatCost(cost?: number | null): string {
+  if (!cost) return '$0.0000';
+  return `$${cost.toFixed(4)}`;
 }
 
 onMounted(() => {

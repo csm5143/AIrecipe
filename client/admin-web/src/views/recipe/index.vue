@@ -56,6 +56,9 @@
           <el-select v-model="filters.source" placeholder="来源" clearable style="width: 110px" @change="fetchRecipes">
             <el-option v-for="opt in SOURCE_OPTIONS" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
+
+          <el-checkbox v-model="filters.onlyFeatured" @change="fetchRecipes">精选</el-checkbox>
+          <el-checkbox v-model="filters.onlyHot" @change="fetchRecipes">热门</el-checkbox>
         </div>
 
         <div class="filter-group">
@@ -109,11 +112,11 @@
                 <span v-if="row.timeCost"><el-icon><Clock /></el-icon> {{ row.timeCost }}分钟</span>
               </div>
               <div class="mobile-actions">
-                <el-button size="small" @click="router.push(`/recipes/${row.id}/edit`)">编辑</el-button>
-                <el-button size="small" type="primary" @click="handleCommand(row.status === 'PUBLISHED' ? 'offline' : 'publish', row)">
+                <el-button size="small" @click.stop="router.push(`/recipes/${row.id}/edit`)">编辑</el-button>
+                <el-button size="small" type="primary" @click.stop="handleCommand(row.status === 'PUBLISHED' ? 'offline' : 'publish', row)">
                   {{ row.status === 'PUBLISHED' ? '下线' : '发布' }}
                 </el-button>
-                <el-button size="small" type="danger" @click="handleMobileDelete(row)">删除</el-button>
+                <el-button size="small" type="danger" @click.stop="handleMobileDelete(row)">删除</el-button>
               </div>
             </div>
           </div>
@@ -205,30 +208,25 @@
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="精选/热门" min-width="110" align="center">
+        <el-table-column label="热门" width="90" align="center">
           <template #default="{ row }">
-            <div class="badge-list">
-              <el-tag v-if="row.isFeatured" type="warning" size="small" class="badge-tag" title="精选菜谱">
-                <el-icon><Star /></el-icon>
-                精选
-              </el-tag>
-              <el-tag v-if="row.isHot" type="danger" size="small" class="badge-tag" title="热门菜谱">
-                <el-icon><TrendCharts /></el-icon>
-                热门
-              </el-tag>
-              <span v-if="!row.isFeatured && !row.isHot" class="text-muted">-</span>
-            </div>
+            <el-switch v-model="row.isHot" size="small" @change="(value: string | number | boolean) => toggleRecipeFlag(row, 'isHot', Boolean(value))" />
+          </template>
+        </el-table-column>
+        <el-table-column label="精选" width="90" align="center">
+          <template #default="{ row }">
+            <el-switch v-model="row.isFeatured" size="small" @change="(value: string | number | boolean) => toggleRecipeFlag(row, 'isFeatured', Boolean(value))" />
           </template>
         </el-table-column>
         <el-table-column label="操作" width="145" min-width="145" fixed="right" align="center">
           <template #default="{ row }">
             <div class="action-buttons">
-              <el-button type="primary" link @click="router.push(`/recipes/${row.id}/edit`)">
+              <el-button type="primary" link @click.stop="router.push(`/recipes/${row.id}/edit`)">
                 <el-icon><Edit /></el-icon>
                 编辑
               </el-button>
               <el-dropdown trigger="click" @command="(cmd: string) => handleCommand(cmd, row)">
-                <el-button type="primary" link>
+                <el-button type="primary" link @click.stop>
                   <el-icon><MoreFilled /></el-icon>
                 </el-button>
                 <template #dropdown>
@@ -270,14 +268,21 @@
       <div class="table-footer">
         <div class="footer-left">
           <span class="selection-info">已选择 {{ selectedRows.length }} 项</span>
-          <el-button
-            v-if="selectedRows.length > 0"
-            type="danger"
-            size="small"
-            @click="handleBatchDelete"
-          >
-            批量删除
-          </el-button>
+          <el-dropdown v-if="selectedRows.length > 0" trigger="click" @command="handleBatchCommand">
+            <el-button size="small" type="primary">
+              批量操作
+              <el-icon><ArrowDown /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="hot-on">批量设为热门</el-dropdown-item>
+                <el-dropdown-item command="hot-off">批量取消热门</el-dropdown-item>
+                <el-dropdown-item command="featured-on">批量设为精选</el-dropdown-item>
+                <el-dropdown-item command="featured-off">批量取消精选</el-dropdown-item>
+                <el-dropdown-item command="delete" divided>批量删除</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
         <el-pagination
           v-model:current-page="pagination.page"
@@ -445,7 +450,8 @@ import { usePreferences } from '@/composables/usePreferences';
 import {
   Plus, Search, RefreshLeft, Picture, View, Star, Edit,
   MoreFilled, Check, Close, Delete, Upload, UploadFilled,
-  Loading, Clock, FolderOpened, TrendCharts, Download,
+  Loading, Clock, FolderOpened, Download,
+  ArrowDown,
 } from '@element-plus/icons-vue';
 import {
   DISH_TYPE_OPTIONS, MEAL_TIME_OPTIONS, DIFFICULTY_OPTIONS,
@@ -480,6 +486,8 @@ const filters = reactive({
   mealTime: '',
   status: '',
   source: '',
+  onlyFeatured: false,
+  onlyHot: false,
 });
 
 const pagination = reactive({
@@ -509,7 +517,11 @@ async function fetchRecipes() {
       keyword: filters.keyword || undefined,
       dishType: filters.dishType || undefined,
       difficulty: filters.difficulty || undefined,
+      mealTime: filters.mealTime || undefined,
       status: filters.status || undefined,
+      source: filters.source || undefined,
+      isFeatured: filters.onlyFeatured || undefined,
+      isHot: filters.onlyHot || undefined,
     });
     tableData.value = res.data?.list || [];
     pagination.total = res.data?.total || 0;
@@ -528,10 +540,22 @@ async function fetchRecipes() {
 function handleReset() {
   Object.assign(filters, {
     keyword: '', dishType: '', difficulty: '',
-    mealTime: '', status: '',
+    mealTime: '', status: '', source: '',
+    onlyFeatured: false, onlyHot: false,
   });
   pagination.page = 1;
   fetchRecipes();
+}
+
+async function toggleRecipeFlag(row: any, key: 'isHot' | 'isFeatured', value: boolean) {
+  const previous = !value;
+  try {
+    await recipeApi.update(row.id, { [key]: value } as any);
+    ElMessage.success(value ? '设置成功' : '已取消');
+  } catch (error: any) {
+    row[key] = previous;
+    ElMessage.error(error?.message || '更新失败');
+  }
 }
 
 function handleSelectionChange(rows: any[]) {
@@ -610,6 +634,26 @@ async function handleBatchDelete() {
   ElMessage.success('批量删除成功');
   fetchRecipes();
 }
+
+async function handleBatchCommand(command: string) {
+  if (command === 'delete') {
+    await handleBatchDelete();
+    return;
+  }
+
+  const ids = selectedRows.value.map(r => r.id);
+  const data =
+    command === 'hot-on' ? { isHot: true } :
+    command === 'hot-off' ? { isHot: false } :
+    command === 'featured-on' ? { isFeatured: true } :
+    { isFeatured: false };
+
+  await recipeApi.batchUpdate(ids, data);
+  selectedRows.value = [];
+  ElMessage.success('批量更新成功');
+  fetchRecipes();
+}
+
 
 async function handleMobileDelete(row: any) {
   await ElMessageBox.confirm('确定删除该菜谱？删除后可在回收站恢复。', '警告', { type: 'warning' });

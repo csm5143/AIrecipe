@@ -76,7 +76,7 @@
         v-loading="loading"
         :data="tableData"
         row-key="recipeId"
-        @row-click="handleRowClick"
+      @row-click="(row) => handleRowClick(row as UserRecipeItem)"
         class="recipe-table"
       >
         <el-table-column label="菜谱信息" min-width="280">
@@ -135,7 +135,7 @@
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
             <div class="action-cell">
-              <el-button link type="primary" size="small" @click.stop="handleViewDetail(row)">
+              <el-button link type="primary" size="small" @click.stop="handleViewDetail(row as UserRecipeItem)">
                 查看
               </el-button>
               <el-button
@@ -143,7 +143,7 @@
                 link
                 type="success"
                 size="small"
-                @click.stop="handleApprove(row)"
+                @click.stop="handleApprove(row as UserRecipeItem)"
               >
                 通过
               </el-button>
@@ -152,7 +152,7 @@
                 link
                 type="danger"
                 size="small"
-                @click.stop="handleReject(row)"
+                @click.stop="handleReject(row as UserRecipeItem)"
               >
                 拒绝
               </el-button>
@@ -379,7 +379,7 @@ async function fetchRecipes() {
       } as any);
     }
     
-    let data = res.data?.list || [];
+    const data = res.data?.list || [];
     tableData.value = data;
     pagination.total = res.data?.total || data.length;
   } catch (error) {
@@ -411,7 +411,7 @@ async function fetchStats() {
 async function handleViewDetail(row: UserRecipeItem) {
   try {
     const res = await recipeAuditApi.getRecipeDetail(row.recipeId);
-    currentRecipe.value = res.data;
+    currentRecipe.value = res.data || null;
     detailDialogVisible.value = true;
   } catch (error) {
     console.error('获取详情失败', error);

@@ -13,4 +13,3 @@ export * as fridgeApi from './fridge.js';
 export * as ingredientApi from './ingredient.js';
 export * as contentApi from './content.js';
 export * as userRecipeApi from './userRecipe.js';
-export * as aiScanApi from './aiScan.js';

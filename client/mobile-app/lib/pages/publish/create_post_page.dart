@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,7 +23,7 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
 
   final _picker = ImagePicker();
   final _textCtrl = TextEditingController();
-  final List<File> _images = [];
+  final List<XFile> _images = [];
   int _charCount = 0;
   bool _submitting = false;
 
@@ -252,9 +252,7 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
       if (!mounted || pickedFiles.isEmpty) return;
 
       setState(() {
-        _images.addAll(
-          pickedFiles.take(remaining).map((file) => File(file.path)),
-        );
+        _images.addAll(pickedFiles.take(remaining));
       });
     } catch (error) {
       if (!mounted) return;
@@ -270,7 +268,7 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
     final uploadApi = ref.read(uploadApiProvider);
     final urls = <String>[];
     for (final file in _images) {
-      final url = await uploadApi.uploadImage(file.path);
+      final url = await uploadApi.uploadUserRecipeImage(file);
       if (url.isNotEmpty) urls.add(url);
     }
     return urls;
@@ -313,7 +311,7 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
 }
 
 class _ImageTile extends StatelessWidget {
-  final File file;
+  final XFile file;
   final double size;
   final VoidCallback? onRemove;
 
@@ -334,7 +332,15 @@ class _ImageTile extends StatelessWidget {
           Positioned.fill(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Image.file(file, fit: BoxFit.cover),
+              child: FutureBuilder<Uint8List>(
+                future: file.readAsBytes(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return Container(color: AppColors.surfaceSecondary);
+                  }
+                  return Image.memory(snapshot.data!, fit: BoxFit.cover);
+                },
+              ),
             ),
           ),
           Positioned(

@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { prisma } from '../../../lib/prisma';
+import { prisma } from '../../lib/prisma';
 
 export interface AdminProfile {
   id: number;
@@ -59,11 +59,8 @@ class AdminProfileStore {
    */
   async get(): Promise<Omit<AdminProfile, 'passwordHash'>> {
     const admin = await prisma.admin.findFirst({ where: { isDeleted: false } });
-    if (!admin) {
-      const { passwordHash: _, ...safe } = {} as Omit<AdminProfile, 'passwordHash'>;
-      return safe;
-    }
-    const { password: _, ...safe } = this.mapToProfile(admin);
+    if (!admin) return null as any;
+    const { passwordHash: _, ...safe } = this.mapToProfile(admin);
     return safe;
   }
 

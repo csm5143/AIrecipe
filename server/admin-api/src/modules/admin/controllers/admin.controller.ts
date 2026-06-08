@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../../../lib/prisma';
 import { paginated, success, notFound, badRequest } from '../../../types/response';
 import { getAdminId, getAdminName, createOperationLog, addToRecycleBin } from '../../../utils/adminHelper';
+import { sendResetPasswordCode, sendAdminCreated } from '../../../services/email.service';
+import { createVerificationCode, verifyCode } from '../../../services/verification.service';
 
 function safeAdmin(admin: any) {
   const { password: _, ...prismaSafe } = admin;
@@ -54,8 +56,62 @@ export async function getAdminById(req: Request, res: Response) {
   res.json(success(safeAdmin(admin)));
 }
 
+export async function forgotAdminPassword(req: Request, res: Response) {
+  const { username, email } = req.body;
+  if (!username || !email) {
+    res.status(400).json(badRequest('用户名和邮箱不能为空'));
+    return;
+  }
+
+  const admin = await prisma.admin.findFirst({ where: { username, email, isDeleted: false } });
+  if (!admin) {
+    res.status(404).json(notFound('用户名或邮箱不匹配'));
+    return;
+  }
+
+  try {
+    const code = await createVerificationCode({ email, type: 'ADMIN_RESET' });
+    sendResetPasswordCode(email, code);
+    await createOperationLog(admin.id, admin.username, 'forgotPassword', 'auth', username, '管理员请求密码重置验证码', req.ip || undefined);
+    res.json(success(null, '验证码已发送'));
+  } catch (error: any) {
+    res.status(400).json(badRequest(error.message || '验证码发送失败'));
+  }
+}
+
+export async function resetAdminPasswordByCode(req: Request, res: Response) {
+  const { username, email, verifyCode, newPassword } = req.body;
+  if (!username || !email || !verifyCode || !newPassword) {
+    res.status(400).json(badRequest('请填写完整信息'));
+    return;
+  }
+
+  if (String(newPassword).length < 6) {
+    res.status(400).json(badRequest('新密码长度不能少于 6 位'));
+    return;
+  }
+
+  const admin = await prisma.admin.findFirst({ where: { username, email, isDeleted: false } });
+  if (!admin) {
+    res.status(404).json(notFound('用户名或邮箱不匹配'));
+    return;
+  }
+
+  try {
+    await verifyCode({ email, code: verifyCode, type: 'ADMIN_RESET' });
+    await prisma.admin.update({
+      where: { id: admin.id },
+      data: { password: bcrypt.hashSync(newPassword, 10) },
+    });
+    await createOperationLog(admin.id, admin.username, 'resetPassword', 'auth', username, '管理员通过邮箱验证码重置密码', req.ip || undefined);
+    res.json(success(null, '密码已重置'));
+  } catch (error: any) {
+    res.status(400).json(badRequest(error.message || '密码重置失败'));
+  }
+}
+
 export async function createAdmin(req: Request, res: Response) {
-  const { username, password, nickname, role, status } = req.body;
+  const { username, password, nickname, role, status, email } = req.body;
 
   if (!username || !password) {
     res.status(400).json(badRequest('用户名和密码不能为空'));
@@ -75,12 +131,14 @@ export async function createAdmin(req: Request, res: Response) {
       username,
       password: passwordHash,
       nickname: nickname || username,
+      email: email || null,
       role: role || 'ADMIN',
       status: status || 'ACTIVE',
     },
   });
 
   await createOperationLog(getAdminId(req), getAdminName(req), 'create', 'admin', username, `新增管理员「${username}」`, req.ip || undefined);
+  if (email) sendAdminCreated(email, username);
 
   res.json(success(safeAdmin(admin), '管理员创建成功'));
 }
@@ -98,12 +156,13 @@ export async function updateAdmin(req: Request, res: Response) {
     return;
   }
 
-  const { nickname, role, status } = req.body;
+  const { nickname, role, status, email } = req.body;
 
   const updated = await prisma.admin.update({
     where: { id },
     data: {
       ...(nickname !== undefined && { nickname }),
+      ...(email !== undefined && { email }),
       ...(role !== undefined && { role }),
       ...(status !== undefined && { status }),
     },

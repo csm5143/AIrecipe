@@ -223,29 +223,22 @@ export async function getRecipesByIngredients(req: Request, res: Response) {
       cacheKeys.appRecipesByIngredients(queryKey),
       60,
       async () => {
-        // DB-level filtering: only fetch recipes that have at least one matching ingredient
         const recipes = await prisma.recipe.findMany({
-          where: {
-            isDeleted: false,
-            status: 'PUBLISHED',
-            recipeIngredients: {
-              some: {
-                name: { in: ingredientList, mode: 'insensitive' },
-              },
-            },
-          },
-          include: {
-            recipeIngredients: true,
-          },
+          where: { isDeleted: false, status: 'PUBLISHED' },
           orderBy: { collectCount: 'desc' },
-          take: 20,
+          take: 60,
         });
 
         return recipes
           .map(recipe => {
-            const recipeIngredientNames = recipe.recipeIngredients.map(ri => ri.name.toLowerCase());
+            const rawIngredients = (recipe.ingredients as any[]) || [];
+            const recipeIngredientNames = rawIngredients.map(
+              (ri: any) => (ri.name || '').toLowerCase()
+            );
             const matched = ingredientList.filter(ing =>
-              recipeIngredientNames.some(ri => ri.includes(ing.toLowerCase()))
+              recipeIngredientNames.some(
+                (ri: string) => ri.includes(ing.toLowerCase())
+              )
             );
             return {
               recipe: mapRecipeToAppFormat(recipe),
@@ -253,7 +246,9 @@ export async function getRecipesByIngredients(req: Request, res: Response) {
               matchedIngredients: matched,
             };
           })
-          .sort((a, b) => b.matchedCount - a.matchedCount);
+          .filter(r => r.matchedCount > 0)
+          .sort((a, b) => b.matchedCount - a.matchedCount)
+          .slice(0, 20);
       }
     );
 

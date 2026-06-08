@@ -1,275 +1,543 @@
 <template>
-  <div class="co-root">
-    <div class="co-bar">
-      <div class="co-bar-l">
-        <h2 class="co-t">内容运营</h2>
-        <el-select v-model="platform" size="small" style="width:110px">
-          <el-option label="小程序" value="MINIPROGRAM"/>
-          <el-option label="APP" value="APP"/>
-          <el-option label="Web" value="WEB"/>
-        </el-select>
-        <el-select v-model="pageId" size="small" style="width:90px">
-          <el-option v-for="p in currentPages" :key="p.id" :label="p.label" :value="p.id"/>
-        </el-select>
-      </div>
-      <div class="co-bar-r">
-        <el-button v-if="dirty" type="primary" size="small" @click="save">保存</el-button>
-        <el-button v-if="dirty" size="small" @click="revert">撤销</el-button>
-        <el-button size="small" @click="refreshAll">刷新</el-button>
-        <el-button size="small" @click="togglePreview">{{ showPreview?'收起预览':'展开预览' }}</el-button>
+  <div class="page-container">
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">内容运营</h2>
+        <p class="page-subtitle">管理首页 Banner、系统公告与首页模块顺序</p>
       </div>
     </div>
 
-    <div class="co-body">
-      <!-- 左栏：可编辑内容（从 API 数据动态生成） -->
-      <LeftPanel
-        :page="pageId"
-        :cards="cards"
-        :hot="hotRecipes"
-        :brand="brandLogoUrl"
-        :fitness="fitnessImg"
-        :kids="kidsImg"
-        :about="aboutContent"
-        :app-logo="brandLogoUrl" :app-banner="appBannerImg"
-        :web-logo="brandLogoUrl" :web-hero="webHeroImg"
-        :selKey="selKey"
-        @select="onItemSelect"
-      />
-
-      <!-- 中栏：预览 -->
-      <div class="co-mid" v-if="showPreview">
-        <template v-if="platform==='MINIPROGRAM'">
-          <HomePreview v-if="pageId==='home'" :brand-logo="brandLogoUrl" :hot-recipes="hotRecipes" @select="onPvSelect" />
-          <CustomPreview v-else-if="pageId==='custom'" :cards="cards" :fitness-image="fitnessImg" :kids-image="kidsImg" @select="onPvSelect" />
-          <MinePreview v-else :about-content="aboutContent" @select="onPvSelect" />
-        </template>
-        <AppPreview v-else-if="platform==='APP'" :app-banner="appBannerImg" :app-logo="brandLogoUrl" :app-recipes="hotRecipes" @select="onPvSelect" />
-        <WebPreview v-else :web-hero="webHeroImg" :web-logo="brandLogoUrl" :web-recipes="hotRecipes" @select="onPvSelect" />
-      </div>
-
-      <!-- 右栏：编辑面板 -->
-      <div class="co-right" v-if="sel">
-        <div class="co-pnl">
-          <div class="co-phd">{{ sel._title || sel.title || '编辑' }}</div>
-
-          <div class="co-pimg" v-if="sel.imageUrl !== undefined">
-            <img v-if="sel.imageUrl" :src="sel.imageUrl" />
-            <div v-else class="co-pimge">暂无图片</div>
-            <div class="co-pia">
-              <el-upload action="#" :auto-upload="false" :show-file-list="false" accept="image/*" @change="upload">
-                <el-button size="small">📁 上传</el-button>
-              </el-upload>
-              <el-button size="small" type="primary" @click="aiImgOpen=true">✨ AI 生成</el-button>
-            </div>
+    <div class="card-container">
+      <el-tabs v-model="activeTab">
+        <el-tab-pane label="首页 Banner" name="banner">
+          <div class="tab-toolbar">
+            <el-button type="primary" @click="openBannerDialog()">新增 Banner</el-button>
           </div>
 
-          <div class="co-pfm">
-            <div class="co-fld" v-if="sel.title !== undefined && sel._type !== 'about'"><label>标题</label><el-input v-model="sel.title" size="small" /></div>
-            <div class="co-fld" v-if="sel.subtitle !== undefined"><label>描述</label><el-input v-model="sel.subtitle" size="small" /></div>
-            <div class="co-fld" v-if="sel.name !== undefined && sel._type === 'hot'"><label>菜名</label><el-input v-model="sel.name" size="small" /></div>
-            <div class="co-fld" v-if="sel.content !== undefined"><label>文案</label><el-input v-model="sel.content" type="textarea" :rows="5" size="small" />
-              <el-button size="small" style="margin-top:6px" @click="aiTxtOpen=true">✨ AI 写文案</el-button>
+          <div class="banner-grid">
+            <div v-for="(banner, index) in banners" :key="banner.id" class="banner-card" @click="openBannerDialog(banner)">
+              <div class="drag-actions" @click.stop>
+                <el-button link :disabled="index === 0" @click="moveBanner(index, -1)">上移</el-button>
+                <el-button link :disabled="index === banners.length - 1" @click="moveBanner(index, 1)">下移</el-button>
+              </div>
+              <el-image :src="banner.imageUrl" class="banner-cover" fit="cover">
+                <template #error><div class="image-placeholder">暂无图片</div></template>
+              </el-image>
+              <div class="banner-body">
+                <div class="banner-title">{{ banner.title }}</div>
+                <div class="banner-subtitle">{{ banner.subtitle || '未设置副标题' }}</div>
+                <div class="banner-meta">
+                  <el-tag size="small">{{ linkTypeText(banner.linkType) }}</el-tag>
+                  <span>{{ banner.linkValue || '-' }}</span>
+                </div>
+                <div class="banner-footer" @click.stop>
+                  <el-switch
+                    v-model="banner.status"
+                    active-value="ACTIVE"
+                    inactive-value="INACTIVE"
+                    active-text="启用"
+                    @change="updateBannerStatus(banner)"
+                  />
+                  <span>{{ platformText(banner.platform || 'ALL') }}</span>
+                </div>
+              </div>
             </div>
-            <div class="co-fld" v-if="sel.linkType !== undefined"><label>导航类型</label>
-              <el-select v-model="sel.linkType" size="small" style="width:100%">
-                <el-option label="每日推荐" value="DAILY"/><el-option label="发现页" value="DISCOVER"/>
-                <el-option label="列表页" value="LIST"/><el-option label="热门" value="HOT"/><el-option label="无跳转" value="NONE"/>
-              </el-select>
-            </div>
-            <div class="co-fld" v-if="sel.linkValue !== undefined"><label>导航参数</label><el-input v-model="sel.linkValue" size="small" /></div>
           </div>
-        </div>
-      </div>
+        </el-tab-pane>
+
+        <el-tab-pane label="系统公告" name="notice">
+          <div class="tab-toolbar">
+            <el-button type="primary" @click="openNoticeDialog()">新增公告</el-button>
+          </div>
+          <el-table :data="notices" v-loading="noticeLoading" @row-click="openNoticeDialog">
+            <el-table-column prop="title" label="标题" min-width="220" />
+            <el-table-column label="类型" width="110">
+              <template #default="{ row }">{{ noticeTypeText(row.type) }}</template>
+            </el-table-column>
+            <el-table-column label="目标用户" width="120">
+              <template #default="{ row }">{{ noticeTargetText(row.target) }}</template>
+            </el-table-column>
+            <el-table-column label="状态" width="110">
+              <template #default="{ row }">
+                <el-tag :type="noticeStatusTag(row.status)">{{ noticeStatusText(row.status) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="发布时间" width="180">
+              <template #default="{ row }">{{ formatTime(row.publishedAt) }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="120" fixed="right">
+              <template #default="{ row }">
+                <el-button link type="primary" @click.stop="openNoticeDialog(row as Notice)">编辑</el-button>
+                <el-button link type="danger" @click.stop="deleteNotice(row as Notice)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
+        <el-tab-pane label="首页布局" name="layout">
+          <div class="layout-preview">
+            <div v-for="item in layoutItems" :key="item.key" class="layout-row">
+              <span>{{ item.label }}</span>
+              <small>{{ item.desc }}</small>
+            </div>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
     </div>
 
-    <!-- AI 图片 -->
-    <el-drawer v-model="aiImgOpen" title="AI 生成图片" direction="rtl" size="420px">
-      <div class="ai-dw"><div class="ai-fd"><label>模板</label><el-select v-model="aiImg.tid" size="small" style="width:100%"><el-option v-for="t in tpls" :key="t.id" :label="t.name" :value="t.id"/></el-select></div>
-        <div class="ai-fd"><label>名称</label><el-input v-model="aiImg.name" size="small"/></div>
-        <div class="ai-fd"><label>食材</label><el-input v-model="aiImg.ing" size="small"/></div>
-        <el-button type="primary" :loading="aiImgLoading" @click="aiGenImg" style="width:100%">✨ 生成</el-button>
-        <div v-if="aiImgResult" style="margin-top:12px"><img :src="aiImgResult" style="width:100%;border-radius:8px"/><div style="display:flex;gap:8px;margin-top:8px"><el-button size="small" type="success" @click="aiImgAdopt">采用</el-button><el-button size="small" @click="aiImgRetry">换一张</el-button></div></div>
-      </div>
-    </el-drawer>
+    <el-dialog v-model="bannerDialogVisible" :title="bannerForm.id ? '编辑 Banner' : '新增 Banner'" width="720px">
+      <el-form :model="bannerForm" label-width="96px">
+        <el-form-item label="封面图">
+          <div class="cover-row">
+            <el-upload action="#" :auto-upload="false" :show-file-list="false" accept="image/*" @change="handleBannerUpload">
+              <el-image v-if="bannerForm.imageUrl" :src="bannerForm.imageUrl" class="upload-preview" fit="cover" />
+              <div v-else class="upload-box">上传封面</div>
+            </el-upload>
+            <el-button @click="aiDrawerVisible = true">AI 生成封面</el-button>
+          </div>
+        </el-form-item>
+        <el-form-item label="标题"><el-input v-model="bannerForm.title" /></el-form-item>
+        <el-form-item label="副标题"><el-input v-model="bannerForm.subtitle" /></el-form-item>
+        <el-form-item label="跳转类型">
+          <el-select v-model="bannerForm.linkType" style="width: 220px">
+            <el-option label="无" value="NONE" />
+            <el-option label="菜谱" value="RECIPE" />
+            <el-option label="分类" value="CATEGORY" />
+            <el-option label="链接" value="WEBVIEW" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="跳转值"><el-input v-model="bannerForm.linkValue" placeholder="菜谱ID、分类值或 URL" /></el-form-item>
+        <el-form-item label="显示平台">
+          <el-checkbox-group v-model="bannerPlatforms">
+            <el-checkbox label="APP">APP</el-checkbox>
+            <el-checkbox label="MINIPROGRAM">小程序</el-checkbox>
+            <el-checkbox label="WEB">Web</el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
+        <el-form-item label="启用状态">
+          <el-switch v-model="bannerForm.status" active-value="ACTIVE" inactive-value="INACTIVE" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button v-if="bannerForm.id" type="danger" link @click="deleteBanner">删除</el-button>
+        <el-button @click="bannerDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="bannerSaving" @click="saveBanner">保存</el-button>
+      </template>
+    </el-dialog>
 
-    <!-- AI 文案 -->
-    <el-drawer v-model="aiTxtOpen" title="AI 写文案" direction="rtl" size="420px">
-      <div class="ai-dw"><div class="ai-fd"><label>主题</label><el-input v-model="aiTxt.topic" size="small"/></div>
-        <div class="ai-fd"><label>长度</label><el-radio-group v-model="aiTxt.len" size="small"><el-radio value="short">短</el-radio><el-radio value="medium">中</el-radio></el-radio-group></div>
-        <el-button type="primary" :loading="aiTxtLoading" @click="aiGenTxt" style="width:100%">✨ 生成</el-button>
-        <div v-if="aiTxtResult" class="ai-rt">{{ aiTxtResult }}<el-button size="small" type="success" style="margin-top:8px;display:block" @click="aiTxtAdopt">填充</el-button></div>
-      </div>
+    <el-dialog v-model="noticeDialogVisible" :title="noticeForm.id ? '编辑公告' : '新增公告'" width="680px">
+      <el-form :model="noticeForm" label-width="96px">
+        <el-form-item label="标题"><el-input v-model="noticeForm.title" /></el-form-item>
+        <el-form-item label="内容"><el-input v-model="noticeForm.content" type="textarea" :rows="8" /></el-form-item>
+        <el-form-item label="类型">
+          <el-select v-model="noticeForm.type" style="width: 220px">
+            <el-option label="普通" value="NORMAL" />
+            <el-option label="重要" value="IMPORTANT" />
+            <el-option label="活动" value="ACTIVITY" />
+            <el-option label="系统" value="SYSTEM" />
+            <el-option label="更新" value="UPDATE" />
+            <el-option label="欢迎" value="WELCOME" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="目标用户">
+          <el-select v-model="noticeForm.target" style="width: 220px">
+            <el-option label="全部" value="ALL" />
+            <el-option label="新用户" value="NEW_USER" />
+            <el-option label="活跃用户" value="ACTIVE_USER" />
+            <el-option label="不活跃用户" value="INACTIVE_USER" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="noticeForm.status" style="width: 220px">
+            <el-option label="草稿" value="DRAFT" />
+            <el-option label="已发布" value="PUBLISHED" />
+            <el-option label="已下线" value="OFFLINE" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="noticeDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="noticeSaving" @click="saveNotice">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-drawer v-model="aiDrawerVisible" title="AI 生成封面" size="900px">
+      <ImageCreate />
     </el-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue';
-import { ElMessage } from 'element-plus';
-import request from '@/api/request';
-import axios from 'axios';
-import HomePreview from './HomePreview.vue';
-import CustomPreview from './CustomPreview.vue';
-import MinePreview from './MinePreview.vue';
-import AppPreview from './AppPreview.vue';
-import WebPreview from './WebPreview.vue';
-import LeftPanel from './LeftPanel.vue';
-import { contentApi } from '@/api/content';
+import { computed, onMounted, reactive, ref } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { contentApi, type Banner, type LinkType, type Notice, type NoticeStatus, type NoticeTarget, type NoticeType, type Platform } from '@/api/content';
+import { uploadBanner } from '@/api/upload';
+import ImageCreate from './ImageCreate.vue';
 
-const platform = ref('MINIPROGRAM');
-const pageId = ref('home');
-const showPreview = ref(true);
-const pages = [{ id: 'home', label: '首页' }, { id: 'custom', label: '定制页' }, { id: 'mine', label: '我的' }];
-const currentPages = computed(() => {
-  if (platform.value === 'MINIPROGRAM') return pages;
-  if (platform.value === 'APP') return [{ id: 'app', label: 'APP首页' }];
-  return [{ id: 'web', label: 'Web首页' }];
+const activeTab = ref('banner');
+const bannerLoading = ref(false);
+const noticeLoading = ref(false);
+const bannerSaving = ref(false);
+const noticeSaving = ref(false);
+const bannerDialogVisible = ref(false);
+const noticeDialogVisible = ref(false);
+const aiDrawerVisible = ref(false);
+const banners = ref<Banner[]>([]);
+const notices = ref<Notice[]>([]);
+const bannerPlatforms = ref<Platform[]>(['APP', 'MINIPROGRAM', 'WEB']);
+
+const bannerForm = reactive<Partial<Banner>>({
+  title: '',
+  subtitle: '',
+  imageUrl: '',
+  linkType: 'NONE',
+  linkValue: '',
+  sortOrder: 0,
+  status: 'ACTIVE',
+  platform: 'ALL',
 });
 
-// 动态数据
-const brandLogoUrl = ref('https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/%E7%B3%BB%E7%BB%9F%E5%9B%BE%E7%89%87/%E5%90%83%E4%BA%86%E4%B9%884.png');
-const fitnessImg = ref('https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/%E8%8F%9C%E5%93%81/%E5%81%A5%E8%BA%AB%E9%A4%901.png');
-const kidsImg = ref('https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/%E8%8F%9C%E5%93%81/%E5%84%BF%E7%AB%A5%E9%A4%901.png');
-const aboutContent = ref('AI 智能菜谱\n\n让厨房里的食材，都有做法。\n\n版本：v1.0.0');
-const appBannerImg = ref('');
-const webHeroImg = ref('');
-const hotRecipes = ref<any[]>([]);
-const cards = ref<any[]>([]);
-
-const D = [
-  { id:9001, title:'每日推荐', subtitle:'', imageUrl:'https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/%E8%8F%9C%E5%93%81/%E5%AE%AB%E4%BF%9D%E9%B8%A1%E4%B8%81.png', linkType:'DAILY', linkValue:'', platform:'MINIPROGRAM', sortOrder:0, status:'ACTIVE' },
-  { id:9002, title:'新菜首发', subtitle:'', imageUrl:'https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/%E8%8F%9C%E5%93%81/%E7%BA%A2%E7%83%A7%E8%82%89.png', linkType:'DISCOVER', linkValue:'new', platform:'MINIPROGRAM', sortOrder:1, status:'ACTIVE' },
-  { id:9003, title:'家常菜', subtitle:'', imageUrl:'https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/%E8%8F%9C%E5%93%81/%E5%8F%AF%E4%B9%90%E9%B8%A1%E7%BF%85.png', linkType:'DISCOVER', linkValue:'home', platform:'MINIPROGRAM', sortOrder:2, status:'ACTIVE' },
-  { id:9004, title:'一人食谱', subtitle:'', imageUrl:'https://dish-1367781796.cos.ap-guangzhou.myqcloud.com/%E8%8F%9C%E5%93%81/%E6%A4%92%E7%9B%90%E8%99%BE.png', linkType:'DISCOVER', linkValue:'solo', platform:'MINIPROGRAM', sortOrder:3, status:'ACTIVE' },
-];
-
-// 选中项
-const sel = ref<any>(null);
-const selKey = ref('');
-const selOrig = ref<any>(null);
-const dirty = computed(() => sel.value && selOrig.value && JSON.stringify(sel.value) !== JSON.stringify(selOrig.value));
-
-function onItemSelect(item: any) {
-  sel.value = reactive({ ...item });
-  selKey.value = item._key;
-  selOrig.value = { ...item };
-}
-function onPvSelect(type: string, data: any) {
-  const key = type + '-' + (data.id || '');
-  sel.value = reactive({ ...data, _key: key, _type: type, _title: data.title || data.name || type });
-  selKey.value = key;
-  selOrig.value = { ...data, _key: key, _type: type, _title: data.title || data.name || type };
-}
-
-// 数据加载
-async function loadCards() {
-  try {
-    const res = await contentApi.getCards({ page: 1, pageSize: 99, platform: 'MINIPROGRAM' });
-    const list = (res.data?.list || []) as any[];
-    const apiTitles = new Set(list.map((c: any) => c.title));
-    cards.value = [...list, ...D.filter(d => !apiTitles.has(d.title))];
-  } catch (e) { cards.value = [...D]; }
-}
-async function loadHot() {
-  try {
-    const r: any = await request.get('/featured-recipes/hot', { params: { page: 1, pageSize: 6 } });
-    hotRecipes.value = (r.data?.list || []).slice(0, 6).map((h: any) => ({
-      id: h.id, name: h.title || h.name || '未知', coverUrl: h.coverImage || '',
-    }));
-  } catch (e) { /* ok */ }
-}
-async function refreshAll() { await Promise.all([loadCards(), loadHot()]); ElMessage.success('已刷新'); }
-
-// 保存
-async function save() {
-  const s = sel.value; if (!s) return;
-  try {
-    const t = s._type || '';
-    if (t === 'brand' || t === 'app-logo' || t === 'web-logo') { brandLogoUrl.value = s.imageUrl; }
-    else if (t === 'app-banner') { appBannerImg.value = s.imageUrl; }
-    else if (t === 'web-hero') { webHeroImg.value = s.imageUrl; }
-    else if (t === 'fitness') { fitnessImg.value = s.imageUrl; }
-    else if (t === 'kids') { kidsImg.value = s.imageUrl; }
-    else if (t === 'about') { aboutContent.value = s.content; }
-    else if (t === 'hot') { await request.put(`/recipes/${s.id}`, { coverImage: s.coverUrl || s.imageUrl }); loadHot(); }
-    else if (t === 'card') {
-      const isNew = s.id >= 9000 || s.id === 0;
-      if (isNew) await contentApi.createCard({ title: s.title, subtitle: s.subtitle, imageUrl: s.imageUrl, linkType: s.linkType || 'DISCOVER', linkValue: s.linkValue || '', sortOrder: 0, status: 'ACTIVE', platform: 'MINIPROGRAM' });
-      else await contentApi.updateCard(s.id, { title: s.title, subtitle: s.subtitle, imageUrl: s.imageUrl, linkType: s.linkType, linkValue: s.linkValue });
-      loadCards();
-    }
-    ElMessage.success('已保存'); selOrig.value = { ...s };
-  } catch (e: any) { ElMessage.error(e?.message || '保存失败'); }
-}
-function revert() { if (selOrig.value && sel.value) Object.assign(sel.value, selOrig.value); }
-
-// 上传
-async function upload(file: any) {
-  const raw = file?.raw; if (!raw || !(raw instanceof File)) return;
-  try {
-    const fd = new FormData(); fd.append('file', raw); fd.append('folder', 'banners');
-    const token = localStorage.getItem('token');
-    const res = await axios.post('/v1/upload', fd, { headers: token ? { Authorization: `Bearer ${token}` } : {}, timeout: 60000 });
-    const url = res.data?.data?.url || (res.data as any)?.url || '';
-    if (url && sel.value) { sel.value.imageUrl = url; ElMessage.success('上传成功'); }
-  } catch (e: any) { ElMessage.error('上传失败'); }
-}
-
-// AI 图片
-const aiImgOpen = ref(false); const aiImgLoading = ref(false); const aiImgResult = ref('');
-const aiImg = reactive({ tid: '' as string | number, name: '', ing: '' });
-const tpls = ref<any[]>([]);
-async function loadTpls() {
-  try {
-    const r: any = await request.get('/ai/templates');
-    tpls.value = r.data || [];
-    if (tpls.value.length && !aiImg.tid) aiImg.tid = tpls.value[0].id;
-  } catch (e: any) { ElMessage.warning('加载模板失败: ' + (e?.message || '')); }
-}
-async function aiGenImg() { aiImgLoading.value = true; aiImgResult.value = ''; try { const r: any = await request.post('/ai/generate-image', { templateId: aiImg.tid, dishName: aiImg.name || sel.value?.title || '美食', ingredients: aiImg.ing || '新鲜食材' }); if (r.data?.url) aiImgResult.value = r.data.url; else ElMessage.error(r.message || '生成失败'); } catch (e: any) { const msg = e?.message || '生成失败'; if (msg.includes('401') || msg.includes('认证')) ElMessage.error('认证已过期，请刷新页面重新登录'); else ElMessage.error(msg); } finally { aiImgLoading.value = false; } }
-function aiImgAdopt() { if (sel.value?.imageUrl !== undefined) sel.value.imageUrl = aiImgResult.value; aiImgOpen.value = false; aiImgResult.value = ''; }
-function aiImgRetry() { aiImgResult.value = ''; aiGenImg(); }
-
-// AI 文案
-const aiTxtOpen = ref(false); const aiTxtLoading = ref(false); const aiTxtResult = ref('');
-const aiTxt = reactive({ topic: '', len: 'short' as string });
-async function aiGenTxt() { if (!aiTxt.topic) { ElMessage.warning('请输入主题'); return; } aiTxtLoading.value = true; aiTxtResult.value = ''; try { const r: any = await request.post('/ai/generate-text', { topic: aiTxt.topic, length: aiTxt.len }); if (r.data?.content) aiTxtResult.value = r.data.content; } catch (e: any) { ElMessage.error(e?.message); } finally { aiTxtLoading.value = false; } }
-function aiTxtAdopt() { if (sel.value?.content !== undefined) sel.value.content = aiTxtResult.value; aiTxtOpen.value = false; aiTxtResult.value = ''; }
-
-function togglePreview() { showPreview.value = !showPreview.value; }
-
-watch(platform, (val) => {
-  if (val === 'MINIPROGRAM') pageId.value = 'home';
-  else if (val === 'APP') pageId.value = 'app';
-  else pageId.value = 'web';
-  loadHot();
+const noticeForm = reactive<Partial<Notice>>({
+  title: '',
+  content: '',
+  type: 'NORMAL',
+  target: 'ALL',
+  status: 'DRAFT',
 });
-watch(pageId, (val) => {
-  if (val === 'home') loadHot();
-  if (val === 'custom') loadCards();
-  if (val === 'app' || val === 'web') loadHot();
+
+const layoutItems = computed(() => [
+  { key: 'banner', label: '首页 Banner', desc: `${banners.value.length} 个轮播项` },
+  { key: 'notice', label: '系统公告', desc: `${notices.value.length} 条公告` },
+  { key: 'hot', label: '热门/精选菜谱', desc: '在菜谱列表中统一配置' },
+]);
+
+async function loadBanners() {
+  bannerLoading.value = true;
+  try {
+    const res = await contentApi.getBanners({ page: 1, pageSize: 99 });
+    banners.value = res.data?.list || [];
+  } finally {
+    bannerLoading.value = false;
+  }
+}
+
+async function loadNotices() {
+  noticeLoading.value = true;
+  try {
+    const res = await contentApi.getNotices({ page: 1, pageSize: 99 });
+    notices.value = res.data?.list || [];
+  } finally {
+    noticeLoading.value = false;
+  }
+}
+
+function resetBannerForm() {
+  Object.assign(bannerForm, {
+    id: undefined,
+    title: '',
+    subtitle: '',
+    imageUrl: '',
+    linkType: 'NONE' as LinkType,
+    linkValue: '',
+    sortOrder: banners.value.length,
+    status: 'ACTIVE',
+    platform: 'ALL',
+  });
+  bannerPlatforms.value = ['APP', 'MINIPROGRAM', 'WEB'];
+}
+
+function openBannerDialog(row?: Banner) {
+  resetBannerForm();
+  if (row) {
+    Object.assign(bannerForm, row);
+    bannerPlatforms.value = row.platform && row.platform !== 'ALL'
+      ? [row.platform]
+      : ['APP', 'MINIPROGRAM', 'WEB'];
+  }
+  bannerDialogVisible.value = true;
+}
+
+async function handleBannerUpload(file: any) {
+  const result = await uploadBanner(file.raw);
+  bannerForm.imageUrl = result.url || '';
+}
+
+function normalizePlatform(): Platform {
+  return bannerPlatforms.value.length === 1 ? bannerPlatforms.value[0] : 'ALL';
+}
+
+async function saveBanner() {
+  if (!bannerForm.title || !bannerForm.imageUrl) {
+    ElMessage.warning('请填写标题并上传封面图');
+    return;
+  }
+  bannerSaving.value = true;
+  try {
+    const payload = {
+      title: bannerForm.title!,
+      subtitle: bannerForm.subtitle || '',
+      imageUrl: bannerForm.imageUrl!,
+      linkType: bannerForm.linkType || 'NONE',
+      linkValue: bannerForm.linkValue || '',
+      sortOrder: bannerForm.sortOrder || 0,
+      status: bannerForm.status || 'ACTIVE',
+      platform: normalizePlatform(),
+    };
+    if (bannerForm.id) await contentApi.updateBanner(bannerForm.id, payload);
+    else await contentApi.createBanner(payload);
+    ElMessage.success('保存成功');
+    bannerDialogVisible.value = false;
+    await loadBanners();
+  } finally {
+    bannerSaving.value = false;
+  }
+}
+
+async function updateBannerStatus(row: Banner) {
+  await contentApi.updateBanner(row.id, { status: row.status });
+  ElMessage.success('状态已更新');
+}
+
+async function moveBanner(index: number, direction: -1 | 1) {
+  const targetIndex = index + direction;
+  const current = banners.value[index];
+  const target = banners.value[targetIndex];
+  if (!current || !target) return;
+  const currentOrder = current.sortOrder;
+  current.sortOrder = target.sortOrder;
+  target.sortOrder = currentOrder;
+  await Promise.all([
+    contentApi.updateBanner(current.id, { sortOrder: current.sortOrder }),
+    contentApi.updateBanner(target.id, { sortOrder: target.sortOrder }),
+  ]);
+  await loadBanners();
+}
+
+async function deleteBanner() {
+  if (!bannerForm.id) return;
+  await ElMessageBox.confirm('确定删除这个 Banner 吗？', '提示', { type: 'warning' });
+  await contentApi.deleteBanner(bannerForm.id);
+  ElMessage.success('删除成功');
+  bannerDialogVisible.value = false;
+  await loadBanners();
+}
+
+function resetNoticeForm() {
+  Object.assign(noticeForm, {
+    id: undefined,
+    title: '',
+    content: '',
+    type: 'NORMAL' as NoticeType,
+    target: 'ALL' as NoticeTarget,
+    status: 'DRAFT' as NoticeStatus,
+  });
+}
+
+function openNoticeDialog(row?: Notice) {
+  resetNoticeForm();
+  if (row) Object.assign(noticeForm, row);
+  noticeDialogVisible.value = true;
+}
+
+async function saveNotice() {
+  if (!noticeForm.title || !noticeForm.content) {
+    ElMessage.warning('请填写标题和内容');
+    return;
+  }
+  noticeSaving.value = true;
+  try {
+    const payload = {
+      title: noticeForm.title!,
+      content: noticeForm.content!,
+      type: noticeForm.type || 'NORMAL',
+      target: noticeForm.target || 'ALL',
+      status: noticeForm.status || 'DRAFT',
+      publishedAt: noticeForm.status === 'PUBLISHED' ? new Date().toISOString() : undefined,
+    };
+    if (noticeForm.id) await contentApi.updateNotice(noticeForm.id, payload);
+    else await contentApi.createNotice(payload);
+    ElMessage.success('保存成功');
+    noticeDialogVisible.value = false;
+    await loadNotices();
+  } finally {
+    noticeSaving.value = false;
+  }
+}
+
+async function deleteNotice(row: Notice) {
+  await ElMessageBox.confirm('确定删除这条公告吗？', '提示', { type: 'warning' });
+  await contentApi.deleteNotice(row.id);
+  ElMessage.success('删除成功');
+  await loadNotices();
+}
+
+function linkTypeText(type: LinkType) {
+  return ({ NONE: '无跳转', RECIPE: '菜谱', CATEGORY: '分类', WEBVIEW: '链接' } as Record<LinkType, string>)[type] || type;
+}
+
+function platformText(platform: Platform) {
+  return ({ ALL: '全平台', APP: 'APP', MINIPROGRAM: '小程序', WEB: 'Web' } as Record<Platform, string>)[platform] || platform;
+}
+
+function noticeTypeText(type: NoticeType) {
+  return ({ NORMAL: '普通', IMPORTANT: '重要', ACTIVITY: '活动', SYSTEM: '系统', UPDATE: '更新', WELCOME: '欢迎' } as Record<NoticeType, string>)[type] || type;
+}
+
+function noticeTargetText(target: NoticeTarget) {
+  return ({ ALL: '全部', NEW_USER: '新用户', ACTIVE_USER: '活跃用户', INACTIVE_USER: '不活跃用户' } as Record<NoticeTarget, string>)[target] || target;
+}
+
+function noticeStatusText(status: NoticeStatus) {
+  return ({ DRAFT: '草稿', PUBLISHED: '已发布', OFFLINE: '已下线' } as Record<NoticeStatus, string>)[status] || status;
+}
+
+function noticeStatusTag(status: NoticeStatus) {
+  if (status === 'PUBLISHED') return 'success';
+  if (status === 'OFFLINE') return 'info';
+  return 'warning';
+}
+
+function formatTime(value?: string) {
+  return value ? new Date(value).toLocaleString() : '-';
+}
+
+onMounted(() => {
+  loadBanners();
+  loadNotices();
 });
-onMounted(() => { loadCards(); loadHot(); loadTpls(); });
 </script>
 
 <style scoped lang="scss">
-.co-root { height: calc(100vh - 64px); display: flex; flex-direction: column; overflow: hidden; }
-.co-bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; border-bottom: 1px solid var(--border-primary); background: var(--surface-100); flex-shrink: 0; }
-.co-bar-l { display: flex; align-items: center; gap: 12px; }
-.co-bar-r { display: flex; gap: 8px; }
-.co-t { font-size: 16px; font-weight: 600; color: var(--text-strong); margin: 0; }
-.co-sep { color: #ddd; }
-.co-body { display: flex; flex: 1; overflow: hidden; }
-.co-mid { flex: 1; display: flex; justify-content: center; padding: 16px 8px; overflow-y: auto; }
-.co-right { width: 320px; flex-shrink: 0; border-left: 1px solid var(--border-primary); overflow-y: auto; background: var(--surface-100); }
-.co-pnl { padding: 16px; }
-.co-phd { font-size: 14px; font-weight: 600; color: var(--text-strong); margin-bottom: 12px; }
-.co-pimg { margin-bottom: 12px; img { width: 100%; border-radius: 8px; } }
-.co-pimge { height: 100px; background: var(--surface-300); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; }
-.co-pia { display: flex; gap: 6px; margin-top: 8px; }
-.co-pfm { display: flex; flex-direction: column; gap: 10px; }
-.co-fld { display: flex; flex-direction: column; gap: 4px; label { font-size: 12px; color: var(--muted); } }
-.ai-dw { display: flex; flex-direction: column; gap: 14px; }
-.ai-fd { display: flex; flex-direction: column; gap: 4px; label { font-size: 13px; font-weight: 500; } }
-.ai-rt { font-size: 13px; line-height: 1.7; padding: 12px; background: var(--surface-200); border-radius: 8px; white-space: pre-wrap; }
+.page-header {
+  margin-bottom: 20px;
+}
+
+.tab-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.banner-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.banner-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  background: var(--surface-100);
+  cursor: pointer;
+}
+
+.drag-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: flex;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.banner-cover {
+  width: 100%;
+  height: 150px;
+  display: block;
+  background: var(--surface-300);
+}
+
+.image-placeholder,
+.upload-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: rgba(38, 37, 30, 0.45);
+  background: var(--surface-300);
+}
+
+.banner-body {
+  padding: 12px;
+}
+
+.banner-title {
+  font-weight: 600;
+  color: var(--cursor-dark);
+  margin-bottom: 4px;
+}
+
+.banner-subtitle,
+.banner-meta,
+.banner-footer {
+  color: rgba(38, 37, 30, 0.62);
+  font-size: 13px;
+}
+
+.banner-meta,
+.banner-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.cover-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.upload-preview,
+.upload-box {
+  width: 220px;
+  height: 124px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px dashed var(--border-primary);
+}
+
+.layout-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 520px;
+}
+
+.layout-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  background: var(--surface-100);
+
+  span {
+    font-weight: 600;
+  }
+
+  small {
+    color: rgba(38, 37, 30, 0.55);
+  }
+}
+
+@media (max-width: 1100px) {
+  .banner-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .banner-grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

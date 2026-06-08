@@ -1,10 +1,14 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../config/glass_theme.dart';
 import '../../config/theme.dart';
+import '../../data/api/app_exception.dart';
+import '../../data/api/auth_storage.dart';
 import '../../models/recipe.dart';
 import '../../providers/api_providers.dart';
 import '../../providers/collection_provider.dart';
@@ -168,7 +172,7 @@ class _HeroImage extends StatelessWidget {
               ),
               _CircleGlassButton(
                 icon: Icons.more_horiz,
-                onTap: () => _showRecipeMenu(context),
+                onTap: () => _showRecipeMenu(context, recipe),
               ),
             ],
           ),
@@ -198,7 +202,7 @@ class _CircleGlassButton extends StatelessWidget {
   }
 }
 
-void _showRecipeMenu(BuildContext context) {
+void _showRecipeMenu(BuildContext context, Recipe recipe) {
   showModalBottomSheet<void>(
     context: context,
     backgroundColor: Colors.transparent,
@@ -217,21 +221,27 @@ void _showRecipeMenu(BuildContext context) {
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             _MenuActionTile(
               icon: Icons.ios_share,
               label: '分享菜谱',
-              message: '分享面板稍后接入',
+              onTap: () async {
+                final link = 'airecipe://recipe/${recipe.id}';
+                await Clipboard.setData(ClipboardData(text: link));
+                if (context.mounted) {
+                  showCapsuleToast(context, '链接已复制', icon: Icons.ios_share);
+                }
+              },
             ),
             _MenuActionTile(
               icon: Icons.flag_outlined,
               label: '举报内容',
-              message: '已收到举报入口',
+              onTap: () => _showReportDialog(context, recipe),
             ),
             _MenuActionTile(
               icon: Icons.visibility_off_outlined,
               label: '不感兴趣',
-              message: '将减少类似菜谱推荐',
+              onTap: () => _hideRecipe(context, recipe.id),
             ),
           ],
         ),
@@ -243,24 +253,75 @@ void _showRecipeMenu(BuildContext context) {
 class _MenuActionTile extends StatelessWidget {
   final IconData icon;
   final String label;
-  final String message;
+  final Future<void> Function()? onTap;
 
-  const _MenuActionTile({
-    required this.icon,
-    required this.label,
-    required this.message,
-  });
+  const _MenuActionTile({required this.icon, required this.label, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       leading: Icon(icon, color: AppColors.textPrimary),
       title: Text(label, style: Theme.of(context).textTheme.bodyMedium),
-      onTap: () {
+      onTap: () async {
         Navigator.pop(context);
-        showCapsuleToast(context, message);
+        await onTap?.call();
       },
     );
+  }
+}
+
+Future<void> _showReportDialog(BuildContext context, Recipe recipe) async {
+  const reasons = ['内容错误', '图片不适', '侵权内容', '其他问题'];
+  final reason = await showDialog<String>(
+    context: context,
+    builder: (context) => SimpleDialog(
+      title: const Text('举报原因'),
+      children: reasons
+          .map(
+            (item) => SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, item),
+              child: Text(item),
+            ),
+          )
+          .toList(),
+    ),
+  );
+
+  if (reason == null || !context.mounted) return;
+  final container = ProviderScope.containerOf(context, listen: false);
+  try {
+    await container
+        .read(feedbackApiProvider)
+        .submitFeedback(
+          type: 'CONTENT_ISSUE',
+          content: reason,
+          contact: '菜谱ID:${recipe.id} 标题:${recipe.title}',
+        );
+    if (context.mounted) {
+      showCapsuleToast(context, '举报已提交', icon: Icons.flag_outlined);
+    }
+  } catch (error) {
+    if (context.mounted) {
+      showCapsuleToast(
+        context,
+        _errorMessage(error),
+        icon: Icons.error_outline,
+      );
+    }
+  }
+}
+
+Future<void> _hideRecipe(BuildContext context, String recipeId) async {
+  final prefs = await SharedPreferences.getInstance();
+  final hidden = prefs.getStringList('hidden_recipes') ?? <String>[];
+  if (!hidden.contains(recipeId)) {
+    await prefs.setStringList('hidden_recipes', [...hidden, recipeId]);
+  }
+  if (context.mounted) {
+    showCapsuleToast(context, '已减少类似推荐', icon: Icons.visibility_off_outlined);
+    if (Navigator.of(context).canPop()) {
+      context.pop();
+    }
   }
 }
 
@@ -582,7 +643,9 @@ class _BottomActionBarState extends ConsumerState<_BottomActionBar> {
   Future<void> _toggleLike() async {
     setState(() => _savingLike = true);
     try {
-      final result = await ref.read(recipeApiProvider).toggleLike(widget.recipe.id);
+      final result = await ref
+          .read(recipeApiProvider)
+          .toggleLike(widget.recipe.id);
       if (!mounted) return;
       final liked = result['liked'] == true;
       setState(() => _isLiked = liked);
@@ -594,6 +657,10 @@ class _BottomActionBarState extends ConsumerState<_BottomActionBar> {
   }
 
   Future<void> _saveToCollection() async {
+    if ((await AuthStorage.getToken()).isEmpty) {
+      if (mounted) showCapsuleToast(context, '请先登录');
+      return;
+    }
     setState(() => _savingFavorite = true);
     try {
       await ref
@@ -606,7 +673,11 @@ class _BottomActionBarState extends ConsumerState<_BottomActionBar> {
       showCapsuleToast(context, '已加入收藏夹', icon: Icons.bookmark);
     } catch (error) {
       if (!mounted) return;
-      showCapsuleToast(context, error.toString(), icon: Icons.error_outline);
+      showCapsuleToast(
+        context,
+        _errorMessage(error),
+        icon: Icons.error_outline,
+      );
     } finally {
       if (mounted) {
         setState(() => _savingFavorite = false);
@@ -615,8 +686,13 @@ class _BottomActionBarState extends ConsumerState<_BottomActionBar> {
   }
 
   Future<void> _saveShoppingList() async {
+    if ((await AuthStorage.getToken()).isEmpty) {
+      if (mounted) showCapsuleToast(context, '请先登录');
+      return;
+    }
     final ingredients = widget.recipe.ingredients;
     if (ingredients.isEmpty) {
+      if (!mounted) return;
       showCapsuleToast(context, '这个菜谱还没有食材明细', icon: Icons.info_outline);
       return;
     }
@@ -644,7 +720,11 @@ class _BottomActionBarState extends ConsumerState<_BottomActionBar> {
       showCapsuleToast(context, '已加入小菜篮', icon: Icons.shopping_basket_outlined);
     } catch (error) {
       if (!mounted) return;
-      showCapsuleToast(context, error.toString(), icon: Icons.error_outline);
+      showCapsuleToast(
+        context,
+        _errorMessage(error),
+        icon: Icons.error_outline,
+      );
     } finally {
       if (mounted) {
         setState(() => _savingBasket = false);
@@ -689,6 +769,11 @@ class _ActionIcon extends StatelessWidget {
       ),
     );
   }
+}
+
+String _errorMessage(Object error) {
+  if (error is AppException) return error.message;
+  return error.toString();
 }
 
 String _cnDifficulty(String value) {

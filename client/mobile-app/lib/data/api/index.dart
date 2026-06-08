@@ -5,6 +5,7 @@ export 'auth_api.dart';
 export 'collection_api.dart';
 export 'content_api.dart';
 export 'feedback_api.dart';
+export 'favorites_api.dart';
 export 'http_client.dart';
 export 'ingredient_api.dart';
 export 'notification_api.dart';

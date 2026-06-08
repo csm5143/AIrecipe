@@ -44,7 +44,7 @@
         <el-table-column label="内容" min-width="240">
           <template #default="{ row }">
             <div class="item-info">
-              <span class="item-title">{{ getItemTitle(row) }}</span>
+              <span class="item-title">{{ getItemTitle(row as RecycleItem) }}</span>
               <span v-if="row.reason" class="item-reason">原因：{{ row.reason }}</span>
             </div>
           </template>
@@ -68,11 +68,11 @@
         <el-table-column label="操作" width="180" fixed="right" align="center">
           <template #default="{ row }">
             <div class="action-buttons">
-              <el-button type="primary" link size="small" @click="handleRestore(row)">
+              <el-button type="primary" link size="small" @click="handleRestore(row as RecycleItem)">
                 <el-icon><RefreshLeft /></el-icon>
                 还原
               </el-button>
-              <el-button type="danger" link size="small" @click="handlePermanentDelete(row)">
+              <el-button type="danger" link size="small" @click="handlePermanentDelete(row as RecycleItem)">
                 <el-icon><Delete /></el-icon>
                 永久删除
               </el-button>

@@ -259,6 +259,14 @@
               <span class="status-label">收藏量</span>
               <span class="status-value">{{ form.collectCount }}</span>
             </div>
+            <div class="status-item switch-row">
+              <span class="status-label">热门</span>
+              <el-switch v-model="form.isHot" size="small" />
+            </div>
+            <div class="status-item switch-row">
+              <span class="status-label">精选</span>
+              <el-switch v-model="form.isFeatured" size="small" />
+            </div>
           </div>
         </div>
 
@@ -320,6 +328,8 @@ const form = reactive({
   goal: '',
   ageBand: '',
   childrenMeal: false,
+  isHot: false,
+  isFeatured: false,
   createdAt: '',
   updatedAt: '',
   viewCount: 0,
@@ -413,6 +423,8 @@ async function handleSave() {
     goal: form.goal,
     ageBand: form.ageBand,
     childrenMeal: form.childrenMeal,
+    isHot: form.isHot,
+    isFeatured: form.isFeatured,
     ingredients: form.ingredients.filter(i => i.name.trim()).map(i => ({
       name: i.name.trim(),
       amount: i.amount.trim(),
@@ -467,7 +479,7 @@ onMounted(async () => {
 
   try {
     const res = await recipeApi.detail(id);
-    const recipe = res.data;
+    const recipe = res.data as any;
 
     if (!recipe) {
       ElMessage.error('菜谱不存在');
@@ -487,6 +499,8 @@ onMounted(async () => {
     form.updatedAt = new Date().toISOString().split('T')[0];
     form.viewCount = recipe.viewCount || 0;
     form.collectCount = recipe.collectCount || 0;
+    form.isHot = recipe.isHot || false;
+    form.isFeatured = recipe.isFeatured || false;
 
     // 处理菜品类型（多选）
     form.dishTypes = recipe.dishTypes || [];

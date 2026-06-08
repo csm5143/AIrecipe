@@ -52,6 +52,11 @@
             </span>
           </template>
         </el-table-column>
+        <el-table-column prop="email" label="邮箱" min-width="180">
+          <template #default="{ row }">
+            <span class="text-muted text-small">{{ row.email || '-' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="{ row }">
             <el-switch
@@ -64,7 +69,7 @@
         </el-table-column>
         <el-table-column prop="lastLoginAt" label="最后登录" width="160" align="center">
           <template #default="{ row }">
-            <span class="text-muted text-small">{{ row.lastLoginAt ? formatTime(row.lastLoginAt) : '-' }}</span>
+            <span class="text-muted text-small">{{ row.lastLoginAt ? formatDate(row.lastLoginAt) : '-' }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="createdAt" label="创建时间" width="120" align="center">
@@ -128,6 +133,9 @@
         </el-form-item>
         <el-form-item label="昵称" prop="nickname">
           <el-input v-model="form.nickname" placeholder="请输入昵称" />
+        </el-form-item>
+        <el-form-item label="邮箱" prop="email">
+          <el-input v-model="form.email" placeholder="请输入邮箱" />
         </el-form-item>
         <el-form-item label="角色" prop="role">
           <el-select v-model="form.role" placeholder="选择角色" style="width: 100%">
@@ -193,7 +201,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Plus, Edit, Delete, Key, Search, Upload, User } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -228,6 +236,7 @@ const form = reactive({
   id: 0 as number,
   username: '',
   nickname: '',
+  email: '',
   role: 'ADMIN',
   password: '',
   status: 'ACTIVE',
@@ -331,6 +340,7 @@ function handleAddAdmin() {
     id: 0,
     username: '',
     nickname: '',
+    email: '',
     role: 'ADMIN',
     password: '',
     status: 'ACTIVE',
@@ -345,6 +355,7 @@ function handleEdit(row: any) {
     id: row.id,
     username: row.username,
     nickname: row.nickname || '',
+    email: row.email || '',
     role: row.role,
     password: '',
     status: row.status,
@@ -383,6 +394,7 @@ async function handleSave() {
     if (isEdit.value) {
       await adminApi.update(form.id, {
         nickname: form.nickname,
+        email: form.email || undefined,
         role: form.role,
         status: form.status,
         avatar: form.avatar || undefined,
@@ -393,6 +405,7 @@ async function handleSave() {
         username: form.username,
         password: form.password,
         nickname: form.nickname,
+        email: form.email || undefined,
         role: form.role,
         status: form.status,
       });

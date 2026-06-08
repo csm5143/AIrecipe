@@ -10,6 +10,15 @@ import {
 import { extractCalories } from '../../utils/recipeUtils.js';
 import { collectionService } from '../../utils/services/collectionService.js';
 import { authService } from '../../utils/services/authService.js';
+import { upload } from '../../utils/httpApi/request.js';
+
+function isLocalTempPath(path: string): boolean {
+  if (!path) return false;
+  if (/^(wxfile|file|blob):\/\//.test(path)) return true;
+  if (/^https?:\/\/tmp\//.test(path)) return true;
+  if (/^https?:\/\//.test(path)) return false;
+  return !path.startsWith('/');
+}
 
 Page({
   data: {
@@ -260,16 +269,27 @@ Page({
   },
 
   async onSaveEdit() {
-    const { editName, editDesc } = this.data;
+    const { editName, editDesc, editCoverImage } = this.data;
 
     if (!editName.trim()) {
       this.showToast('请输入收藏夹名称', 'warning', false, '', 2000, 'warning');
       return;
     }
 
+    let finalCoverImage = editCoverImage;
+    if (isLocalTempPath(editCoverImage)) {
+      const uploadRes = await upload('/v1/upload/collection-cover', editCoverImage, 'file');
+      if (!uploadRes.success || !uploadRes.data?.url) {
+        this.showToast(uploadRes.message || '封面上传失败', 'warning', false, '', 2000, 'warning');
+        return;
+      }
+      finalCoverImage = uploadRes.data.url;
+    }
+
     const result = await collectionService.updateCollectionCached(Number(this.data.collectionId), {
       name: editName.trim(),
       description: editDesc.trim(),
+      coverImage: finalCoverImage,
     });
 
     if (result.success) {

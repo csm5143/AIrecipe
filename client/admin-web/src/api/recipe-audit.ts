@@ -1,5 +1,4 @@
 import request from './request';
-import type { AxiosPromise } from 'axios';
 
 /** 用户上传的菜谱 */
 export interface UserRecipeItem {
@@ -8,6 +7,7 @@ export interface UserRecipeItem {
   openid: string;
   nickname: string;
   avatar: string;
+  authorName?: string;
   
   // 菜谱内容
   title: string;
@@ -18,7 +18,7 @@ export interface UserRecipeItem {
   servings: number;
   
   ingredients: Array<{ name: string; amount: string }>;
-  steps: Array<{ description: string; image?: string }>;
+  steps: Array<{ description?: string; content?: string; image?: string }>;
   tips?: string;
   
   tags: string[];
@@ -66,36 +66,27 @@ export interface AuditDto {
   auditorName?: string;
 }
 
+export interface RecipeAuditListResponse {
+  list: UserRecipeItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export const recipeAuditApi = {
   // 获取待审核列表
-  getPendingRecipes(params?: GetRecipesParams): AxiosPromise<{
-    data: UserRecipeItem[];
-    total: number;
-    page: number;
-    pageSize: number;
-  }> {
-    return request.get('/recipe-audit/pending', { params });
-  },
+  getPendingRecipes: (params?: GetRecipesParams) =>
+    request.get<RecipeAuditListResponse>('/recipe-audit/pending', { params }),
 
   // 获取已审核列表
-  getProcessedRecipes(params?: GetRecipesParams): AxiosPromise<{
-    data: UserRecipeItem[];
-    total: number;
-    page: number;
-    pageSize: number;
-  }> {
-    return request.get('/recipe-audit/processed', { params });
-  },
+  getProcessedRecipes: (params?: GetRecipesParams) =>
+    request.get<RecipeAuditListResponse>('/recipe-audit/processed', { params }),
 
   // 获取菜谱详情
-  getRecipeDetail(recipeId: string): AxiosPromise<{
-    data: UserRecipeItem;
-  }> {
-    return request.get(`/recipe-audit/${recipeId}`);
-  },
+  getRecipeDetail: (recipeId: string) =>
+    request.get<UserRecipeItem>(`/recipe-audit/${recipeId}`),
 
   // 审核操作
-  auditRecipe(recipeId: string, data: AuditDto): AxiosPromise {
-    return request.post(`/recipe-audit/${recipeId}/review`, data);
-  }
+  auditRecipe: (recipeId: string, data: AuditDto) =>
+    request.post(`/recipe-audit/${recipeId}/review`, data),
 };

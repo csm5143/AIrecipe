@@ -1,6 +1,15 @@
 // 收藏夹编辑页 - 编辑名称、封面、简介
 import { collectionService } from '../../utils/services/collectionService.js';
 import { authService } from '../../utils/services/authService.js';
+import { upload } from '../../utils/httpApi/request.js';
+
+function isLocalTempPath(path: string): boolean {
+  if (!path) return false;
+  if (/^(wxfile|file|blob):\/\//.test(path)) return true;
+  if (/^https?:\/\/tmp\//.test(path)) return true;
+  if (/^https?:\/\//.test(path)) return false;
+  return !path.startsWith('/');
+}
 
 Page({
   data: {
@@ -116,11 +125,20 @@ Page({
     this.setData({ saving: true });
 
     try {
+      let finalCoverImage = coverImage;
+      if (isLocalTempPath(coverImage)) {
+        const uploadRes = await upload('/v1/upload/collection-cover', coverImage, 'file');
+        if (!uploadRes.success || !uploadRes.data?.url) {
+          throw new Error(uploadRes.message || '封面上传失败');
+        }
+        finalCoverImage = uploadRes.data.url;
+      }
+
       const params: any = {
         name: nameValue.trim(),
         description: descValue.trim(),
       };
-      if (coverImage) params.coverImage = coverImage;
+      if (finalCoverImage) params.coverImage = finalCoverImage;
 
       const result = await collectionService.updateCollectionCached(Number(collectionId), params);
 

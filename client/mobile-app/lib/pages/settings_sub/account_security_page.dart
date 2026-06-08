@@ -14,6 +14,17 @@ class AccountSecurityPage extends ConsumerWidget {
     return '${phone.substring(0, 3)} **** ${phone.substring(phone.length - 4)}';
   }
 
+  String _maskEmail(String email) {
+    if (email.isEmpty) return '未绑定';
+    final parts = email.split('@');
+    if (parts.length != 2) return email;
+    final name = parts.first;
+    final masked = name.length <= 2
+        ? '${name.substring(0, 1)}*'
+        : '${name.substring(0, 2)}***';
+    return '$masked@${parts.last}';
+  }
+
   Future<void> _showPasswordDialog(BuildContext context, WidgetRef ref) async {
     final oldController = TextEditingController();
     final newController = TextEditingController();
@@ -141,6 +152,105 @@ class AccountSecurityPage extends ConsumerWidget {
     controller.dispose();
   }
 
+  Future<void> _showEmailDialog(BuildContext context, WidgetRef ref) async {
+    final emailController = TextEditingController();
+    final codeController = TextEditingController();
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('绑定邮箱'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                labelText: '邮箱',
+                suffix: TextButton(
+                  onPressed: () async {
+                    final email = emailController.text.trim();
+                    if (!email.contains('@')) {
+                      showCapsuleToast(context, '请输入有效邮箱', icon: Icons.info);
+                      return;
+                    }
+                    try {
+                      await ref
+                          .read(authControllerProvider.notifier)
+                          .sendVerificationCode(email, 'bind');
+                      if (context.mounted) {
+                        showCapsuleToast(
+                          context,
+                          '验证码已发送',
+                          icon: Icons.check_circle_outline,
+                        );
+                      }
+                    } catch (error) {
+                      final message = error is AppException
+                          ? error.message
+                          : error.toString();
+                      if (context.mounted) {
+                        showCapsuleToast(
+                          context,
+                          message,
+                          icon: Icons.error_outline,
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('获取验证码'),
+                ),
+              ),
+            ),
+            TextField(
+              controller: codeController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: '验证码'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final email = emailController.text.trim();
+              final code = codeController.text.trim();
+              if (!email.contains('@') || code.isEmpty) {
+                showCapsuleToast(context, '请填写邮箱和验证码', icon: Icons.info);
+                return;
+              }
+              try {
+                await ref
+                    .read(authControllerProvider.notifier)
+                    .bindEmail(email, code);
+                if (!context.mounted) return;
+                Navigator.of(dialogContext).pop();
+                showCapsuleToast(
+                  context,
+                  '邮箱已绑定',
+                  icon: Icons.check_circle_outline,
+                );
+              } catch (error) {
+                final message = error is AppException
+                    ? error.message
+                    : error.toString();
+                if (context.mounted) {
+                  showCapsuleToast(context, message, icon: Icons.error_outline);
+                }
+              }
+            },
+            child: const Text('绑定'),
+          ),
+        ],
+      ),
+    );
+    emailController.dispose();
+    codeController.dispose();
+  }
+
   void _showDeveloping(BuildContext context) {
     showCapsuleToast(context, '功能开发中', icon: Icons.build_outlined);
   }
@@ -170,7 +280,12 @@ class AccountSecurityPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authControllerProvider);
     final user = authState.user;
-    final securityScore = user?.phone.isNotEmpty == true ? 80 : 60;
+    final securityScore =
+        user?.phone.isNotEmpty == true && user?.email.isNotEmpty == true
+        ? 100
+        : user?.phone.isNotEmpty == true || user?.email.isNotEmpty == true
+        ? 80
+        : 60;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -267,8 +382,8 @@ class AccountSecurityPage extends ConsumerWidget {
                     _Row(
                       icon: Icons.mail,
                       title: '邮箱',
-                      subtitle: '未绑定',
-                      onTap: () => _showDeveloping(context),
+                      subtitle: _maskEmail(user?.email ?? ''),
+                      onTap: () => _showEmailDialog(context, ref),
                     ),
                     const _Div(),
                     _Row(

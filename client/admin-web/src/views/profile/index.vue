@@ -284,7 +284,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useUserStore } from '@/store/modules/user';
-import { authApi } from '@/api';
 import { uploadAdminAvatar } from '@/api/upload';
 import { usePreferences } from '@/composables/usePreferences';
 import {

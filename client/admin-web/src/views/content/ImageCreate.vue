@@ -195,7 +195,7 @@
               </template>
               <!-- 成功（生成中 tab） -->
               <template v-else-if="t.status==='done'">
-                <img :src="t.url" class="ig-task-img" @click="previewUrl=t.url" @error="(e:any) => e.target.style.display='none'" />
+                <img v-if="t.url" :src="t.url" class="ig-task-img" @click="previewImage(t)" @error="(e:any) => e.target.style.display='none'" />
                 <div class="ig-task-foot">
                   <span class="ig-task-time">{{ formatTime(t.elapsed) }}</span>
                   <div class="ig-task-acts">
@@ -227,7 +227,7 @@
             <div v-if="!historyTasks.length" class="ig-empty" style="flex:0;padding:30px 0">暂无历史记录</div>
             <div v-for="t in historyTasks" :key="t.id" class="ig-task" :class="'ig-task--'+t.status">
               <template v-if="t.status==='done'||t.status==='applied'">
-                <img :src="t.url" class="ig-task-img" @click="previewUrl=t.url" @error="(e:any) => e.target.style.display='none'" />
+                <img v-if="t.url" :src="t.url" class="ig-task-img" @click="previewImage(t)" @error="(e:any) => e.target.style.display='none'" />
                 <div class="ig-task-foot">
                   <span class="ig-task-time">{{ t.label }} · {{ formatTime(t.elapsed) }}</span>
                   <span v-if="t.status==='applied'" class="ig-applied-badge">已应用</span>
@@ -267,10 +267,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import request from '@/api/request';
-import axios from 'axios';
 
 const tab = ref('文生图');
 const tabs = ['文生图', '图生图', '批量任务'];
@@ -415,6 +414,10 @@ function toggleStepTarget(idx: number) {
 
 // 预览
 const previewUrl = ref('');
+
+function previewImage(task: Task) {
+  if (task.url) previewUrl.value = task.url;
+}
 
 // 任务标签
 const taskTab = ref('current');
@@ -615,7 +618,7 @@ async function adoptResult(t: Task) {
       recipeTitle: t.recipeTitle,
       stepIndex: t.targetStepIndex,
     });
-    const newUrl = r.data?.url || t.url;
+    t.url = r.data?.url || t.url;
     ElMessage.success(t.targetType === 'recipe-cover'
       ? `「${t.recipeTitle}」封面已应用 → recipes/`
       : t.targetType === 'recipe-step'
@@ -685,9 +688,9 @@ onMounted(() => { loadModels(); loadTpls(); loadRecipes(); });
 
 .ig-body { display: flex; flex: 1; overflow: hidden; }
 
-.ig-left { width: 240px; flex-shrink: 0; border-right: 1px solid #eee; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.ig-left { width: 210px; flex-shrink: 0; border-right: 1px solid #eee; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
 .ig-mid { flex: 1; padding: 12px 16px; overflow-y: auto; display: flex; flex-direction: column; }
-.ig-right { width: 320px; flex-shrink: 0; border-left: 1px solid #eee; overflow: hidden; padding: 12px; display: flex; flex-direction: column; }
+.ig-right { width: 280px; flex-shrink: 0; border-left: 1px solid #eee; overflow: hidden; padding: 12px; display: flex; flex-direction: column; }
 
 .ig-card { background: #fafafa; border: 1px solid #eee; border-radius: 6px; padding: 10px; margin-bottom: 8px; }
 .ig-card-hd { font-size: 12px; font-weight: 600; color: #666; margin-bottom: 8px; }

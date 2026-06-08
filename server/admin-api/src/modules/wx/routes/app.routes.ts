@@ -7,16 +7,40 @@ import { Router, Router as ExpressRouter } from 'express';
 import { asyncHandler } from '../../../utils/helper';
 import { wxAuthenticate } from '../middleware/wxAuth.middleware';
 import { prisma } from '../../../lib/prisma';
+import { hasTable } from '../../../services/databaseCapability.service';
 import { paginated, success, badRequest } from '../../../types/response';
 import { normalizeCollectionName, canDeleteCollection } from '../utils/collectionRules';
-import { getAiChatSessionMessages, getAiChatSessions, sendAiChatMessage } from '../../../services/aiChatRag.service';
+import {
+  deleteAiChatMessage,
+  editAiChatUserMessage,
+  getAiChatSessionMessages,
+  getAiChatSessions,
+  sendAiChatMessage,
+} from '../../../services/aiChatRag.service';
 import { createNotification } from '../../../services/notification.service';
+import { logUserActivity } from '../../../services/activityLog.service';
 import notificationRoutes from '../../notification/routes/notification.routes';
 
 const router: ExpressRouter = Router();
 
 // 所有路由需要微信用户身份
 router.use(wxAuthenticate);
+
+function mapRecipeForApp(recipe: any) {
+  return {
+    id: recipe.id,
+    title: recipe.title,
+    coverImage: recipe.coverImage || '',
+    description: recipe.description || '',
+    difficulty: recipe.difficulty?.toLowerCase() || 'normal',
+    cookingTime: recipe.cookingTime || 0,
+    collectCount: recipe.collectCount || 0,
+    likes: recipe.favoriteCount || 0,
+    authorName: recipe.authorName || '',
+    authorAvatar: recipe.authorAvatar || '',
+    updatedAt: recipe.updatedAt?.getTime?.() || Date.now(),
+  };
+}
 
 // ============ 用户收藏夹 ============
 
@@ -130,7 +154,7 @@ router.get('/collections/:id', asyncHandler(async (req, res) => {
 router.post('/collections/:id/items', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const collectionId = parseInt(req.params.id);
-  const { recipeId } = req.body;
+  const recipeId = parseInt(req.body.recipeId);
   if (!recipeId) {
     res.status(400).json(badRequest('缺少 recipeId'));
     return;
@@ -421,6 +445,34 @@ router.get('/collected-recipe-ids', asyncHandler(async (req, res) => {
   res.json(success(items.map(i => i.recipeId)));
 }));
 
+/** 获取当前用户点赞过的菜谱 */
+router.get('/favorites', asyncHandler(async (req, res) => {
+  const userId = (req as any).userId;
+  const page = parseInt(req.query.page as string) || 1;
+  const pageSize = Math.min(parseInt(req.query.pageSize as string) || 20, 100);
+
+  const [favorites, total] = await Promise.all([
+    prisma.favorite.findMany({
+      where: { userId },
+      include: { recipe: true },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.favorite.count({ where: { userId } }),
+  ]);
+
+  const data = favorites
+    .filter(item => item.recipe && !item.recipe.isDeleted)
+    .map(item => ({
+      favoriteId: item.id,
+      likedAt: item.createdAt.getTime(),
+      ...mapRecipeForApp(item.recipe),
+    }));
+
+  res.json(paginated(data, { page, pageSize, total }));
+}));
+
 // ============ 小菜篮 ============
 
 /** 获取用户的购物清单列表 */
@@ -437,7 +489,8 @@ router.get('/shopping-lists', asyncHandler(async (req, res) => {
 /** 创建/更新购物清单（同一菜谱同名清单 => upsert） */
 router.post('/shopping-lists', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
-  const { name, recipeId, items } = req.body;
+  const { name, items } = req.body;
+  const recipeId = req.body.recipeId ? parseInt(req.body.recipeId) : undefined;
   if (!name || !items || !Array.isArray(items)) {
     res.status(400).json(badRequest('缺少必填字段'));
     return;
@@ -504,6 +557,31 @@ router.delete('/shopping-lists/:id', asyncHandler(async (req, res) => {
   res.json(success(null, '已删除'));
 }));
 
+router.get('/scheduled-tasks', asyncHandler(async (req, res) => {
+  const userId = (req as any).userId;
+  if (!(await hasTable('scheduled_tasks'))) {
+    res.json(success([]));
+    return;
+  }
+
+  const tasks = await (prisma as any).scheduledTask.findMany({
+    where: { userId },
+    orderBy: [{ fired: 'asc' }, { triggerAt: 'asc' }],
+    take: 50,
+  });
+  res.json(success(tasks.map((task: any) => ({
+    id: task.id,
+    type: task.type,
+    title: task.title,
+    body: task.body,
+    data: task.data || null,
+    triggerAt: task.triggerAt.getTime(),
+    fired: task.fired,
+    firedAt: task.firedAt ? task.firedAt.getTime() : null,
+    createdAt: task.createdAt.getTime(),
+  }))));
+}));
+
 // ============ 浏览历史 ============
 
 /** 记录浏览历史 */
@@ -511,9 +589,12 @@ router.delete('/shopping-lists/:id', asyncHandler(async (req, res) => {
 
 router.post('/ai-chat', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
-  const { text, sessionId } = req.body as { text?: string; sessionId?: number | string };
+  const { text, sessionId, imageUrls } = req.body as { text?: string; sessionId?: number | string; imageUrls?: string[] };
   const promptText = String(text || '').trim();
-  if (!promptText) {
+  const normalizedImageUrls = Array.isArray(imageUrls)
+    ? imageUrls.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 6)
+    : [];
+  if (!promptText && normalizedImageUrls.length === 0) {
     res.status(400).json(badRequest('Missing chat message'));
     return;
   }
@@ -522,7 +603,14 @@ router.post('/ai-chat', asyncHandler(async (req, res) => {
     const result = await sendAiChatMessage({
       userId,
       text: promptText,
+      imageUrls: normalizedImageUrls,
       sessionId: sessionId ? Number(sessionId) : undefined,
+    });
+    logUserActivity({
+      userId,
+      action: 'ai_chat',
+      targetId: result.sessionId ? String(result.sessionId) : undefined,
+      detail: `AI 对话：${promptText.slice(0, 50)}${promptText.length > 50 ? '...' : ''}${normalizedImageUrls.length ? `，图片 ${normalizedImageUrls.length} 张` : ''}`,
     });
     res.json(success(result));
   } catch (err: any) {
@@ -546,6 +634,40 @@ router.get('/ai-chat/sessions/:id/messages', asyncHandler(async (req, res) => {
     return;
   }
   res.json(success(messages));
+}));
+
+router.delete('/ai-chat/messages/:id', asyncHandler(async (req, res) => {
+  const userId = (req as any).userId;
+  const messageId = parseInt(req.params.id);
+  const deleted = await deleteAiChatMessage(userId, messageId);
+  if (!deleted) {
+    res.status(404).json({ code: 404, message: 'AI chat message not found', timestamp: Date.now() });
+    return;
+  }
+  res.json(success(null, '消息已删除'));
+}));
+
+router.put('/ai-chat/messages/:id', asyncHandler(async (req, res) => {
+  const userId = (req as any).userId;
+  const messageId = parseInt(req.params.id);
+  const text = String(req.body?.text || '').trim();
+  if (!text) {
+    res.status(400).json(badRequest('消息内容不能为空'));
+    return;
+  }
+
+  const result = await editAiChatUserMessage({ userId, messageId, text });
+  if (!result) {
+    res.status(404).json({ code: 404, message: 'AI chat user message not found', timestamp: Date.now() });
+    return;
+  }
+  logUserActivity({
+    userId,
+    action: 'ai_chat_edit',
+    targetId: result.sessionId ? String(result.sessionId) : undefined,
+    detail: `编辑 AI 对话：${text.slice(0, 50)}${text.length > 50 ? '...' : ''}`,
+  });
+  res.json(success(result));
 }));
 
 router.get('/browse-history', asyncHandler(async (req, res) => {
@@ -616,6 +738,12 @@ router.post('/browse-history', asyncHandler(async (req, res) => {
     },
   });
   res.json(success(null, '已记录'));
+}));
+
+router.delete('/browse-history', asyncHandler(async (req, res) => {
+  const userId = (req as any).userId;
+  await prisma.browseHistory.deleteMany({ where: { userId } });
+  res.json(success(null, '浏览历史已清空'));
 }));
 
 // ============ 通知 ============

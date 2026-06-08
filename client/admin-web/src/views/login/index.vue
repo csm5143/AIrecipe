@@ -58,7 +58,7 @@
 
         <div class="form-options">
           <el-checkbox v-model="rememberMe">记住我</el-checkbox>
-          <a href="#" class="forgot-link">忘记密码？</a>
+          <button type="button" class="forgot-link" @click="forgotVisible = true">忘记密码？</button>
         </div>
 
         <el-form-item class="form-item">
@@ -95,6 +95,30 @@
         <span>健康饮食管理</span>
       </div>
     </div>
+
+    <el-dialog v-model="forgotVisible" title="找回密码" width="420px">
+      <el-form :model="forgotForm" label-position="top">
+        <el-form-item label="用户名">
+          <el-input v-model="forgotForm.username" placeholder="请输入用户名" />
+        </el-form-item>
+        <el-form-item label="邮箱">
+          <el-input v-model="forgotForm.email" placeholder="请输入绑定邮箱" />
+        </el-form-item>
+        <el-form-item label="验证码">
+          <div class="code-row">
+            <el-input v-model="forgotForm.verifyCode" placeholder="请输入验证码" />
+            <el-button :loading="codeSending" @click="sendForgotCode">获取验证码</el-button>
+          </div>
+        </el-form-item>
+        <el-form-item label="新密码">
+          <el-input v-model="forgotForm.newPassword" type="password" show-password placeholder="至少 6 位" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="forgotVisible = false">取消</el-button>
+        <el-button type="primary" :loading="resetting" @click="resetForgotPassword">重置密码</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -104,6 +128,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useUserStore } from '@/store/modules/user';
 import { User, Lock, CircleCheck } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
+import { adminApi } from '@/api/admin';
 
 const router = useRouter();
 const route = useRoute();
@@ -112,10 +137,20 @@ const userStore = useUserStore();
 const formRef = ref();
 const loading = ref(false);
 const rememberMe = ref(false);
+const forgotVisible = ref(false);
+const codeSending = ref(false);
+const resetting = ref(false);
 
 const form = reactive({
   username: '',
   password: '',
+});
+
+const forgotForm = reactive({
+  username: '',
+  email: '',
+  verifyCode: '',
+  newPassword: '',
 });
 
 const rules = {
@@ -142,6 +177,44 @@ async function handleLogin() {
     ElMessage.error('登录失败，请检查用户名和密码');
   } finally {
     loading.value = false;
+  }
+}
+
+async function sendForgotCode() {
+  if (!forgotForm.username || !forgotForm.email) {
+    ElMessage.warning('请先填写用户名和邮箱');
+    return;
+  }
+  codeSending.value = true;
+  try {
+    await adminApi.forgotPassword({
+      username: forgotForm.username,
+      email: forgotForm.email,
+    });
+    ElMessage.success('验证码已发送');
+  } catch (error: any) {
+    ElMessage.error(error?.message || '验证码发送失败');
+  } finally {
+    codeSending.value = false;
+  }
+}
+
+async function resetForgotPassword() {
+  if (!forgotForm.username || !forgotForm.email || !forgotForm.verifyCode || !forgotForm.newPassword) {
+    ElMessage.warning('请填写完整信息');
+    return;
+  }
+  resetting.value = true;
+  try {
+    await adminApi.resetPasswordByCode(forgotForm);
+    ElMessage.success('密码已重置，请登录');
+    forgotVisible.value = false;
+    form.username = forgotForm.username;
+    form.password = '';
+  } catch (error: any) {
+    ElMessage.error(error?.message || '密码重置失败');
+  } finally {
+    resetting.value = false;
   }
 }
 </script>
@@ -312,6 +385,10 @@ async function handleLogin() {
   }
 
   .forgot-link {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
     font-family: var(--font-display);
     font-size: 13px;
     color: var(--cursor-orange);
@@ -346,6 +423,13 @@ async function handleLogin() {
       transform: translateY(0);
     }
   }
+}
+
+.code-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  width: 100%;
 }
 
 .login-footer {

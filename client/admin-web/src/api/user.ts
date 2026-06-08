@@ -9,7 +9,6 @@ export interface UserRow {
   collectionCount: number;
   feedbackCount: number;
   fridgeCount?: number;
-  aiScanCount?: number;
   status: 'ACTIVE' | 'DISABLED';
   createdAt: string;
   lastLoginAt: string;
@@ -24,7 +23,7 @@ export const userApi = {
   detail: (id: number) =>
     request.get<any>(`/users/${id}`),
 
-  update: (id: number, data: { nickname?: string; avatar?: string; gender?: string; bio?: string }) =>
+  update: (id: number, data: { nickname?: string; avatar?: string; gender?: 'male' | 'female' | ''; bio?: string }) =>
     request.put<UserRow>(`/users/${id}`, data),
 
   updateStatus: (id: number, status: string) =>
@@ -33,7 +32,7 @@ export const userApi = {
   delete: (id: number) =>
     request.delete(`/users/${id}`),
 
-  create: (data: { nickname?: string; phone?: string; password?: string; gender?: string; avatar?: string; bio?: string }) =>
+  create: (data: { nickname?: string; phone?: string; password?: string; gender?: 'male' | 'female' | ''; avatar?: string; bio?: string }) =>
     request.post('/users', data),
 
   export: (params: { keyword?: string; gender?: string; status?: string }, format: 'csv' | 'xlsx') =>

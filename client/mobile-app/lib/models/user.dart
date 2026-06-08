@@ -4,6 +4,7 @@ class AppUser {
   final String avatar;
   final String bio;
   final String phone;
+  final String email;
   final String gender;
   final int followers;
   final int following;
@@ -18,6 +19,7 @@ class AppUser {
     this.avatar = '',
     this.bio = '',
     this.phone = '',
+    this.email = '',
     this.gender = 'UNKNOWN',
     this.followers = 0,
     this.following = 0,
@@ -34,6 +36,7 @@ class AppUser {
       avatar: _stringValue(json['avatar'] ?? json['avatar_url']),
       bio: _stringValue(json['bio']),
       phone: _stringValue(json['phone']),
+      email: _stringValue(json['email']),
       gender: _stringValue(json['gender'], 'UNKNOWN'),
       followers: _intValue(json['followers']),
       following: _intValue(json['following']),
@@ -53,6 +56,7 @@ class AppUser {
       'avatar': avatar,
       'bio': bio,
       'phone': phone,
+      'email': email,
       'gender': gender,
       'followers': followers,
       'following': following,

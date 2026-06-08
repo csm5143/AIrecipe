@@ -1,8 +1,13 @@
 // 加载环境变量（必须放在最前面）
 import 'dotenv/config';
 
+// DNS 强制使用公共 DNS，必须在所有网络操作前设置
+import dns from 'dns';
+dns.setServers(['8.8.8.8', '114.114.114.114']);
+
 import 'reflect-metadata';
 import express, { Express } from 'express';
+import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -11,14 +16,19 @@ import { prisma } from './lib/prisma';
 import { errorHandler } from './modules/system/middleware/errorHandler';
 import { requestLogger } from './modules/system/middleware/requestLogger';
 import { settingsStore } from './modules/system/settingsStore';
+import { ensureAiQuotaDefaults } from './services/aiQuota.service';
+import { startScheduler } from './services/scheduler.service';
 import authRoutes from './modules/auth/routes/auth.routes';
 import userRoutes from './modules/user/routes/user.routes';
 import recipeRoutes from './modules/recipe/routes/recipe.routes';
 import ingredientRoutes from './modules/ingredient/routes/ingredient.routes';
 import collectionRoutes from './modules/collection/routes/collection.routes';
 import feedbackRoutes from './modules/feedback/routes/feedback.routes';
+import reportRoutes from './modules/report/routes/report.routes';
+import adminNotificationRoutes from './modules/notification/routes/admin-notification.routes';
 import recipeAuditRoutes from './modules/recipe-audit/routes/recipe-audit.routes';
 import userRecipeRoutes from './modules/user-recipe/routes/user-recipe.routes';
+import adminAuthRoutes from './modules/admin/routes/admin-auth.routes';
 import adminRoutes from './modules/admin/routes/admin.routes';
 import contentRoutes from './modules/content/routes/content.routes';
 import analyticsRoutes from './modules/analytics/routes/analytics.routes';
@@ -27,12 +37,12 @@ import systemRoutes from './modules/system/routes/system.routes';
 import appRoutes from './modules/app/routes';
 import wxRoutes from './modules/wx/routes/wx.routes';
 import fridgeRoutes from './modules/fridge/routes/fridge.routes';
-import operationLogsRoutes from './modules/operation-logs/routes/operation-logs.routes';
+import logsRoutes from './modules/logs/routes/logs.routes';
 import recycleBinRoutes from './modules/recycle-bin/routes/recycle-bin.routes';
 import featuredRoutes from './modules/featured/routes/featured.routes';
-import aiScanRoutes from './modules/ai-scan/routes/ai-scan.routes';
 import aiKeyRoutes, { aiKeyPublicRoutes } from './modules/ai-key/routes/ai-key.routes';
 import aiRoutes from './modules/ai/routes/ai.routes';
+import aiControlRoutes from './modules/ai-control/routes/ai-control.routes';
 import devRoutes from './modules/dev/routes/dev.routes';
 
 const app: Express = express();
@@ -83,7 +93,7 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 // 静态文件服务
-app.use(config.upload.staticDir, express.static(config.upload.uploadDir));
+app.use(config.upload.staticDir, express.static(path.resolve(config.upload.uploadDir)));
 
 // ==================== 路由 ====================
 
@@ -104,22 +114,25 @@ app.use(`${config.app.apiPrefix}/featured-recipes`, featuredRoutes);
 app.use(`${config.app.apiPrefix}/ingredients`, ingredientRoutes);
 app.use(`${config.app.apiPrefix}/collections`, collectionRoutes);
 app.use(`${config.app.apiPrefix}/feedbacks`, feedbackRoutes);
+app.use(`${config.app.apiPrefix}/reports`, reportRoutes);
+app.use(`${config.app.apiPrefix}/admin/notifications`, adminNotificationRoutes);
 app.use(`${config.app.apiPrefix}/recipe-audit`, recipeAuditRoutes);
 app.use(`${config.app.apiPrefix}/user-recipes`, userRecipeRoutes);
+app.use(`${config.app.apiPrefix}/admin`, adminAuthRoutes);
 app.use(`${config.app.apiPrefix}/admins`, adminRoutes);
 app.use(`${config.app.apiPrefix}/content`, contentRoutes);
 app.use(`${config.app.apiPrefix}/app`, appRoutes);
-app.use(`${config.app.apiPrefix}/ai-scans`, aiScanRoutes);
 app.use(`${config.app.apiPrefix}/ai`, aiRoutes);
+app.use(`${config.app.apiPrefix}/ai-control`, aiControlRoutes);
 app.use(`${config.app.apiPrefix}/dev`, devRoutes);
-app.use(`${config.app.apiPrefix}/ai-keys`, aiKeyRoutes);
 app.use(`${config.app.apiPrefix}/ai-keys/active`, aiKeyPublicRoutes);
+app.use(`${config.app.apiPrefix}/ai-keys`, aiKeyRoutes);
 app.use(`${config.app.apiPrefix}/wx`, wxRoutes);
 app.use(`${config.app.apiPrefix}/app/fridge`, fridgeRoutes);
 app.use(`${config.app.apiPrefix}/analytics`, analyticsRoutes);
 app.use(`${config.app.apiPrefix}/upload`, uploadRoutes);
 app.use(`${config.app.apiPrefix}/system`, systemRoutes);
-app.use(`${config.app.apiPrefix}/logs`, operationLogsRoutes);
+app.use(`${config.app.apiPrefix}/logs`, logsRoutes);
 app.use(`${config.app.apiPrefix}/recycle-bin`, recycleBinRoutes);
 
 // ==================== 错误处理 ====================
@@ -142,6 +155,8 @@ app.listen(config.app.port, config.app.host, async () => {
 
     // Ensure system settings are seeded on first run
     await settingsStore.ensureInitialized();
+    await ensureAiQuotaDefaults();
+    startScheduler();
   } catch (e) {
     console.warn('[WARMUP] Failed to warm up Prisma pool:', e);
   }

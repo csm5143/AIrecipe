@@ -6,14 +6,85 @@ import 'http_client.dart';
 class AuthApi {
   final _dio = HttpClient.instance;
 
-  Future<AuthSession> login(String phone, String password) {
+  Future<void> sendVerificationCode({
+    String? phone,
+    String? email,
+    required String type,
+  }) {
+    return guardApi(() async {
+      await _dio.post(
+        '/wx/send-code',
+        data: {'phone': phone, 'email': email, 'type': type},
+      );
+    });
+  }
+
+  Future<AuthSession> accountLogin({
+    String? phone,
+    String? email,
+    required String password,
+  }) {
     return guardApi(() async {
       final response = await _dio.post(
-        '/wx/phone-login',
-        data: {'phone': phone, 'password': password},
+        '/wx/account-login',
+        data: {'phone': phone, 'email': email, 'password': password},
       );
       return _saveSession(responseMap(response));
     });
+  }
+
+  Future<AuthSession> accountRegister({
+    String? phone,
+    String? email,
+    required String password,
+    required String nickname,
+    required String verifyCode,
+  }) {
+    return guardApi(() async {
+      final response = await _dio.post(
+        '/wx/account-register',
+        data: {
+          'phone': phone,
+          'email': email,
+          'password': password,
+          'nickname': nickname,
+          'verifyCode': verifyCode,
+        },
+      );
+      return _saveSession(responseMap(response));
+    });
+  }
+
+  Future<void> resetPassword({
+    String? phone,
+    String? email,
+    required String verifyCode,
+    required String newPassword,
+  }) {
+    return guardApi(() async {
+      await _dio.post(
+        '/wx/reset-password',
+        data: {
+          'phone': phone,
+          'email': email,
+          'verifyCode': verifyCode,
+          'newPassword': newPassword,
+        },
+      );
+    });
+  }
+
+  Future<void> bindEmail({required String email, required String verifyCode}) {
+    return guardApi(() async {
+      await _dio.post(
+        '/wx/bind-email',
+        data: {'email': email, 'verifyCode': verifyCode},
+      );
+    });
+  }
+
+  Future<AuthSession> login(String phone, String password) {
+    return accountLogin(phone: phone, password: password);
   }
 
   Future<AuthSession> register(String phone, String password, String nickname) {

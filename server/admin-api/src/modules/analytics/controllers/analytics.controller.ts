@@ -219,13 +219,13 @@ export async function getAiTokenStats(req: Request, res: Response) {
     name: k.name,
     totalTokens: k.totalTokens,
     usedTokens: k.usedTokens,
-    remaining: Math.max(0, k.totalTokens - k.usedTokens),
+    remaining: k.totalTokens === null ? null : Math.max(0, k.totalTokens - k.usedTokens),
     isActive: k.isActive,
   }));
 
   const totalUsed = stats.reduce((sum, s) => sum + s.usedTokens, 0);
-  const totalRemaining = stats.reduce((sum, s) => sum + s.remaining, 0);
-  const total = stats.reduce((sum, s) => sum + s.totalTokens, 0);
+  const totalRemaining = stats.reduce((sum, s) => sum + (s.remaining || 0), 0);
+  const total = stats.reduce((sum, s) => sum + (s.totalTokens || 0), 0);
 
   res.json(success({
     keys: stats,

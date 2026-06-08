@@ -36,7 +36,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
     setState(() => _uploading = true);
     try {
-      final url = await ref.read(uploadApiProvider).uploadAvatar(picked.path);
+      final url = await ref.read(uploadApiProvider).uploadAvatar(picked);
       await ref.read(authControllerProvider.notifier).updateProfile({'avatar': url});
       if (!mounted) return;
       showCapsuleToast(context, '头像已更新', icon: Icons.check_circle_outline);

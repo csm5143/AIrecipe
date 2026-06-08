@@ -10,15 +10,21 @@ export const COS_CONFIG = {
 };
 
 export const COS_FOLDERS = {
+  ADMINS: 'admins',
   AVATARS: 'avatars',
   RECIPES: 'recipes',
+  RECIPE_COVER: 'recipes',
   RECIPE_STEPS: 'recipes/steps',
   FAVORITES: 'favorites',
+  USER_RECIPES: 'user-recipes',
   FEEDBACK: 'feedback',
   BANNERS: 'banners',
   CATEGORIES: 'categories',
   INGREDIENTS: 'ingredients',
-  AI_SCAN: 'ai-scan',   // 用户拍照识别照片（临时文件，建议配置生命周期清理）
+  SETTINGS: 'settings',
+  AI_CHAT: 'ai-chat',
+  AI_SCAN: 'ai-scan',
+  AI_GENERATED: 'ai-generated',
   TMP: 'tmp',
 } as const;
 

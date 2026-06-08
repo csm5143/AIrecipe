@@ -4,6 +4,8 @@ import {
   getAdmins,
   getAdminById,
   createAdmin,
+  forgotAdminPassword,
+  resetAdminPasswordByCode,
   updateAdmin,
   resetAdminPassword,
   deleteAdmin,
@@ -12,6 +14,10 @@ import {
 import { authenticate, authorize } from '../../auth/middleware/auth.middleware';
 
 const router: ExpressRouter = Router();
+
+router.post('/auth/forgot-password', asyncHandler(forgotAdminPassword));
+router.post('/auth/reset-password', asyncHandler(resetAdminPasswordByCode));
+
 router.use(asyncHandler(authenticate));
 
 // 管理员管理：仅限 SUPER_ADMIN

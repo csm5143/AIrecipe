@@ -28,7 +28,8 @@ export function usePermission() {
 
   function canAccessModule(module: PermissionModule): boolean {
     if (module === 'ALL') return true;
-    return (ROLE_PERMISSION_MAP[currentRole.value || ''] || []).includes(module);
+    if (!currentRole.value) return false;
+    return ROLE_PERMISSION_MAP[currentRole.value].includes(module);
   }
 
   return {

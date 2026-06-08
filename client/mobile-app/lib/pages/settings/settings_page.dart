@@ -65,7 +65,7 @@ class SettingsPage extends ConsumerWidget {
               _Item(
                 icon: Icons.cleaning_services_outlined,
                 title: '存储管理',
-                trailing: '124 MB',
+                trailing: '查看详情',
                 route: '/settings/storage',
               ),
             ],

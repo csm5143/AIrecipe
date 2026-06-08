@@ -1,3 +1,5 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../models/recipe.dart';
 import 'api_helpers.dart';
 import 'http_client.dart';
@@ -24,9 +26,13 @@ class RecipeApi {
           if (authorId != null && authorId.isNotEmpty) 'authorId': authorId,
         },
       );
-      return responseList(
+      final recipes = responseList(
         response,
       ).map((item) => Recipe.fromJson(mapValue(item))).toList();
+      final prefs = await SharedPreferences.getInstance();
+      final hidden = prefs.getStringList('hidden_recipes') ?? const <String>[];
+      if (hidden.isEmpty) return recipes;
+      return recipes.where((recipe) => !hidden.contains(recipe.id)).toList();
     });
   }
 

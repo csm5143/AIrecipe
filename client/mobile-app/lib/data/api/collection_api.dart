@@ -80,7 +80,7 @@ class CollectionApi {
 
   Future<Map<String, dynamic>> saveShoppingList({
     required String name,
-    required String recipeId,
+    String? recipeId,
     required List<Map<String, dynamic>> items,
   }) {
     return guardApi(() async {
@@ -95,6 +95,12 @@ class CollectionApi {
   Future<void> deleteShoppingList(String id) {
     return guardApi(() async {
       await _dio.delete('/wx/app/shopping-lists/$id');
+    });
+  }
+
+  Future<void> clearBrowseHistory() {
+    return guardApi(() async {
+      await _dio.delete('/wx/app/browse-history');
     });
   }
 }

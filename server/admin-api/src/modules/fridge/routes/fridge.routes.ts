@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Router as ExpressRouter } from 'express';
 import { asyncHandler } from '../../../utils/helper';
 import { wxAuthenticate } from '../../wx/middleware/wxAuth.middleware';
 import {
@@ -10,7 +10,7 @@ import {
   clearFridge,
 } from '../controllers/fridge.controller';
 
-const router = Router();
+const router: ExpressRouter = Router();
 
 // 所有路由需要微信用户身份
 router.use(wxAuthenticate);

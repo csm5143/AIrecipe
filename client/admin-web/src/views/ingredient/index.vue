@@ -105,18 +105,18 @@
               v-model="row.status"
               active-value="ACTIVE"
               inactive-value="INACTIVE"
-              @change="handleStatusChange(row)"
+              @change="handleStatusChange(row as IngredientRow)"
             />
           </template>
         </el-table-column>
         <el-table-column label="操作" width="120" fixed="right" align="center">
           <template #default="{ row }">
             <div class="action-buttons">
-              <el-button type="primary" link @click="handleEdit(row)">
+              <el-button type="primary" link @click="handleEdit(row as IngredientRow)">
                 <el-icon><Edit /></el-icon>
                 编辑
               </el-button>
-              <el-button type="danger" link @click="handleDelete(row)">
+              <el-button type="danger" link @click="handleDelete(row as IngredientRow)">
                 <el-icon><Delete /></el-icon>
               </el-button>
             </div>
@@ -351,7 +351,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
-import { Search, Plus, Edit, Delete, Upload, Download, RefreshLeft, Check, Document, WarningFilled, CircleCheckFilled } from '@element-plus/icons-vue';
+import { Search, Plus, Edit, Delete, Upload, Download, RefreshLeft, Document } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { UploadFile, FormInstance, FormRules } from 'element-plus';
 import { ingredientApi, type IngredientRow, type IngredientFormData } from '@/api/ingredient';
@@ -516,7 +516,7 @@ async function handleIngredientImageChange(file: UploadFile) {
   ingredientPreview.value = URL.createObjectURL(raw);
   try {
     const result = await uploadIngredient(raw);
-    form.coverImage = result.url || (result.data as any)?.url || '';
+    form.coverImage = result.url || '';
     ElMessage.success('图片上传成功');
   } catch {
     ElMessage.error('图片上传失败');

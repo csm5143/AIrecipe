@@ -1,12 +1,12 @@
 /** 开发辅助：读取小程序源码供管理后台预览 */
-import { Router } from 'express';
+import { Router, Router as ExpressRouter } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import { asyncHandler } from '../../../utils/helper';
 import { success, badRequest } from '../../../types/response';
 import { authenticate, authorize } from '../../auth/middleware/auth.middleware';
 
-const router = Router();
+const router: ExpressRouter = Router();
 
 // 源码读取需要鉴权
 const authMw = [asyncHandler(authenticate), asyncHandler(authorize('SUPER_ADMIN', 'ADMIN', 'EDITOR'))];

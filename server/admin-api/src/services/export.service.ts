@@ -235,3 +235,28 @@ export function exportUsers(
     res.json(users);
   }
 }
+
+// ===================== 日志导出 =====================
+export function exportLogs(
+  res: Response,
+  format: 'csv' | 'xlsx' | 'json',
+  logs: Record<string, unknown>[],
+): void {
+  const date = new Date().toISOString().slice(0, 10);
+  const headers = ['时间', '操作者类型', '操作者', '动作', '模块', '目标', '详情', 'IP'];
+  const keys = ['createdAt', 'actorTypeText', 'actorName', 'action', 'module', 'target', 'detail', 'ip'];
+  const rows = logs.map(log => ({
+    ...log,
+    actorTypeText: log.actorType === 'admin' ? '管理员' : '用户',
+  }));
+
+  setDownloadHeader(res, `日志_${date}.${format}`, format);
+
+  if (format === 'csv') {
+    writeCSV(res, `日志_${date}.csv`, headers, rows, keys);
+  } else if (format === 'xlsx') {
+    writeXLSX(res, `日志_${date}.xlsx`, '日志', headers, keys, rows);
+  } else {
+    res.json(logs);
+  }
+}

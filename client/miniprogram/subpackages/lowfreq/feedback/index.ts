@@ -4,7 +4,16 @@
  */
 
 import { submitFeedbackToCloud, FEEDBACK_TYPE_MAP, type FeedbackType } from '../../../utils/cloudFeedback.js';
+import { upload } from '../../../utils/httpApi/request.js';
 import { getUserInfo, isFormalUser } from '../../../utils/userAuth.js';
+
+function isLocalTempPath(path: string): boolean {
+  if (!path) return false;
+  if (/^(wxfile|file|blob):\/\//.test(path)) return true;
+  if (/^https?:\/\/tmp\//.test(path)) return true;
+  if (/^https?:\/\//.test(path)) return false;
+  return !path.startsWith('/');
+}
 
 /** 获取用户类型（从 cloudUserData 内联，原云开发模块已移除） */
 function getUserType(): 'none' | 'normal' {
@@ -173,13 +182,26 @@ Page({
     wx.showLoading({ title: '提交中...', mask: true });
 
     try {
+      const uploadedImages: string[] = [];
+      for (const imagePath of imageList) {
+        if (!isLocalTempPath(imagePath)) {
+          uploadedImages.push(imagePath);
+          continue;
+        }
+        const uploadRes = await upload('/v1/upload/wx-feedback', imagePath, 'file');
+        if (!uploadRes.success || !uploadRes.data?.url) {
+          throw new Error(uploadRes.message || '图片上传失败');
+        }
+        uploadedImages.push(uploadRes.data.url);
+      }
+
       // 提交到云端
       const result = await submitFeedbackToCloud({
         type: selectedType as FeedbackType,
         typeLabel: selectedTypeLabel,
         content: content.trim(),
         contact: contact.trim(),
-        images: imageList
+        images: uploadedImages
       });
 
       wx.hideLoading();

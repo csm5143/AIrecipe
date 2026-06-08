@@ -5,15 +5,30 @@
 
 import COS from 'cos-nodejs-sdk-v5';
 import { v4 as uuidv4 } from 'uuid';
+import config from '../config';
 
-// 从环境变量读取 COS 配置
-const cosConfig = {
-  SecretId: process.env.TENCENT_COS_SECRET_ID || '',
-  SecretKey: process.env.TENCENT_COS_SECRET_KEY || '',
-  Bucket: process.env.TENCENT_COS_BUCKET || 'dish-1367781796',
-  Region: process.env.TENCENT_COS_REGION || 'ap-guangzhou',
-  BaseUrl: process.env.TENCENT_COS_BASE_URL || 'https://dish-1367781796.cos.ap-guangzhou.myqcloud.com',
-};
+// 从环境变量读取 COS 配置。不要提供默认 bucket，避免配置错误时静默写到错误位置。
+const cosConfig = config.cos;
+
+export function isCOSConfigured(): boolean {
+  return !!(
+    cosConfig.secretId &&
+    cosConfig.secretKey &&
+    cosConfig.bucket &&
+    cosConfig.region &&
+    cosConfig.baseUrl
+  );
+}
+
+export function getCOSStatus() {
+  return {
+    enabled: isCOSConfigured(),
+    bucket: cosConfig.bucket || null,
+    region: cosConfig.region || null,
+    baseUrl: cosConfig.baseUrl || null,
+    folders: COS_FOLDERS,
+  };
+}
 
 // 文件夹类型
 export const COS_FOLDERS = {
@@ -23,24 +38,33 @@ export const COS_FOLDERS = {
   RECIPE_COVER: 'recipes',
   RECIPE_STEPS: 'recipes/steps',
   FAVORITES: 'favorites',
+  USER_RECIPES: 'user-recipes',
   FEEDBACK: 'feedback',
   BANNERS: 'banners',
   CATEGORIES: 'categories',
   INGREDIENTS: 'ingredients',
   SETTINGS: 'settings',
-  AI_SCAN: 'ai-scan',  // 用户拍照识别照片（临时文件，建议配置生命周期清理）
+  AI_CHAT: 'ai-chat',
+  AI_SCAN: 'ai-scan',
+  AI_GENERATED: 'ai-generated',
   TMP: 'tmp',
 } as const;
 
 // 初始化 COS 客户端
 const cos = new COS({
-  SecretId: cosConfig.SecretId,
-  SecretKey: cosConfig.SecretKey,
+  SecretId: cosConfig.secretId,
+  SecretKey: cosConfig.secretKey,
 });
+
+function assertCOSConfigured() {
+  if (!isCOSConfigured()) {
+    throw new Error('COS 未配置完整，请检查 TENCENT_COS_SECRET_ID、TENCENT_COS_SECRET_KEY、TENCENT_COS_BUCKET、TENCENT_COS_REGION、TENCENT_COS_BASE_URL');
+  }
+}
 
 // 获取完整 URL
 function getCOSUrl(key: string): string {
-  return `${cosConfig.BaseUrl}/${key}`;
+  return `${cosConfig.baseUrl.replace(/\/$/, '')}/${key}`;
 }
 
 // 生成 COS Key
@@ -65,12 +89,13 @@ export class COSService {
   ): Promise<{ url: string; key: string }> {
     const ext = originalName.substring(originalName.lastIndexOf('.')) || '.jpg';
     const key = generateCOSKey(folder as any, `${uuidv4()}${ext}`);
+    assertCOSConfigured();
 
     return new Promise((resolve, reject) => {
       cos.putObject(
         {
-          Bucket: cosConfig.Bucket,
-          Region: cosConfig.Region,
+          Bucket: cosConfig.bucket,
+          Region: cosConfig.region,
           Key: key,
           Body: buffer,
           ContentLength: buffer.length,
@@ -95,12 +120,13 @@ export class COSService {
    */
   static async uploadRecipeCover(buffer: Buffer, recipeId: string): Promise<{ url: string; key: string }> {
     const key = `${COS_FOLDERS.RECIPE_COVER}/${recipeId}/cover_${Date.now()}.jpg`;
+    assertCOSConfigured();
     
     return new Promise((resolve, reject) => {
       cos.putObject(
         {
-          Bucket: cosConfig.Bucket,
-          Region: cosConfig.Region,
+          Bucket: cosConfig.bucket,
+          Region: cosConfig.region,
           Key: key,
           Body: buffer,
           ContentLength: buffer.length,
@@ -128,12 +154,13 @@ export class COSService {
     stepIndex: number
   ): Promise<{ url: string; key: string }> {
     const key = `${COS_FOLDERS.RECIPE_STEPS}/${recipeId}/step_${stepIndex}_${Date.now()}.jpg`;
+    assertCOSConfigured();
     
     return new Promise((resolve, reject) => {
       cos.putObject(
         {
-          Bucket: cosConfig.Bucket,
-          Region: cosConfig.Region,
+          Bucket: cosConfig.bucket,
+          Region: cosConfig.region,
           Key: key,
           Body: buffer,
           ContentLength: buffer.length,
@@ -153,16 +180,17 @@ export class COSService {
   }
 
   /**
-   * 上传用户头像
+   * 上传用户头像（覆盖式：同用户始终覆盖 avatar.jpg，通过 URL 参数刷新缓存）
    */
   static async uploadAvatar(buffer: Buffer, userId: string): Promise<{ url: string; key: string }> {
-    const key = `${COS_FOLDERS.AVATARS}/user_${userId}/avatar_${Date.now()}.jpg`;
+    const key = `${COS_FOLDERS.AVATARS}/${userId}/avatar.jpg`;
+    assertCOSConfigured();
     
     return new Promise((resolve, reject) => {
       cos.putObject(
         {
-          Bucket: cosConfig.Bucket,
-          Region: cosConfig.Region,
+          Bucket: cosConfig.bucket,
+          Region: cosConfig.region,
           Key: key,
           Body: buffer,
           ContentLength: buffer.length,
@@ -186,12 +214,13 @@ export class COSService {
    */
   static async uploadBanner(buffer: Buffer): Promise<{ url: string; key: string }> {
     const key = generateCOSKey(COS_FOLDERS.BANNERS, `banner_${Date.now()}.jpg`);
+    assertCOSConfigured();
     
     return new Promise((resolve, reject) => {
       cos.putObject(
         {
-          Bucket: cosConfig.Bucket,
-          Region: cosConfig.Region,
+          Bucket: cosConfig.bucket,
+          Region: cosConfig.region,
           Key: key,
           Body: buffer,
           ContentLength: buffer.length,
@@ -211,16 +240,17 @@ export class COSService {
   }
 
   /**
-   * 上传管理员头像
+   * 上传管理员头像（覆盖式：同管理员始终覆盖 avatar.jpg）
    */
-  static async uploadAdminAvatar(buffer: Buffer, username: string): Promise<{ url: string; key: string }> {
-    const key = `${COS_FOLDERS.ADMINS}/${username}/avatar_${Date.now()}.jpg`;
+  static async uploadAdminAvatar(buffer: Buffer, adminId: number): Promise<{ url: string; key: string }> {
+    const key = `${COS_FOLDERS.ADMINS}/${adminId}/avatar.jpg`;
+    assertCOSConfigured();
 
     return new Promise((resolve, reject) => {
       cos.putObject(
         {
-          Bucket: cosConfig.Bucket,
-          Region: cosConfig.Region,
+          Bucket: cosConfig.bucket,
+          Region: cosConfig.region,
           Key: key,
           Body: buffer,
           ContentLength: buffer.length,
@@ -244,12 +274,13 @@ export class COSService {
    */
   static async uploadCategoryIcon(buffer: Buffer, username: string): Promise<{ url: string; key: string }> {
     const key = `${COS_FOLDERS.CATEGORIES}/${username}/icon_${Date.now()}.png`;
+    assertCOSConfigured();
 
     return new Promise((resolve, reject) => {
       cos.putObject(
         {
-          Bucket: cosConfig.Bucket,
-          Region: cosConfig.Region,
+          Bucket: cosConfig.bucket,
+          Region: cosConfig.region,
           Key: key,
           Body: buffer,
           ContentLength: buffer.length,
@@ -269,18 +300,19 @@ export class COSService {
   }
 
   /**
-   * 上传系统设置图片（Logo、Favicon 等）
+   * 上传系统设置图片（覆盖式：settings/{type}.png，如 settings/logo.png）
    */
-  static async uploadSettings(buffer: Buffer, type: string, username: string): Promise<{ url: string; key: string }> {
+  static async uploadSettings(buffer: Buffer, type: string, _username: string): Promise<{ url: string; key: string }> {
     const ext = type.includes('.') ? type.substring(type.lastIndexOf('.')) : '.png';
     const name = type.replace(/\.[^.]+$/, '');
-    const key = `${COS_FOLDERS.SETTINGS}/${username}/${name}_${Date.now()}${ext}`;
+    const key = `${COS_FOLDERS.SETTINGS}/${name}${ext}`;
+    assertCOSConfigured();
 
     return new Promise((resolve, reject) => {
       cos.putObject(
         {
-          Bucket: cosConfig.Bucket,
-          Region: cosConfig.Region,
+          Bucket: cosConfig.bucket,
+          Region: cosConfig.region,
           Key: key,
           Body: buffer,
           ContentLength: buffer.length,
@@ -303,6 +335,7 @@ export class COSService {
    * 生成不重复的 COS key：检查是否存在，存在则加 -2, -3...
    */
   static async uniqueKey(baseKey: string): Promise<string> {
+    assertCOSConfigured();
     const dir = baseKey.substring(0, baseKey.lastIndexOf('/'));
     const name = baseKey.substring(baseKey.lastIndexOf('/') + 1);
     const dotIdx = name.lastIndexOf('.');
@@ -314,7 +347,7 @@ export class COSService {
     while (true) {
       const exists = await new Promise<boolean>((resolve) => {
         cos.headObject(
-          { Bucket: cosConfig.Bucket, Region: cosConfig.Region, Key: candidate },
+          { Bucket: cosConfig.bucket, Region: cosConfig.region, Key: candidate },
           (err: any) => resolve(!err),
         );
       });
@@ -328,11 +361,12 @@ export class COSService {
    * 按指定 key 上传文件（保留自定义文件名）
    */
   static async uploadWithKey(buffer: Buffer, key: string): Promise<{ url: string; key: string }> {
+    assertCOSConfigured();
     return new Promise((resolve, reject) => {
       cos.putObject(
         {
-          Bucket: cosConfig.Bucket,
-          Region: cosConfig.Region,
+          Bucket: cosConfig.bucket,
+          Region: cosConfig.region,
           Key: key,
           Body: buffer,
           ContentLength: buffer.length,
@@ -353,11 +387,12 @@ export class COSService {
    * 删除文件
    */
   static async deleteFile(key: string): Promise<void> {
+    assertCOSConfigured();
     return new Promise((resolve, reject) => {
       cos.deleteObject(
         {
-          Bucket: cosConfig.Bucket,
-          Region: cosConfig.Region,
+          Bucket: cosConfig.bucket,
+          Region: cosConfig.region,
           Key: key,
         },
         (err, data) => {

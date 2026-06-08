@@ -6,6 +6,9 @@ class NotificationItem {
   final String targetName;
   final String? targetImage;
   final String timeAgo;
+  final String title;
+  final String content;
+  final Map<String, dynamic> data;
   final bool isUnread;
   final NotificationType type;
   final String? targetId; // recipeId 或 followerId，用于深度链接
@@ -18,6 +21,9 @@ class NotificationItem {
     this.targetName = '',
     this.targetImage,
     this.timeAgo = '',
+    this.title = '',
+    this.content = '',
+    this.data = const {},
     this.isUnread = false,
     this.type = NotificationType.system,
     this.targetId,
@@ -37,16 +43,19 @@ class NotificationItem {
     return NotificationItem(
       id: _stringValue(json['id']),
       fromUserName: _stringValue(
-        extraData['followerName'] ?? extraData['likerName'] ?? json['fromUserName'],
+        extraData['followerName'] ??
+            extraData['likerName'] ??
+            json['fromUserName'],
         title,
       ),
       fromUserAvatar: _stringValue(json['fromUserAvatar']),
       action: content.isNotEmpty ? content : _defaultAction(type),
-      targetName: _stringValue(
-        extraData['recipeTitle'] ?? json['targetName'],
-      ),
+      targetName: _stringValue(extraData['recipeTitle'] ?? json['targetName']),
       targetImage: json['targetImage']?.toString(),
       timeAgo: _relativeTime(createdAt),
+      title: title,
+      content: content,
+      data: extraData,
       isUnread: json['isRead'] == false,
       type: type,
       targetId: _stringValue(
@@ -65,6 +74,9 @@ class NotificationItem {
       'target_name': targetName,
       'target_image': targetImage,
       'time_ago': timeAgo,
+      'title': title,
+      'content': content,
+      'data': data,
       'is_unread': isUnread,
       'type': type.toJson(),
     };
@@ -107,27 +119,12 @@ String _stringValue(dynamic value, [String fallback = '']) {
   return value?.toString() ?? fallback;
 }
 
-bool _boolValue(dynamic value, [bool fallback = false]) {
-  if (value is bool) return value;
-  if (value is num) return value != 0;
-  final normalized = value?.toString().toLowerCase();
-  if (normalized == 'true') return true;
-  if (normalized == 'false') return false;
-  return fallback;
-}
-
 DateTime? _dateFromEpoch(dynamic value) {
   if (value == null) return null;
   if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
   final ms = int.tryParse(value.toString());
   if (ms != null) return DateTime.fromMillisecondsSinceEpoch(ms);
   return null;
-}
-
-DateTime? _dateTimeValue(dynamic value) {
-  if (value == null) return null;
-  if (value is DateTime) return value;
-  return DateTime.tryParse(value.toString());
 }
 
 String _relativeTime(DateTime? value) {

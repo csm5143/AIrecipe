@@ -10,9 +10,7 @@ import {
   RecipeStep,
   RecipeDifficulty
 } from '../../../utils/cloudUserRecipe.js';
-import { 
-  uploadAvatarToCOS 
-} from '../../../utils/fileUpload.js';
+import { upload } from '../../../utils/httpApi/request.js';
 import { isLoggedIn } from '../../../utils/userAuth.js';
 
 interface RecipeForm {
@@ -112,31 +110,20 @@ Page({
       count: 1,
       sizeType: ['compressed'],
       sourceType: ['album', 'camera'],
-      success: (res) => {
+      success: async (res) => {
         const tempFilePath = res.tempFilePaths[0];
         wx.showLoading({ title: '上传中...' });
 
-        wx.getFileSystemManager().readFile({
-          filePath: tempFilePath,
-          encoding: 'base64',
-          success: (readRes: any) => {
-            uploadAvatarToCOS(readRes.data as string).then(url => {
-              wx.hideLoading();
-              if (url) {
-                this.setData({
-                  'form.coverImage': url
-                });
-                wx.showToast({ title: '封面上传成功', icon: 'success' });
-              } else {
-                wx.showToast({ title: '封面上传失败', icon: 'none' });
-              }
-            });
-          },
-          fail: () => {
-            wx.hideLoading();
-            wx.showToast({ title: '读取图片失败', icon: 'none' });
-          }
-        });
+        const uploadRes = await upload('/v1/upload/user-recipe-image', tempFilePath, 'file');
+        wx.hideLoading();
+        if (uploadRes.success && uploadRes.data?.url) {
+          this.setData({
+            'form.coverImage': uploadRes.data.url
+          });
+          wx.showToast({ title: '封面上传成功', icon: 'success' });
+        } else {
+          wx.showToast({ title: uploadRes.message || '封面上传失败', icon: 'none' });
+        }
       }
     });
   },

@@ -1,7 +1,6 @@
 // scan/index.ts
 import { uploadAndRecognize, IngredientRecognitionResult } from '../../utils/ingredientRecognize.js'
 import { getAppIngredientsList } from '../../utils/httpApi/ingredient.js'
-import { saveAiScan } from '../../utils/httpApi/aiScan.js'
 import { authService } from '../../utils/services/authService.js'
 import { buildIngredientIndex, normalizeName, getAllNames, getAllData } from '../../utils/ingredientIndex.js'
 
@@ -489,22 +488,6 @@ Component({
           canGenerate: allSelected.length > 0,
           showBlurTip: isLikelyBlurry,
         })
-
-        // 保存扫描记录到数据库（即使识别结果为空也保存失败记录）
-        if (firstImageUrl) {
-          saveAiScan({
-            imageUrl: firstImageUrl,
-            result: {
-              ingredients: allResults.map(r => r.name),
-              model: firstModel,
-              tokensUsed: firstTokensUsed,
-            },
-            recipes: [],
-            status: allResults.length > 0 ? 'SUCCESS' : 'FAILED',
-          }).catch(err => {
-            console.error('[scan] 保存扫描记录失败', err);
-          });
-        }
 
         // 有待映射的食材，弹出选择面板
         if (pendingMapping.length > 0) {

@@ -1,5 +1,4 @@
 import request from './request';
-import type { ApiResponse } from '@airecipe/shared-types';
 
 export interface SiteSettings {
   siteName: string;
@@ -62,8 +61,22 @@ export interface SystemSettings {
 
 export const systemApi = {
   getSettings: () =>
-    request.get<ApiResponse<SystemSettings>>('/system/settings'),
+    request.get<SystemSettings>('/system/settings'),
 
   updateSettings: (category: keyof SystemSettings, data: any) =>
-    request.put<ApiResponse<null>>(`/system/settings/${category}`, data),
+    request.put<null>(`/system/settings/${category}`, data),
+
+  sendTestEmail: (email?: string) =>
+    request.post<null>('/system/email/test', { email }),
+
+  forgotPassword: (data: { username: string; email: string }) =>
+    request.post<null>('/admin/auth/forgot-password', data),
+
+  resetPassword: (data: {
+    username: string;
+    email: string;
+    verifyCode: string;
+    newPassword: string;
+  }) =>
+    request.post<null>('/admin/auth/reset-password', data),
 };

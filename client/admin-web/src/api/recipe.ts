@@ -8,9 +8,13 @@ export interface RecipeListQuery {
   category?: string;
   status?: string;
   dishType?: string;
+  mealTime?: string;
+  source?: string;
   difficulty?: string;
   fitnessMeal?: boolean;
   childrenMeal?: boolean;
+  isFeatured?: boolean;
+  isHot?: boolean;
   sort?: string;
   order?: 'asc' | 'desc';
 }
@@ -70,6 +74,9 @@ export const recipeApi = {
 
   batchDelete: (ids: number[]) =>
     request.post('/recipes/batch-delete', { ids }),
+
+  batchUpdate: (ids: number[], data: { isFeatured?: boolean; isHot?: boolean }) =>
+    request.patch('/recipes/batch', { ids, data }),
 
   import: (data: any[]) =>
     request.post('/recipes/import', { recipes: data }),

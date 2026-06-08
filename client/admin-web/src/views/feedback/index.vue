@@ -168,11 +168,11 @@
         </el-table-column>
         <el-table-column label="操作" width="140" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button type="primary" link @click.stop="handleViewDetail(row)">
+            <el-button type="primary" link @click.stop="handleViewDetail(row as FeedbackItem)">
               <el-icon><View /></el-icon>
               查看
             </el-button>
-            <el-dropdown trigger="click" @command="(cmd: string) => handleAction(cmd, row)">
+            <el-dropdown trigger="click" @command="(cmd: string) => handleAction(cmd, row as FeedbackItem)">
               <el-button type="primary" link>
                 <el-icon><MoreFilled /></el-icon>
               </el-button>
@@ -556,13 +556,13 @@ async function handleAction(command: string, row: FeedbackItem) {
       replyVisible.value = true;
       break;
     case 'process':
-      await updateStatus(row, 'processing');
+      await updateStatus(row, 'in_progress');
       break;
     case 'resolve':
       await updateStatus(row, 'resolved');
       break;
     case 'reject':
-      await updateStatus(row, 'rejected');
+      await updateStatus(row, 'closed');
       break;
     case 'delete':
       await handleDelete(row);

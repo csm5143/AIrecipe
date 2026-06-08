@@ -34,10 +34,12 @@ class _CollectionDetailPageState extends ConsumerState<CollectionDetailPage> {
       final result = await ref
           .read(collectionApiProvider)
           .getCollectionDetail(widget.collectionId);
-      if (mounted) setState(() {
-        _detail = result;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _detail = result;
+          _loading = false;
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -45,10 +47,9 @@ class _CollectionDetailPageState extends ConsumerState<CollectionDetailPage> {
 
   Future<void> _removeRecipe(dynamic recipe) async {
     try {
-      await ref.read(collectionApiProvider).removeFromCollection(
-            widget.collectionId,
-            recipe['id'].toString(),
-          );
+      await ref
+          .read(collectionApiProvider)
+          .removeFromCollection(widget.collectionId, recipe['id'].toString());
       ref.invalidate(myCollectionProvider);
       await _load();
       if (mounted) showCapsuleToast(context, '已移出收藏夹');
@@ -69,37 +70,41 @@ class _CollectionDetailPageState extends ConsumerState<CollectionDetailPage> {
         title: Text(name),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          onPressed: () =>
-              Navigator.of(context).canPop() ? context.pop() : context.go('/my-collections'),
+          onPressed: () => Navigator.of(context).canPop()
+              ? context.pop()
+              : context.go('/my-collections'),
         ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : recipes.isEmpty
-              ? const Center(
-                  child: Text('收藏夹是空的', style: TextStyle(color: AppColors.textSecondary)),
-                )
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: GridView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 0.72,
-                    ),
-                    itemCount: recipes.length,
-                    itemBuilder: (context, index) {
-                      final recipe = recipes[index] as Map<String, dynamic>;
-                      return _RecipeCard(
-                        recipe: recipe,
-                        onTap: () => context.push('/recipe/${recipe['id']}'),
-                        onRemove: () => _removeRecipe(recipe),
-                      );
-                    },
-                  ),
+          ? const Center(
+              child: Text(
+                '收藏夹是空的',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: GridView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.72,
                 ),
+                itemCount: recipes.length,
+                itemBuilder: (context, index) {
+                  final recipe = recipes[index] as Map<String, dynamic>;
+                  return _RecipeCard(
+                    recipe: recipe,
+                    onTap: () => context.push('/recipe/${recipe['id']}'),
+                    onRemove: () => _removeRecipe(recipe),
+                  );
+                },
+              ),
+            ),
     );
   }
 }
@@ -140,7 +145,10 @@ class _RecipeCard extends StatelessWidget {
                     fit: BoxFit.cover,
                     errorWidget: (_, _, _) => Container(
                       color: AppColors.surfaceSecondary,
-                      child: const Icon(Icons.restaurant, color: AppColors.textPlaceholder),
+                      child: const Icon(
+                        Icons.restaurant,
+                        color: AppColors.textPlaceholder,
+                      ),
                     ),
                   ),
                   Positioned(
@@ -155,7 +163,11 @@ class _RecipeCard extends StatelessWidget {
                           color: Colors.black45,
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: const Icon(Icons.close, size: 16, color: Colors.white),
+                        child: const Icon(
+                          Icons.close,
+                          size: 16,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -168,7 +180,10 @@ class _RecipeCard extends StatelessWidget {
                 recipe['title']?.toString() ?? '',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],

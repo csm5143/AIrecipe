@@ -81,6 +81,15 @@ class ShoppingListNotifier extends StateNotifier<List<Map<String, dynamic>>> {
     state = await _ref.read(collectionApiProvider).getShoppingLists();
   }
 
+  Future<void> create(String name, List<Map<String, dynamic>> items) async {
+    await _ref.read(collectionApiProvider).saveShoppingList(
+      name: name,
+      recipeId: null,
+      items: items,
+    );
+    await load();
+  }
+
   Future<void> remove(String id) async {
     await _ref.read(collectionApiProvider).deleteShoppingList(id);
     state = state.where((item) => item['id']?.toString() != id).toList();

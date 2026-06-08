@@ -20,6 +20,10 @@ export interface RecipeRow {
   steps: string[];
   viewCount?: number;
   collectCount?: number;
+  shareCount?: number;
+  isFeatured?: boolean;
+  isHot?: boolean;
+  createdAt?: string;
 }
 
 function mapDifficulty(d: string): string {
@@ -74,7 +78,8 @@ export function normalizeRecipe(raw: RecipeRow): Recipe {
     collectCount: raw.collectCount ?? 0,
     shareCount: raw.shareCount ?? 0,
     status: 'PUBLISHED' as any,
-    isFeatured: false,
+    isFeatured: raw.isFeatured ?? false,
+    isHot: raw.isHot ?? false,
     publishedAt: '',
     createdAt: raw.createdAt || new Date().toISOString().split('T')[0],
     updatedAt: new Date().toISOString().split('T')[0],

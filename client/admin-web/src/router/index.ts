@@ -35,18 +35,6 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '菜谱管理', icon: 'Food' },
       },
       {
-        path: 'recipes/featured',
-        name: 'FeaturedRecipes',
-        component: () => import('@/views/featured/index.vue'),
-        meta: { title: '精选菜谱', icon: 'Star' },
-      },
-      {
-        path: 'recipes/hot',
-        name: 'HotRecipes',
-        component: () => import('@/views/hot-recipes/index.vue'),
-        meta: { title: '热门菜谱', icon: 'TrendCharts' },
-      },
-      {
         path: 'recipes/create',
         name: 'RecipeCreate',
         component: () => import('@/views/recipe/create.vue'),
@@ -77,10 +65,28 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '反馈管理', icon: 'ChatDotRound' },
       },
       {
-        path: 'ai-scans',
-        name: 'AiScans',
-        component: () => import('@/views/ai-scan/index.vue'),
-        meta: { title: 'AI 扫描记录', icon: 'Cpu' },
+        path: 'reports',
+        name: 'Reports',
+        component: () => import('@/views/report/index.vue'),
+        meta: { title: '举报管理', icon: 'Warning' },
+      },
+      {
+        path: 'notifications',
+        name: 'AdminNotifications',
+        component: () => import('@/views/notification/index.vue'),
+        meta: { title: '通知中心', icon: 'Bell' },
+      },
+      {
+        path: 'ai-usage',
+        name: 'AiUsage',
+        component: () => import('@/views/ai-usage/index.vue'),
+        meta: { title: 'AI使用记录', icon: 'Cpu' },
+      },
+      {
+        path: 'ai-control',
+        name: 'AiControl',
+        component: () => import('@/views/ai-control/index.vue'),
+        meta: { title: 'AI控制台', icon: 'Monitor' },
       },
       {
         path: 'recipe-audit',

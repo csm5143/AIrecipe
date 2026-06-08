@@ -3,6 +3,7 @@ import { Difficulty } from '@prisma/client';
 import { prisma } from '../../../lib/prisma';
 import { badRequest, notFound, paginated, success } from '../../../types/response';
 import { createNotification } from '../../../services/notification.service';
+import { logUserActivity } from '../../../services/activityLog.service';
 
 type RecipeStatusInput = 'draft' | 'pending';
 
@@ -174,6 +175,12 @@ export async function submitRecipe(req: Request, res: Response) {
       },
     });
 
+    logUserActivity({
+      userId,
+      action: submitStatus === 'draft' ? 'draft_recipe' : 'upload_recipe',
+      targetId: String(recipe.id),
+      detail: `${submitStatus === 'draft' ? '保存草稿' : '上传菜谱'}「${recipe.title}」`,
+    });
     res.json(success({ id: recipe.id, recipeId: recipe.id }, submitStatus === 'draft' ? 'Draft saved' : 'Submitted for review'));
   } catch (error: any) {
     console.error('[UserRecipe] submitRecipe failed', error);

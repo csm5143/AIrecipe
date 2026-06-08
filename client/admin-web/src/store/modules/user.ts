@@ -34,7 +34,7 @@ export const useUserStore = defineStore('user', () => {
     if (!token.value) return;
     try {
       const res = await authApi.getProfile();
-      profile.value = res.data as AdminUser;
+      profile.value = res.data;
       profileLoaded.value = true;
     } catch {
       // 网络不可用时静默降级，不中断业务流程
