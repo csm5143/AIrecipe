@@ -72,7 +72,7 @@
 
       <!-- 用户与反馈：SUPER_ADMIN / ADMIN / AUDITOR -->
       <div
-        v-if="canAccess('/users') || canAccess('/feedbacks') || canAccess('/reports') || canAccess('/notifications') || canAccess('/ai-usage') || canAccess('/ai-control')"
+        v-if="canAccess('/users') || canAccess('/feedbacks') || canAccess('/comments') || canAccess('/reports') || canAccess('/notifications') || canAccess('/ai-usage') || canAccess('/ai-control')"
         class="menu-section"
       >
         <div class="menu-title">用户与反馈</div>
@@ -91,6 +91,11 @@
           <el-menu-item v-if="canAccess('/feedbacks')" index="/feedbacks">
             <el-icon><ChatDotRound /></el-icon>
             <template #title>反馈管理</template>
+          </el-menu-item>
+
+          <el-menu-item v-if="canAccess('/comments')" index="/comments">
+            <el-icon><ChatLineRound /></el-icon>
+            <template #title>评论管理</template>
           </el-menu-item>
 
           <el-menu-item v-if="canAccess('/reports')" index="/reports">
@@ -115,7 +120,7 @@
 
           <el-menu-item v-if="canAccess('/recipe-audit')" index="/recipe-audit">
             <el-icon><Stamp /></el-icon>
-            <template #title>菜谱审核</template>
+            <template #title>作品审核</template>
           </el-menu-item>
         </el-menu>
       </div>
@@ -162,7 +167,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { Odometer, Food, Goods, TrendCharts, User, ChatDotRound, Stamp, Delete, Setting, DArrowRight, DArrowLeft, Cpu, Warning, Bell, Monitor } from '@element-plus/icons-vue';
+import { Odometer, Food, Goods, TrendCharts, User, ChatDotRound, ChatLineRound, Stamp, Delete, Setting, DArrowRight, DArrowLeft, Cpu, Warning, Bell, Monitor } from '@element-plus/icons-vue';
 import { useSiteSettingsStore } from '@/store/modules/siteSettings';
 import { usePermission } from '@/composables/usePermission';
 import { usePreferences } from '@/composables/usePreferences';

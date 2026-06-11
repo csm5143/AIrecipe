@@ -7,12 +7,9 @@ interface CreateNotificationParams {
   title: string;
   content: string;
   data?: Record<string, any>;
+  throwOnError?: boolean;
 }
 
-/**
- * 创建通知 — fire-and-forget 模式
- * 通知发送失败不影响主操作（如审核、关注、点赞）
- */
 export async function createNotification(params: CreateNotificationParams): Promise<void> {
   if (!params.userId || params.userId <= 0) return;
 
@@ -28,5 +25,6 @@ export async function createNotification(params: CreateNotificationParams): Prom
     });
   } catch (error) {
     console.error('[NotificationService] 创建通知失败:', error);
+    if (params.throwOnError) throw error;
   }
 }

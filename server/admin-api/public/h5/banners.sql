@@ -1,0 +1,51 @@
+INSERT INTO "banners"
+  ("title", "subtitle", "imageUrl", "linkType", "linkValue", "sortOrder", "status", "platform", "createdAt", "updatedAt")
+VALUES
+  (
+    '今天吃什么，不用再猜',
+    '用小冰箱现有食材生成快手晚餐灵感',
+    'https://images.unsplash.com/photo-1543353071-873f17a7a088?auto=format&fit=crop&w=1200&q=80',
+    'WEBVIEW',
+    '/h5/today-inspiration.html',
+    10,
+    'ACTIVE',
+    'APP',
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'AI 小厨子做饭助手',
+    '拍食材、生成菜谱、跟着步骤做',
+    'https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=1200&q=80',
+    'WEBVIEW',
+    '/h5/ai-kitchen-assistant.html',
+    20,
+    'ACTIVE',
+    'APP',
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    '一周健康菜单',
+    '轻负担饮食，也要真实好吃',
+    'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=1200&q=80',
+    'WEBVIEW',
+    '/h5/healthy-weekly-menu.html',
+    30,
+    'ACTIVE',
+    'APP',
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    '家庭厨房计划',
+    '照顾一家人的口味、备餐和购物清单',
+    'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1200&q=80',
+    'WEBVIEW',
+    '/h5/family-cooking-plan.html',
+    40,
+    'ACTIVE',
+    'APP',
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  );

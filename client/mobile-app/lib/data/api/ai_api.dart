@@ -27,6 +27,24 @@ class AiApi {
     });
   }
 
+  Future<ChatReply> continueAgent({
+    required int sessionId,
+    required int messageId,
+    required List<Map<String, dynamic>> actions,
+  }) {
+    return guardApi(() async {
+      final response = await _dio.post(
+        '/wx/app/ai-chat/continue',
+        data: {
+          'sessionId': sessionId,
+          'messageId': messageId,
+          'actions': actions,
+        },
+      );
+      return ChatReply.fromJson(responseMap(response));
+    });
+  }
+
   Future<ChatReply> editMessage({
     required String messageId,
     required String text,
@@ -43,6 +61,12 @@ class AiApi {
   Future<void> deleteMessage(String messageId) {
     return guardApi(() async {
       await _dio.delete('/wx/app/ai-chat/messages/$messageId');
+    });
+  }
+
+  Future<void> deleteSession(String sessionId) {
+    return guardApi(() async {
+      await _dio.delete('/wx/app/ai-chat/sessions/$sessionId');
     });
   }
 

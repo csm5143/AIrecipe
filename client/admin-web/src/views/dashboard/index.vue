@@ -86,9 +86,9 @@
         <div class="chart-header">
           <h3 class="chart-title">数据趋势</h3>
           <div class="chart-legend">
-            <span v-for="(name, i) in ['用户增长', '食谱创建']" :key="name" class="legend-item">
-              <span class="legend-dot" :style="{ background: ['#f54e00', '#1f8a65'][i] }"></span>
-              {{ name }}
+            <span v-for="item in trendLegend" :key="item.name" class="legend-item">
+              <span class="legend-dot" :style="{ background: item.color }"></span>
+              {{ item.name }}
             </span>
           </div>
         </div>
@@ -100,6 +100,81 @@
           <h3 class="chart-title">食谱分类分布</h3>
         </div>
         <div ref="pieChartRef" class="chart-container chart-container-pie"></div>
+      </div>
+    </div>
+
+    <div class="insight-grid">
+      <div class="card-container audit-card">
+        <div class="table-header">
+          <h3 class="table-title">作品审核分布</h3>
+          <el-button type="text" @click="router.push('/recipe-audit')">进入审核</el-button>
+        </div>
+        <div class="audit-list">
+          <div v-for="item in auditItems" :key="item.key" class="audit-item">
+            <div class="audit-icon" :style="{ color: item.color, background: item.bg }">
+              <el-icon><component :is="item.icon" /></el-icon>
+            </div>
+            <div class="audit-main">
+              <div class="audit-row">
+                <span>{{ item.label }}</span>
+                <strong>{{ formatNumber(item.value) }}</strong>
+              </div>
+              <el-progress
+                :percentage="auditTotal ? Math.round((item.value / auditTotal) * 100) : 0"
+                :stroke-width="6"
+                :show-text="false"
+                :color="item.color"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-container top-works-card">
+        <div class="table-header">
+          <h3 class="table-title">热门作品</h3>
+          <el-button type="text" @click="router.push('/recipes')">查看作品</el-button>
+        </div>
+        <div class="rank-list">
+          <div v-for="(recipe, index) in topRecipes" :key="recipe.id" class="rank-item">
+            <span class="rank-no">{{ index + 1 }}</span>
+            <div class="rank-cover" :style="{ backgroundImage: recipe.coverImage ? `url(${recipe.coverImage})` : '' }">
+              <el-icon v-if="!recipe.coverImage"><Food /></el-icon>
+            </div>
+            <div class="rank-main">
+              <div class="rank-title">{{ recipe.title }}</div>
+              <div class="rank-meta">
+                <span><el-icon><View /></el-icon>{{ formatNumber(recipe.viewCount) }}</span>
+                <span><el-icon><Star /></el-icon>{{ formatNumber(recipe.favoriteCount) }}</span>
+                <span><el-icon><ChatLineRound /></el-icon>{{ formatNumber(recipe.commentCount) }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-if="!topRecipes.length" class="empty-insight">暂无热门作品</div>
+        </div>
+      </div>
+
+      <div class="card-container active-users-card">
+        <div class="table-header">
+          <h3 class="table-title">活跃用户</h3>
+          <el-button type="text" @click="router.push('/users')">查看用户</el-button>
+        </div>
+        <div class="user-list">
+          <div v-for="user in activeUsers" :key="user.id" class="user-item">
+            <el-avatar :size="36" :src="user.avatar">
+              {{ user.nickname?.slice(0, 1) || '用' }}
+            </el-avatar>
+            <div class="user-main">
+              <div class="user-name">{{ user.nickname || '未命名用户' }}</div>
+              <div class="user-meta">{{ user.updatedAt }}</div>
+            </div>
+            <div class="user-stats">
+              <span>{{ user.commentCount }} 评论</span>
+              <span>{{ user.followerCount }} 粉丝</span>
+            </div>
+          </div>
+          <div v-if="!activeUsers.length" class="empty-insight">暂无活跃用户</div>
+        </div>
       </div>
     </div>
 
@@ -176,16 +251,25 @@ import {
   User,
   Food,
   ChatDotRound,
+  ChatLineRound,
   Refresh,
   TrendCharts,
   Bottom,
   Plus,
   Document,
   Cpu,
+  Collection,
+  Connection,
+  View,
+  Star,
+  Clock,
+  CircleCheck,
+  CloseBold,
 } from '@element-plus/icons-vue';
 import * as echarts from 'echarts';
 import type { ECharts } from 'echarts';
 import { analyticsApi } from '@/api/analytics';
+import type { DashboardStats } from '@/api/analytics';
 
 const router = useRouter();
 
@@ -206,9 +290,21 @@ interface StatCard {
   showChange: boolean;
 }
 
+const trendLegend = [
+  { name: '用户增长', color: '#f54e00' },
+  { name: '作品创建', color: '#1f8a65' },
+  { name: '评论增长', color: '#4a7dbf' },
+  { name: 'AI 调用', color: '#a855f7' },
+];
+
 const statCards = ref<StatCard[]>([
   { key: 'users', label: '用户总数', value: 0, icon: User, color: '#f54e00', change: 0, period: '月', showChange: false },
-  { key: 'recipes', label: '菜谱总数', value: 0, icon: Food, color: '#1f8a65', change: 0, period: '月', showChange: false },
+  { key: 'recipes', label: '作品总数', value: 0, icon: Food, color: '#1f8a65', change: 0, period: '月', showChange: false },
+  { key: 'comments', label: '评论总数', value: 0, icon: ChatLineRound, color: '#4a7dbf', change: 0, period: '月', showChange: false },
+  { key: 'follows', label: '关注关系', value: 0, icon: Connection, color: '#0f766e', change: 0, period: '月', showChange: false },
+  { key: 'aiCalls', label: 'AI 调用', value: 0, icon: Cpu, color: '#a855f7', change: 0, period: '月', showChange: false },
+  { key: 'views', label: '总浏览量', value: 0, icon: View, color: '#2563eb', change: 0, period: '月', showChange: false },
+  { key: 'collections', label: '收藏总数', value: 0, icon: Collection, color: '#c08532', change: 0, period: '月', showChange: false },
   { key: 'feedbacks', label: '反馈总数', value: 0, icon: ChatDotRound, color: '#d4880e', change: 0, period: '月', showChange: false },
 ]);
 
@@ -227,6 +323,17 @@ interface RecentFeedback {
 }
 
 const recentFeedbacks = ref<RecentFeedback[]>([]);
+const topRecipes = ref<DashboardStats['topRecipes']>([]);
+const activeUsers = ref<DashboardStats['activeUsers']>([]);
+const auditStats = ref<DashboardStats['auditStats']>({ pending: 0, published: 0, rejected: 0 });
+
+const auditItems = ref([
+  { key: 'pending', label: '待审核', value: 0, icon: Clock, color: '#d4880e', bg: 'rgba(212, 136, 14, 0.1)' },
+  { key: 'published', label: '已发布', value: 0, icon: CircleCheck, color: '#1f8a65', bg: 'rgba(31, 138, 101, 0.1)' },
+  { key: 'rejected', label: '已拒绝', value: 0, icon: CloseBold, color: '#cf2d56', bg: 'rgba(207, 45, 86, 0.1)' },
+]);
+
+const auditTotal = ref(0);
 
 const aiTokenKeys = ref<Array<{
   model: string;
@@ -284,14 +391,13 @@ function getStatusClass(status: string): string {
 
 function buildTrendOption(
   xData: string[],
-  userData: number[],
-  recipeData: number[],
-  seriesNames: string[] = ['用户增长', '食谱创建'],
-  seriesColors: string[] = ['#f54e00', '#1f8a65']
+  seriesData: number[][] = [],
+  seriesNames: string[] = trendLegend.map(item => item.name),
+  seriesColors: string[] = trendLegend.map(item => item.color)
 ) {
   const series = seriesNames.map((name, i) => {
     const color = seriesColors[i] || '#999';
-    const data = i === 0 ? userData : recipeData;
+    const data = seriesData[i] ?? [];
     return {
       name,
       type: 'line',
@@ -375,7 +481,7 @@ function buildPieOption(categories: { name: string; value: number; itemStyle?: {
 function initTrendChart() {
   if (!trendChartRef.value) return;
   trendChart = echarts.init(trendChartRef.value);
-  trendChart.setOption(buildTrendOption([], [], []));
+  trendChart.setOption(buildTrendOption([]));
 }
 
 function initPieChart() {
@@ -394,13 +500,18 @@ async function fetchStats() {
       analyticsApi.getCategoryStats(),
       analyticsApi.getAiTokenStats().catch(() => null),
     ]);
-    const data = dashRes.data as any;
+    const data = dashRes.data as unknown as DashboardStats;
     const catData = catRes.data?.data ?? [];
 
     const todayNew = data?.todayNewUsers ?? 0;
     statCards.value = [
       { key: 'users', label: '用户总数', value: data?.totalUsers ?? 0, icon: User, color: '#f54e00', change: todayNew, period: '今日新增', showChange: todayNew > 0 },
-      { key: 'recipes', label: '菜谱总数', value: data?.totalRecipes ?? 0, icon: Food, color: '#1f8a65', change: 0, period: '', showChange: false },
+      { key: 'recipes', label: '作品总数', value: data?.totalRecipes ?? 0, icon: Food, color: '#1f8a65', change: 0, period: '', showChange: false },
+      { key: 'comments', label: '评论总数', value: data?.totalComments ?? 0, icon: ChatLineRound, color: '#4a7dbf', change: 0, period: '', showChange: false },
+      { key: 'follows', label: '关注关系', value: data?.totalFollows ?? 0, icon: Connection, color: '#0f766e', change: 0, period: '', showChange: false },
+      { key: 'aiCalls', label: 'AI 调用', value: data?.totalAiCalls ?? 0, icon: Cpu, color: '#a855f7', change: 0, period: '', showChange: false },
+      { key: 'views', label: '总浏览量', value: data?.totalViews ?? 0, icon: View, color: '#2563eb', change: 0, period: '', showChange: false },
+      { key: 'collections', label: '收藏总数', value: data?.totalCollections ?? 0, icon: Collection, color: '#c08532', change: 0, period: '', showChange: false },
       { key: 'feedbacks', label: '反馈总数', value: data?.totalFeedbacks ?? 0, icon: ChatDotRound, color: '#d4880e', change: 0, period: '', showChange: false },
     ];
 
@@ -412,15 +523,26 @@ async function fetchStats() {
     }
 
     recentFeedbacks.value = data?.recentFeedbacks ?? [];
+    topRecipes.value = data?.topRecipes ?? [];
+    activeUsers.value = data?.activeUsers ?? [];
+    auditStats.value = data?.auditStats ?? { pending: 0, published: 0, rejected: 0 };
+    auditItems.value = [
+      { key: 'pending', label: '待审核', value: auditStats.value.pending, icon: Clock, color: '#d4880e', bg: 'rgba(212, 136, 14, 0.1)' },
+      { key: 'published', label: '已发布', value: auditStats.value.published, icon: CircleCheck, color: '#1f8a65', bg: 'rgba(31, 138, 101, 0.1)' },
+      { key: 'rejected', label: '已拒绝', value: auditStats.value.rejected, icon: CloseBold, color: '#cf2d56', bg: 'rgba(207, 45, 86, 0.1)' },
+    ];
+    auditTotal.value = auditItems.value.reduce((sum, item) => sum + item.value, 0);
 
     if (data?.weeklyStats && trendChart) {
       const ws = data.weeklyStats;
       trendChart.setOption(buildTrendOption(
         ws.labels ?? [],
-        ws.userTrend ?? [],
-        ws.recipeTrend ?? [],
-        ['用户增长', '食谱创建'],
-        ['#f54e00', '#1f8a65']
+        [
+          ws.userTrend ?? [],
+          ws.recipeTrend ?? [],
+          ws.commentTrend ?? [],
+          ws.aiTrend ?? [],
+        ]
       ), true);
     }
 
@@ -652,6 +774,161 @@ onUnmounted(() => {
   height: 260px;
 }
 
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+
+  .table-title {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--cursor-dark);
+  }
+}
+
+.audit-list,
+.rank-list,
+.user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.audit-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.audit-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+
+  .el-icon {
+    font-size: 18px;
+  }
+}
+
+.audit-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.audit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+  font-family: var(--font-serif);
+  font-size: 13px;
+  color: rgba(38, 37, 30, 0.72);
+
+  strong {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--cursor-dark);
+  }
+}
+
+.rank-item,
+.user-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.rank-no {
+  width: 22px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: rgba(38, 37, 30, 0.45);
+  text-align: center;
+}
+
+.rank-cover {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  flex: 0 0 auto;
+  background: var(--surface-300);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(38, 37, 30, 0.42);
+}
+
+.rank-main,
+.user-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.rank-title,
+.user-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--cursor-dark);
+}
+
+.rank-meta,
+.user-meta,
+.user-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: rgba(38, 37, 30, 0.48);
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+  }
+}
+
+.user-stats {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  margin-top: 0;
+}
+
+.empty-insight {
+  padding: 24px 0;
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: 13px;
+  color: rgba(38, 37, 30, 0.45);
+}
+
 .bottom-row {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -664,17 +941,7 @@ onUnmounted(() => {
 
 .data-table {
   .table-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     margin-bottom: 16px;
-
-    .table-title {
-      font-family: var(--font-display);
-      font-size: 16px;
-      font-weight: 400;
-      color: var(--cursor-dark);
-    }
   }
 
   .feedback-content {
@@ -687,13 +954,6 @@ onUnmounted(() => {
 .quick-actions {
   .table-header {
     margin-bottom: 20px;
-
-    .table-title {
-      font-family: var(--font-display);
-      font-size: 16px;
-      font-weight: 400;
-      color: var(--cursor-dark);
-    }
   }
 }
 

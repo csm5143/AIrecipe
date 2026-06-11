@@ -114,7 +114,10 @@ Page({
         const tempFilePath = res.tempFilePaths[0];
         wx.showLoading({ title: '上传中...' });
 
-        const uploadRes = await upload('/v1/upload/user-recipe-image', tempFilePath, 'file');
+        const uploadRes = await upload('/v1/upload/user-recipe-image', tempFilePath, 'file', {
+          purpose: 'cover',
+          title: this.data.form.title || 'user-recipe-cover'
+        });
         wx.hideLoading();
         if (uploadRes.success && uploadRes.data?.url) {
           this.setData({

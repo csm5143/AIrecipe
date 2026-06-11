@@ -138,6 +138,39 @@ export async function getUserById(req: Request, res: Response) {
         take: 10,
         orderBy: { createdAt: 'desc' },
       },
+      comments: {
+        take: 20,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          recipe: { select: { id: true, title: true, coverImage: true } },
+          parent: { select: { id: true, content: true } },
+        },
+      },
+      following: {
+        take: 20,
+        orderBy: { createdAt: 'desc' },
+        include: { following: { select: { id: true, nickname: true, avatar: true, bio: true } } },
+      },
+      followers: {
+        take: 20,
+        orderBy: { createdAt: 'desc' },
+        include: { follower: { select: { id: true, nickname: true, avatar: true, bio: true } } },
+      },
+      aiChatSessions: {
+        take: 10,
+        orderBy: { lastMessageAt: 'desc' },
+        select: { id: true, title: true, status: true, lastMessageAt: true, createdAt: true },
+      },
+      aiChatMessages: {
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, role: true, content: true, model: true, tokensUsed: true, createdAt: true },
+      },
+      ingredientRecognitionLogs: {
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, imageUrl: true, ingredients: true, model: true, tokensUsed: true, createdAt: true },
+      },
       _count: { select: { feedbacks: true, fridgeItems: true } },
     },
   });
@@ -162,6 +195,23 @@ export async function getUserById(req: Request, res: Response) {
   });
 
   const totalCollectionItems = user.collections.reduce((sum, c) => sum + c.items.length, 0);
+  const aiUsageLogs = await prisma.aiUsageLog.findMany({
+    where: { userId: user.id },
+    take: 20,
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      model: true,
+      usage: true,
+      purpose: true,
+      tokensIn: true,
+      tokensOut: true,
+      cost: true,
+      success: true,
+      error: true,
+      createdAt: true,
+    },
+  });
 
   res.json(success({
     id: user.id,
@@ -197,9 +247,69 @@ export async function getUserById(req: Request, res: Response) {
     browseHistory: user.browseHistory.map(bh => ({
       id: bh.id,
       recipeId: bh.recipeId,
+      targetType: (bh as any).targetType || (bh.recipeId ? 'recipe' : 'page'),
+      targetId: (bh as any).targetId || bh.recipeId,
+      targetTitle: (bh as any).targetTitle || bh.recipe?.title || '',
+      targetCover: (bh as any).targetCover || bh.recipe?.coverImage || '',
       recipeTitle: bh.recipe?.title || '',
       recipeCover: bh.recipe?.coverImage || '',
+      source: bh.source || '',
+      duration: bh.duration || 0,
       createdAt: bh.createdAt.getTime(),
+    })),
+    comments: user.comments.map(c => ({
+      id: c.id,
+      content: c.content,
+      parentId: c.parentId,
+      parentContent: c.parent?.content || '',
+      likeCount: c.likeCount || 0,
+      recipeId: c.recipeId,
+      recipeTitle: c.recipe?.title || '',
+      recipeCover: c.recipe?.coverImage || '',
+      createdAt: c.createdAt.getTime(),
+    })),
+    following: user.following.map(f => ({
+      id: f.id,
+      userId: f.following.id,
+      nickname: f.following.nickname || '',
+      avatar: f.following.avatar || '',
+      bio: f.following.bio || '',
+      createdAt: f.createdAt.getTime(),
+    })),
+    followers: user.followers.map(f => ({
+      id: f.id,
+      userId: f.follower.id,
+      nickname: f.follower.nickname || '',
+      avatar: f.follower.avatar || '',
+      bio: f.follower.bio || '',
+      createdAt: f.createdAt.getTime(),
+    })),
+    aiUsageLogs: aiUsageLogs.map(log => ({
+      ...log,
+      createdAt: log.createdAt.getTime(),
+    })),
+    aiChatSessions: user.aiChatSessions.map(s => ({
+      id: s.id,
+      title: s.title || 'AI Chat',
+      status: s.status,
+      lastMessageAt: s.lastMessageAt?.getTime() || null,
+      createdAt: s.createdAt.getTime(),
+    })),
+    aiChatMessages: user.aiChatMessages.map(m => ({
+      id: m.id,
+      role: m.role,
+      content: m.content,
+      model: m.model || '',
+      tokensUsed: m.tokensUsed || 0,
+      createdAt: m.createdAt.getTime(),
+    })),
+    ingredientRecognitionLogs: user.ingredientRecognitionLogs.map(log => ({
+      id: log.id,
+      imageUrl: log.imageUrl,
+      ingredients: log.ingredients,
+      model: log.model || '',
+      tokensUsed: log.tokensUsed || 0,
+      createdAt: log.createdAt.getTime(),
     })),
     notifications: user.notifications.map(n => ({
       id: n.id,

@@ -11,11 +11,12 @@
 import { Router, Router as ExpressRouter } from 'express';
 import { asyncHandler } from '../../../utils/helper';
 import { authenticate, authorize } from '../../auth/middleware/auth.middleware';
-import { generateImage, getTemplates, generateRecipeCover } from '../../../services/aiImage.service';
+import { generateImage, getTemplates, generateRecipeCover, generateRecipeImageSet } from '../../../services/aiImage.service';
 import { generateNoticeContent } from '../../../services/aiText.service';
 import { success, badRequest, notFound } from '../../../types/response';
 import { prisma } from '../../../lib/prisma';
 import { COSService, COS_FOLDERS } from '../../../services/cos.service';
+import { buildStorageKey } from '../../../utils/storageKey';
 
 const router: ExpressRouter = Router();
 router.use(asyncHandler(authenticate));
@@ -113,13 +114,19 @@ router.post('/adopt-image', asyncHandler(contentRole), asyncHandler(async (req, 
 
     // 根据目标类型上传到对应 COS 文件夹
     let cosResult: { url: string; key: string };
-    const safeName = (recipeTitle || 'recipe').replace(/[\/\\:*?"<>|]/g, '_').slice(0, 40);
+    const label = String(recipeTitle || targetType || 'ai-image');
 
     const rid = Number(recipeId) || 0;
     const si = Number(stepIndex) || 0;
 
     if (targetType === 'recipe-cover') {
-      const baseKey = `${COS_FOLDERS.RECIPE_COVER}/${safeName}.png`;
+      const baseKey = buildStorageKey({
+        folder: COS_FOLDERS.RECIPE_COVER,
+        segments: ['covers'],
+        prefix: 'cover',
+        label,
+        ext: '.png',
+      });
       const key = await COSService.uniqueKey(baseKey);
       cosResult = await COSService.uploadWithKey(buf, key);
       if (rid) {
@@ -129,7 +136,14 @@ router.post('/adopt-image', asyncHandler(contentRole), asyncHandler(async (req, 
         });
       }
     } else if (targetType === 'recipe-step') {
-      const baseKey = `${COS_FOLDERS.RECIPE_STEPS}/step_${si}_${safeName}.png`;
+      const baseKey = buildStorageKey({
+        folder: COS_FOLDERS.RECIPE_STEPS,
+        segments: [label],
+        prefix: 'step',
+        label,
+        stepIndex: si,
+        ext: '.png',
+      });
       const key = await COSService.uniqueKey(baseKey);
       cosResult = await COSService.uploadWithKey(buf, key);
       if (rid && stepIndex >= 0) {
@@ -146,9 +160,11 @@ router.post('/adopt-image', asyncHandler(contentRole), asyncHandler(async (req, 
         }
       }
     } else if (targetType === 'banner' || targetType === 'card') {
-      cosResult = await COSService.uploadWithKey(buf, `${COS_FOLDERS.BANNERS}/${targetType}_${safeName}.png`);
+      const key = await COSService.uniqueKey(buildStorageKey({ folder: COS_FOLDERS.BANNERS, prefix: targetType, label, ext: '.png' }));
+      cosResult = await COSService.uploadWithKey(buf, key);
     } else {
-      cosResult = await COSService.uploadWithKey(buf, `${COS_FOLDERS.AI_GENERATED}/${safeName}.png`);
+      const key = await COSService.uniqueKey(buildStorageKey({ folder: COS_FOLDERS.AI_GENERATED, segments: ['adopted'], prefix: 'ai', label, ext: '.png' }));
+      cosResult = await COSService.uploadWithKey(buf, key);
     }
 
     res.json(success({ url: cosResult.url }, '图片已应用'));
@@ -184,6 +200,185 @@ router.post('/generate-text', asyncHandler(contentRole), asyncHandler(async (req
     res.json(success({ content }, '文案已生成'));
   } catch (e: any) {
     res.status(500).json(badRequest(e.message || '生成失败'));
+  }
+}));
+
+// ===================== 批量生成整套菜谱图 =====================
+router.post('/recipe-image-set', asyncHandler(contentRole), asyncHandler(async (req, res) => {
+  const { recipeId, templateId, overwrite, autoApply, styleNotes, aiKeyId } = req.body;
+  if (!recipeId) {
+    res.status(400).json(badRequest('缺少 recipeId'));
+    return;
+  }
+  try {
+    const result = await generateRecipeImageSet(
+      Number(recipeId),
+      Number(templateId || 0),
+      { overwrite: overwrite !== false, autoApply: autoApply === true, styleNotes, aiKeyId: aiKeyId ? Number(aiKeyId) : undefined },
+    );
+    res.json(success(result, result.success ? '生成完成' : '部分生成失败'));
+  } catch (e: any) {
+    res.status(500).json(badRequest(e.message || '批量生成失败'));
+  }
+}));
+
+// SSE 流式生成整套图：每张图完成即刻推送
+router.post('/recipe-image-set-stream', asyncHandler(contentRole), async (req, res) => {
+  const { recipeId, templateId, overwrite, styleNotes, aiKeyId } = req.body;
+  if (!recipeId) {
+    res.status(400).json(badRequest('缺少 recipeId'));
+    return;
+  }
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+
+  const send = (data: any) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  try {
+    // Import the internal function to stream results
+    const { generateRecipeImageSetStream } = await import('../../../services/aiImage.service');
+    await generateRecipeImageSetStream(
+      Number(recipeId),
+      Number(templateId || 0),
+      { overwrite: overwrite !== false, styleNotes, aiKeyId: aiKeyId ? Number(aiKeyId) : undefined },
+      send,
+    );
+    send({ type: 'done' });
+  } catch (e: any) {
+    send({ type: 'error', error: e?.message || '生成失败' });
+  } finally {
+    res.end();
+  }
+});
+
+// 重试单张套图（失败后点击重试）
+router.post('/retry-set-image', asyncHandler(contentRole), asyncHandler(async (req, res) => {
+  const { recipeId, stepIndex, templateId, styleNotes, aiKeyId } = req.body;
+  if (!recipeId) { res.status(400).json(badRequest('缺少 recipeId')); return; }
+  try {
+    const recipe = await prisma.recipe.findUnique({
+      where: { id: Number(recipeId) },
+      select: { id: true, title: true, category: true, ingredients: true, steps: true },
+    });
+    if (!recipe) { res.status(404).json(notFound('菜谱不存在')); return; }
+
+    const idx = Number(stepIndex);
+    const steps = (recipe.steps as any[]) || [];
+    const ingNames = ((recipe.ingredients as any[]) || []).slice(0, 5).map((i: any) => i.name || i).filter(Boolean).join('、') || '新鲜食材';
+    const notes = (styleNotes || '温暖自然光，美食摄影风格').toString();
+    const size = templateId > 0 ? ((await prisma.promptTemplate.findFirst({ where: { id: Number(templateId) } }))?.size || '1024x1024') : '1024x1024';
+
+    let prompt: string;
+    if (idx < 0) {
+      prompt = `【${recipe.title}】成品摆盘照片。${notes}。`;
+    } else {
+      const step = steps[idx];
+      const content = typeof step === 'string' ? step : (step.content || step.description || `步骤${idx + 1}`);
+      prompt = `【${recipe.title}】制作步骤${idx + 1}/${steps.length}: ${content}。${notes}。`;
+    }
+
+    const result = await generateImage({
+      templateId: String(templateId || 0), dishName: recipe.title,
+      ingredients: ingNames, plateStyle: idx < 0 ? '质朴陶瓷盘' : '厨房灶台',
+      stepDescription: idx >= 0 ? `步骤${idx + 1}` : '', prompt, size,
+      aiKeyId: aiKeyId ? Number(aiKeyId) : undefined,
+      storage: {
+        folder: COS_FOLDERS.AI_GENERATED,
+        segments: ['recipes', recipe.title, idx < 0 ? 'covers' : 'steps'],
+        prefix: idx < 0 ? 'ai-cover' : 'ai-step',
+        label: recipe.title,
+        ...(idx >= 0 ? { stepIndex: idx } : {}),
+      },
+    });
+    res.json(success(result));
+  } catch (e: any) {
+    res.status(500).json(badRequest(e.message || '重试失败'));
+  }
+}));
+
+// 批量应用整套图：从 ai-generated 复制到 recipes/ 和 recipes/steps/
+router.post('/adopt-image-set', asyncHandler(contentRole), asyncHandler(async (req, res) => {
+  const { recipeId, coverUrl, stepImages } = req.body as {
+    recipeId: number;
+    coverUrl?: string;
+    stepImages?: Array<{ stepIndex: number; imageUrl: string }>;
+  };
+
+  if (!recipeId) { res.status(400).json(badRequest('缺少 recipeId')); return; }
+
+  const recipe = await prisma.recipe.findUnique({ where: { id: recipeId } });
+  if (!recipe) { res.status(404).json(notFound('菜谱不存在')); return; }
+
+  const label = String(recipe.title || 'recipe');
+  const results: any = { coverUrl: '', stepImages: [], errors: [] as any[] };
+
+  try {
+    // Copy cover image
+    if (coverUrl) {
+      try {
+        const resp = await fetch(coverUrl);
+        if (!resp.ok) throw new Error('下载封面失败');
+        const buf = Buffer.from(await resp.arrayBuffer());
+        const key = await COSService.uniqueKey(buildStorageKey({
+          folder: COS_FOLDERS.RECIPE_COVER,
+          segments: ['covers'],
+          prefix: 'cover',
+          label,
+          ext: '.png',
+        }));
+        const upload = await COSService.uploadWithKey(buf, key);
+        results.coverUrl = upload.url;
+      } catch (e: any) {
+        results.errors.push({ stepIndex: -1, error: e.message });
+      }
+    }
+
+    // Copy step images
+    const steps = Array.isArray(recipe.steps) ? [...recipe.steps] as any[] : [];
+    if (stepImages?.length) {
+      for (const si of stepImages) {
+        try {
+          const resp = await fetch(si.imageUrl);
+          if (!resp.ok) throw new Error(`下载步骤${si.stepIndex + 1}失败`);
+          const buf = Buffer.from(await resp.arrayBuffer());
+          const key = await COSService.uniqueKey(buildStorageKey({
+            folder: COS_FOLDERS.RECIPE_STEPS,
+            segments: [label],
+            prefix: 'step',
+            label,
+            stepIndex: si.stepIndex,
+            ext: '.png',
+          }));
+          const upload = await COSService.uploadWithKey(buf, key);
+          results.stepImages.push({ stepIndex: si.stepIndex, imageUrl: upload.url });
+          if (steps[si.stepIndex]) {
+            const obj = typeof steps[si.stepIndex] === 'string'
+              ? { content: steps[si.stepIndex] } : { ...steps[si.stepIndex] };
+            obj.image = upload.url;
+            obj.imageUrl = upload.url;
+            steps[si.stepIndex] = obj;
+          }
+        } catch (e: any) {
+          results.errors.push({ stepIndex: si.stepIndex, error: e.message });
+        }
+      }
+    }
+
+    // Update recipe
+    const updateData: any = { steps };
+    if (results.coverUrl) updateData.coverImage = results.coverUrl;
+    await prisma.recipe.update({ where: { id: recipeId }, data: updateData });
+
+    res.json(success(results, '已应用'));
+  } catch (e: any) {
+    res.status(500).json(badRequest(e.message || '应用失败'));
   }
 }));
 

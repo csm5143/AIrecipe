@@ -339,15 +339,15 @@
           <el-tab-pane label="浏览历史" name="history">
             <div v-if="userDetailData.browseHistory?.length" class="list-items">
               <div v-for="bh in userDetailData.browseHistory" :key="bh.id" class="list-item-card">
-                <div class="item-cover" v-if="bh.recipeCover">
-                  <img :src="getFullImageUrl(bh.recipeCover)" />
+                <div class="item-cover" v-if="bh.targetCover || bh.recipeCover">
+                  <img :src="getFullImageUrl(bh.targetCover || bh.recipeCover)" />
                 </div>
                 <div class="item-cover item-cover-placeholder" v-else>
                   <el-icon><Food /></el-icon>
                 </div>
                 <div class="item-info">
-                  <div class="item-title">{{ bh.recipeTitle || '未知菜谱' }}</div>
-                  <div class="item-meta">浏览于 {{ formatTime(bh.createdAt) }}</div>
+                  <div class="item-title">{{ bh.targetTitle || bh.recipeTitle || '未知内容' }}</div>
+                  <div class="item-meta">{{ getBrowseTypeText(bh.targetType) }} · {{ formatTime(bh.createdAt) }}</div>
                 </div>
               </div>
             </div>
@@ -392,6 +392,69 @@
             <div v-else class="empty-tab">
               <el-icon><ChatDotRound /></el-icon>
               <span>暂无反馈</span>
+            </div>
+          </el-tab-pane>
+
+          <el-tab-pane label="评论记录" name="comments">
+            <div v-if="userDetailData.comments?.length" class="list-items">
+              <div v-for="comment in userDetailData.comments" :key="comment.id" class="list-item-card compact">
+                <div class="item-cover item-cover-placeholder"><el-icon><ChatDotRound /></el-icon></div>
+                <div class="item-info">
+                  <div class="item-title">{{ comment.content }}</div>
+                  <div class="item-meta">{{ comment.recipeTitle || '未知菜谱' }} · {{ formatTime(comment.createdAt) }} · {{ comment.likeCount }} 赞</div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="empty-tab">
+              <el-icon><ChatDotRound /></el-icon>
+              <span>暂无评论记录</span>
+            </div>
+          </el-tab-pane>
+
+          <el-tab-pane label="关注关系" name="follows">
+            <div class="follow-columns">
+              <div>
+                <h4>正在关注</h4>
+                <div v-if="userDetailData.following?.length" class="list-items">
+                  <div v-for="item in userDetailData.following" :key="item.id" class="list-item-card compact">
+                    <el-avatar :size="36" :src="item.avatar">{{ item.nickname?.charAt(0) }}</el-avatar>
+                    <div class="item-info">
+                      <div class="item-title">{{ item.nickname || '未命名用户' }}</div>
+                      <div class="item-meta">关注于 {{ formatTime(item.createdAt) }}</div>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="empty-tab mini">暂无关注</div>
+              </div>
+              <div>
+                <h4>粉丝</h4>
+                <div v-if="userDetailData.followers?.length" class="list-items">
+                  <div v-for="item in userDetailData.followers" :key="item.id" class="list-item-card compact">
+                    <el-avatar :size="36" :src="item.avatar">{{ item.nickname?.charAt(0) }}</el-avatar>
+                    <div class="item-info">
+                      <div class="item-title">{{ item.nickname || '未命名用户' }}</div>
+                      <div class="item-meta">关注于 {{ formatTime(item.createdAt) }}</div>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="empty-tab mini">暂无粉丝</div>
+              </div>
+            </div>
+          </el-tab-pane>
+
+          <el-tab-pane label="AI记录" name="ai">
+            <div v-if="userDetailData.aiUsageLogs?.length" class="list-items">
+              <div v-for="log in userDetailData.aiUsageLogs" :key="log.id" class="list-item-card compact">
+                <div class="item-cover item-cover-placeholder"><el-icon><Cpu /></el-icon></div>
+                <div class="item-info">
+                  <div class="item-title">{{ log.purpose || log.usage || 'AI调用' }} · {{ log.model }}</div>
+                  <div class="item-meta">{{ formatTime(log.createdAt) }} · tokens {{ (log.tokensIn || 0) + (log.tokensOut || 0) }} · {{ log.success ? '成功' : '失败' }}</div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="empty-tab">
+              <el-icon><Cpu /></el-icon>
+              <span>暂无AI使用记录</span>
             </div>
           </el-tab-pane>
 
@@ -461,7 +524,7 @@ import { ref, reactive, onMounted, watch } from 'vue';
 import {
   Search, Refresh, Download, View, Delete, Collection, ChatDotRound,
   Plus, Upload, Folder, Food, ShoppingCart, Goods, Clock, Bell,
-  Close, Loading,
+  Close, Loading, Cpu,
 } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { userApi, type UserRow } from '@/api/user';
@@ -606,6 +669,13 @@ async function fetchUserDetail(userId: number) {
         browseHistory: data.browseHistory || [],
         notifications: data.notifications || [],
         feedbacks: data.feedbacks || [],
+        comments: data.comments || [],
+        following: data.following || [],
+        followers: data.followers || [],
+        aiUsageLogs: data.aiUsageLogs || [],
+        aiChatSessions: data.aiChatSessions || [],
+        aiChatMessages: data.aiChatMessages || [],
+        ingredientRecognitionLogs: data.ingredientRecognitionLogs || [],
       };
     }
   } catch (e) {
@@ -683,6 +753,16 @@ function getFullImageUrl(path: string) {
   if (!path) return '';
   if (path.startsWith('http')) return path;
   return `https://dish-1367781796.cos.ap-guangzhou.myqcloud.com${path.startsWith('/') ? '' : '/'}${path}`;
+}
+
+function getBrowseTypeText(type?: string) {
+  const map: Record<string, string> = {
+    recipe: '菜谱',
+    post: '帖子',
+    user_profile: '用户主页',
+    page: '页面',
+  };
+  return map[type || ''] || '内容';
 }
 
 function handleEditUser() {
@@ -1412,5 +1492,21 @@ onMounted(() => {
   font-size: 11px;
   color: rgba(38, 37, 30, 0.4);
   white-space: nowrap;
+}
+
+.follow-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+
+  h4 {
+    margin-bottom: 10px;
+    color: var(--cursor-dark);
+    font-size: 14px;
+  }
+}
+
+.empty-tab.mini {
+  padding: 20px 0;
 }
 </style>

@@ -18,6 +18,7 @@ export const cosConfig = {
     RECIPE_STEPS: 'recipes/steps',
     FAVORITES: 'favorites',
     USER_RECIPES: 'user-recipes',
+    POSTS: 'posts',
     FEEDBACK: 'feedback',
     BANNERS: 'banners',
     CATEGORIES: 'categories',

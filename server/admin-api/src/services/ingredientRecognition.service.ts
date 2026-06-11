@@ -88,16 +88,27 @@ export async function saveIngredientRecognitionLog(input: {
   if (input.ingredients.length === 0) return null;
   if (!(await hasTable('ingredient_recognition_logs'))) return null;
 
-  return (prisma as any).ingredientRecognitionLog.create({
-    data: {
-      userId: input.userId,
-      imageUrl: input.imageUrl,
-      ingredients: input.ingredients,
-      model: input.model || null,
-      tokensUsed: input.tokensUsed || null,
-      rawResponse: input.rawResponse || null,
-    },
-  });
+  try {
+    const model = (prisma as any).ingredientRecognitionLog;
+    if (!model) {
+      console.warn('[IngredientRecognition] Prisma model not found — run `npx prisma generate`');
+      return null;
+    }
+    return model.create({
+      data: {
+        userId: input.userId,
+        imageUrl: input.imageUrl,
+        ingredients: input.ingredients,
+        model: input.model || null,
+        tokensUsed: input.tokensUsed || null,
+        rawResponse: input.rawResponse || null,
+      },
+    });
+  } catch (err: any) {
+    // Don't fail recognition just because logging failed
+    console.error('[IngredientRecognition] Failed to save log:', err?.message || err);
+    return null;
+  }
 }
 
 export async function loadRecentRecognizedIngredients(userId: number, maxAgeMinutes = 60) {

@@ -67,6 +67,45 @@
   --transition-slow: 0.4s ease;
 }
 
+:root[data-theme='dark'] {
+  --cursor-dark: #f4f4f5;
+  --cursor-cream: #111113;
+  --cursor-light: #242428;
+  --cursor-white: #17171a;
+  --cursor-black: #ffffff;
+
+  --cursor-orange: #ff7a45;
+  --cursor-gold: #d7a65a;
+
+  --color-error: #ff6b8a;
+  --color-success: #40c990;
+  --color-warning: #f0b35a;
+  --color-info: #78a8f8;
+
+  --surface-100: #17171a;
+  --surface-200: #1d1d21;
+  --surface-300: #25252a;
+  --surface-400: #303038;
+  --surface-500: #3d3d46;
+  --surface-600: #52525c;
+
+  --border-primary: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.16);
+  --border-strong: rgba(255, 255, 255, 0.35);
+  --border-solid: #f4f4f5;
+
+  --shadow-card:
+    0 1px 3px rgba(0, 0, 0, 0.36),
+    0 8px 24px rgba(0, 0, 0, 0.22);
+  --shadow-elevated:
+    0 4px 14px rgba(0, 0, 0, 0.42),
+    0 16px 42px rgba(0, 0, 0, 0.28);
+  --shadow-focus: rgba(255, 122, 69, 0.18) 0px 2px 10px;
+  --bg-color: var(--cursor-cream);
+
+  color-scheme: dark;
+}
+
 /* ==============================
    Global Reset & Base
    ============================== */
@@ -84,6 +123,54 @@ html, body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+:root[data-theme='dark'] {
+  .el-popper,
+  .el-dropdown-menu,
+  .el-picker-panel,
+  .el-select-dropdown,
+  .el-dialog,
+  .el-drawer {
+    background: var(--surface-200);
+    color: var(--cursor-dark);
+    border-color: var(--border-primary);
+  }
+
+  .el-table {
+    --el-table-bg-color: transparent;
+    --el-table-tr-bg-color: transparent;
+    --el-table-header-bg-color: var(--surface-300);
+    --el-table-row-hover-bg-color: var(--surface-400);
+    --el-table-border-color: var(--border-primary);
+    --el-table-text-color: rgba(244, 244, 245, 0.86);
+    --el-table-header-text-color: rgba(244, 244, 245, 0.72);
+  }
+
+  .el-input,
+  .el-select,
+  .el-textarea {
+    --el-input-bg-color: var(--surface-300);
+    --el-input-text-color: var(--cursor-dark);
+    --el-input-placeholder-color: rgba(244, 244, 245, 0.42);
+    --el-input-border-color: var(--border-primary);
+  }
+
+  .el-input__wrapper,
+  .el-select__wrapper,
+  .el-textarea__inner {
+    background: var(--surface-300) !important;
+    color: var(--cursor-dark);
+  }
+
+  .el-card,
+  .el-message,
+  .el-pagination button,
+  .el-pager li {
+    background: var(--surface-300);
+    color: var(--cursor-dark);
+    border-color: var(--border-primary);
+  }
 }
 
 html, body, #app {

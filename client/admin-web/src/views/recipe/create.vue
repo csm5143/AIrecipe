@@ -279,7 +279,7 @@ import { useRouter } from 'vue-router';
 import { Plus, Delete, Picture, ArrowLeft } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { recipeApi } from '@/api/recipe';
-import { uploadFile } from '@/api/upload';
+import { uploadRecipeCover, uploadRecipeStep } from '@/api/upload';
 import {
   DISH_TYPE_OPTIONS, MEAL_TIME_OPTIONS, DIFFICULTY_OPTIONS,
   AGE_BAND_OPTIONS, FITNESS_CATEGORY_OPTIONS, GOAL_OPTIONS, STATUS_OPTIONS,
@@ -328,10 +328,12 @@ const rules = {
   dishType: [{ required: true, message: '请选择菜品类型', trigger: 'change' }],
 };
 
+const tempRecipeId = ref(`new_${Date.now()}`);
+
 async function handleCoverChange(file: any) {
   coverPreview.value = URL.createObjectURL(file.raw);
   try {
-    const result = await uploadFile(file.raw, 'RECIPE_COVER');
+    const result = await uploadRecipeCover(file.raw, tempRecipeId.value, form.title);
     form.coverImage = result.url || '';
   } catch {
     ElMessage.error('封面上传失败');
@@ -358,7 +360,7 @@ async function handleStepImageChange(file: any, index: number) {
   const blobUrl = URL.createObjectURL(file.raw);
   form.steps[index].image = blobUrl;
   try {
-    const result = await uploadFile(file.raw, 'RECIPE_STEPS');
+    const result = await uploadRecipeStep(file.raw, tempRecipeId.value, index, form.title);
     form.steps[index].image = result.url || blobUrl;
   } catch {
     ElMessage.error('步骤图上传失败');

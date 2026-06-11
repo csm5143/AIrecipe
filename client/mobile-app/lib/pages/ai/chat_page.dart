@@ -9,6 +9,8 @@ import '../../config/glass_theme.dart';
 import '../../data/api/app_exception.dart';
 import '../../providers/ai_provider.dart';
 import '../../providers/api_providers.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/local_notification_service.dart';
 import '../../widgets/capsule_toast.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
@@ -123,11 +125,25 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   (_isSending ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index < visibleMessages.length) {
+                  final authState = ref.watch(authControllerProvider);
+                  final userAvatar = authState.user?.avatar ?? '';
                   return _ChatBubble(
                     message: visibleMessages[index],
                     onCopy: _copyMessage,
                     onDelete: _deleteMessage,
                     onEdit: visibleMessages[index].isUser ? _editMessage : null,
+                    userAvatarUrl: userAvatar,
+                    onConfirmAction: visibleMessages[index].isUser
+                        ? null
+                        : (actionId, confirmed) => _confirmAction(
+                              messageId: visibleMessages[index].id,
+                              actionId: actionId,
+                              confirmed: confirmed,
+                              sessionId: int.tryParse(
+                                    ref.read(chatSessionIdProvider) ?? '',
+                                  ) ??
+                                  0,
+                            ),
                   );
                 }
 
@@ -163,7 +179,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           .getSessionMessages(sessionId);
       ref.read(chatSessionIdProvider.notifier).state = sessionId;
       ref.read(chatMessagesProvider.notifier).state = messages;
-      _scrollToBottom();
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     } catch (error) {
       final message = error is AppException ? error.message : error.toString();
       if (mounted) {
@@ -301,6 +317,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   : message,
             ),
       ];
+      await _scheduleLocalReminders(reply);
       _appendAssistantReply(reply);
       ref.invalidate(chatHistoryProvider);
     } catch (error) {
@@ -401,6 +418,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   : item,
             ),
       ];
+      await _scheduleLocalReminders(reply);
       _appendAssistantReply(reply);
       ref.invalidate(chatHistoryProvider);
       _editingMessage = null;
@@ -433,6 +451,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         isUser: false,
         text: chunks.isEmpty ? fullText : '',
         recommendations: reply.recommendations,
+        pendingActions: reply.pendingActions,
         timestamp: DateTime.now(),
       ),
     ];
@@ -464,6 +483,66 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     });
   }
 
+  Future<void> _confirmAction({
+    required String messageId,
+    required String actionId,
+    required bool confirmed,
+    required int sessionId,
+  }) async {
+    try {
+      final reply = await ref.read(aiApiProvider).continueAgent(
+        sessionId: sessionId,
+        messageId: int.tryParse(messageId) ?? 0,
+        actions: [{'id': actionId, 'confirmed': confirmed}],
+      );
+
+      // Replace the message with updated content
+      ref.read(chatMessagesProvider.notifier).state = ref
+          .read(chatMessagesProvider)
+          .map((msg) {
+            if (msg.id == messageId) {
+              return msg.copyWith(
+                text: reply.message,
+                recommendations: reply.recommendations,
+                pendingActions: reply.pendingActions,
+              );
+            }
+            return msg;
+          })
+          .toList(growable: false);
+    } catch (error) {
+      final message = error is AppException ? error.message : error.toString();
+      if (mounted) {
+        showCapsuleToast(context, message, icon: Icons.error_outline);
+      }
+    }
+  }
+
+  Future<void> _scheduleLocalReminders(ChatReply reply) async {
+    final reminders = reply.toolActions.reminders;
+    if (reminders.isEmpty) return;
+
+    var scheduled = 0;
+    for (final reminder in reminders) {
+      try {
+        await LocalNotificationService.instance.scheduleShoppingReminder(
+          reminder,
+        );
+        scheduled++;
+      } catch (_) {
+        // 服务端提醒仍会保留；本地通知失败时不阻断聊天回复。
+      }
+    }
+
+    if (mounted && scheduled > 0) {
+      showCapsuleToast(
+        context,
+        '已同步到本机提醒，到点会弹出系统通知',
+        icon: Icons.notifications_active_outlined,
+      );
+    }
+  }
+
   List<String> _splitReplyChunks(String text) {
     return text
         .split(RegExp(r'\n\s*\n+'))
@@ -473,14 +552,21 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   }
 
   void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scrollController.hasClients) return;
+    if (!_scrollController.hasClients) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+      return;
+    }
+    final position = _scrollController.position;
+    if (position.maxScrollExtent - position.pixels > 2000) {
+      // Jump directly for large distances (loading history)
+      _scrollController.jumpTo(position.maxScrollExtent);
+    } else {
       _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
+        position.maxScrollExtent,
         duration: const Duration(milliseconds: 260),
         curve: Curves.easeOutCubic,
       );
-    });
+    }
   }
 }
 
@@ -516,12 +602,18 @@ class _ChatBubble extends StatelessWidget {
   final ValueChanged<ChatMessage> onCopy;
   final ValueChanged<ChatMessage> onDelete;
   final ValueChanged<ChatMessage>? onEdit;
+  final void Function(String actionId, bool confirmed)? onConfirmAction;
+  final String userAvatarUrl;
+  final String aiAvatarUrl;
 
   const _ChatBubble({
     required this.message,
     required this.onCopy,
     required this.onDelete,
     this.onEdit,
+    this.onConfirmAction,
+    this.userAvatarUrl = '',
+    this.aiAvatarUrl = '',
   });
 
   @override
@@ -536,10 +628,11 @@ class _ChatBubble extends StatelessWidget {
           mainAxisAlignment: isUser
               ? MainAxisAlignment.end
               : MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment:
+              isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             if (!isUser) ...[
-              const _AssistantAvatar(),
+              _AssistantAvatar(imageUrl: aiAvatarUrl),
               const SizedBox(width: 8),
             ],
             Flexible(
@@ -553,7 +646,7 @@ class _ChatBubble extends StatelessWidget {
                       horizontal: 16,
                       vertical: 12,
                     ),
-                    constraints: const BoxConstraints(maxWidth: 308),
+                    constraints: const BoxConstraints(maxWidth: 340),
                     decoration: BoxDecoration(
                       color: isUser ? AppColors.textPrimary : AppColors.surface,
                       borderRadius: BorderRadius.only(
@@ -603,6 +696,21 @@ class _ChatBubble extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (!isUser &&
+                      message.pendingActions.isNotEmpty &&
+                      onConfirmAction != null) ...[
+                    const SizedBox(height: 8),
+                    ...message.pendingActions.map(
+                      (action) => Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: _ActionConfirmChip(
+                          action: action,
+                          onConfirm: (confirmed) =>
+                              onConfirmAction!(action.id, confirmed),
+                        ),
+                      ),
+                    ),
+                  ],
                   if (message.isPending || message.isFailed) ...[
                     const SizedBox(height: 5),
                     Text(
@@ -620,13 +728,32 @@ class _ChatBubble extends StatelessWidget {
             if (isUser) ...[
               const SizedBox(width: 8),
               Container(
-                width: 30,
-                height: 30,
+                width: 34,
+                height: 34,
                 decoration: BoxDecoration(
                   color: AppColors.surfaceSecondary,
-                  borderRadius: BorderRadius.circular(11),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.person_outline, size: 18),
+                child: userAvatarUrl.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          userAvatarUrl,
+                          width: 34,
+                          height: 34,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.person_outline,
+                            size: 18,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      )
+                    : const Icon(
+                        Icons.person_outline,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      ),
               ),
             ],
           ],
@@ -1039,22 +1166,38 @@ class _TypingBubble extends StatelessWidget {
 }
 
 class _AssistantAvatar extends StatelessWidget {
-  const _AssistantAvatar();
+  final String imageUrl;
+  const _AssistantAvatar({this.imageUrl = ''});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 30,
-      height: 30,
+      width: 34,
+      height: 34,
       decoration: BoxDecoration(
-        color: AppColors.textPrimary,
-        borderRadius: BorderRadius.circular(11),
+        color: AppColors.accent.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: const Icon(
-        Icons.restaurant_menu,
-        color: AppColors.surface,
-        size: 17,
-      ),
+      child: imageUrl.isNotEmpty
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                imageUrl,
+                width: 34,
+                height: 34,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.restaurant_menu,
+                  color: AppColors.accent,
+                  size: 18,
+                ),
+              ),
+            )
+          : const Icon(
+              Icons.restaurant_menu,
+              color: AppColors.accent,
+              size: 18,
+            ),
     );
   }
 }
@@ -1294,6 +1437,96 @@ class _SelectedImageStrip extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _ActionConfirmChip extends StatelessWidget {
+  final PendingAction action;
+  final ValueChanged<bool> onConfirm;
+
+  const _ActionConfirmChip({required this.action, required this.onConfirm});
+
+  @override
+  Widget build(BuildContext context) {
+    final toolIcons = {
+      'add_to_shopping_list': Icons.shopping_basket_outlined,
+      'add_to_fridge': Icons.kitchen_outlined,
+      'schedule_reminder': Icons.notifications_outlined,
+      'save_preference': Icons.bookmark_outline,
+      'generate_recipe_draft': Icons.auto_awesome_outlined,
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceSecondary.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.accent.withOpacity(0.12)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            toolIcons[action.toolName] ?? Icons.touch_app_outlined,
+            size: 16,
+            color: AppColors.accent,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              action.body.isNotEmpty ? action.body : action.title,
+              style: const TextStyle(fontSize: 13, height: 1.4),
+            ),
+          ),
+          const SizedBox(width: 8),
+          _ConfirmButton(
+            label: action.toolName == 'schedule_reminder' ? '设置' : '好的',
+            isPrimary: true,
+            onTap: () => onConfirm(true),
+          ),
+          const SizedBox(width: 4),
+          _ConfirmButton(
+            label: '不用',
+            isPrimary: false,
+            onTap: () => onConfirm(false),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ConfirmButton extends StatelessWidget {
+  final String label;
+  final bool isPrimary;
+  final VoidCallback onTap;
+
+  const _ConfirmButton({
+    required this.label,
+    required this.isPrimary,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isPrimary ? AppColors.accent : AppColors.surfaceSecondary,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: isPrimary ? AppColors.surface : AppColors.textSecondary,
+          ),
+        ),
       ),
     );
   }

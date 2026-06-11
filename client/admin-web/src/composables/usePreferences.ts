@@ -4,12 +4,14 @@ export interface UserPreferences {
   collapseSidebar: boolean;
   pageSize: 10 | 20 | 50;
   dateFormat: 'YYYY-MM-DD' | 'YYYY/MM/DD' | 'DD-MM-YYYY';
+  themeMode: 'light' | 'dark';
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
   collapseSidebar: false,
   pageSize: 20,
   dateFormat: 'YYYY-MM-DD',
+  themeMode: 'light',
 };
 
 const STORAGE_KEY = 'userPreferences';
@@ -39,6 +41,7 @@ export function usePreferences() {
   function updatePreferences(partial: Partial<UserPreferences>) {
     Object.assign(preferencesState, partial);
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...preferencesState }));
+    applyTheme(preferencesState.themeMode);
   }
 
   /** 将 pageSize 转成 el-pagination 组件要求的 number 类型 */
@@ -71,6 +74,12 @@ export function usePreferences() {
     formatDate,
   };
 }
+
+export function applyTheme(mode: UserPreferences['themeMode']) {
+  document.documentElement.dataset.theme = mode;
+}
+
+applyTheme(preferencesState.themeMode);
 
 /**
  * dayjs 内部格式化函数（不在全局暴露，仅供 composable 内部使用）

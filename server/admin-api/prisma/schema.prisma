@@ -61,6 +61,8 @@ model User {
   userMemories  UserMemory[]
   scheduledTasks ScheduledTask[]
   ingredientRecognitionLogs IngredientRecognitionLog[]
+  comments      Comment[]
+  commentLikes  CommentLike[]
   following     Follow[]       @relation("follower")
   followers    Follow[]       @relation("following")
   
@@ -218,6 +220,7 @@ model Recipe {
 
   // 关联
   favorites    Favorite[]
+  comments     Comment[]
   browseHistory BrowseHistory[]
   collectionItems CollectionItem[]
   @@index([source, status])
@@ -271,6 +274,42 @@ model Favorite {
   @@index([userId])
   @@index([recipeId])
   @@map("favorites")
+}
+
+model Comment {
+  id        Int       @id @default(autoincrement())
+  recipeId  Int
+  userId    Int
+  content   String
+  parentId  Int?
+  likeCount Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  recipe    Recipe    @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  likes     CommentLike[]
+
+  @@index([recipeId, parentId, createdAt])
+  @@index([userId, createdAt])
+  @@index([parentId])
+  @@map("comments")
+}
+
+model CommentLike {
+  id        Int      @id @default(autoincrement())
+  commentId Int
+  userId    Int
+  createdAt DateTime @default(now())
+
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([userId])
+  @@map("comment_likes")
 }
 
 // 用户收藏夹
@@ -331,16 +370,21 @@ model Follow {
 model BrowseHistory {
   id           Int       @id @default(autoincrement())
   userId       Int
-  recipeId     Int
+  recipeId     Int?
+  targetType   String    @default("recipe") // recipe | post | user_profile | page
+  targetId     Int?
+  targetTitle  String?
+  targetCover  String?
   duration     Int?      @default(0)  // 浏览时长（秒）
   source       String?   // 来源：home/search/friend/share
   createdAt    DateTime  @default(now())
   
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  recipe       Recipe    @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipe       Recipe?   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   
   @@index([userId, createdAt])
   @@index([recipeId])
+  @@index([targetType, targetId])
   @@map("browse_history")
 }
 

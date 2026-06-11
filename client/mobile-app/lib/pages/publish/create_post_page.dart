@@ -264,11 +264,16 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
     setState(() => _images.removeAt(index));
   }
 
-  Future<List<String>> _uploadImages() async {
+  Future<List<String>> _uploadImages(String content) async {
     final uploadApi = ref.read(uploadApiProvider);
     final urls = <String>[];
-    for (final file in _images) {
-      final url = await uploadApi.uploadUserRecipeImage(file);
+    for (var i = 0; i < _images.length; i++) {
+      final file = _images[i];
+      final url = await uploadApi.uploadPostImage(
+        file,
+        title: content,
+        imageIndex: i,
+      );
       if (url.isNotEmpty) urls.add(url);
     }
     return urls;
@@ -283,7 +288,7 @@ class _CreatePostPageState extends ConsumerState<CreatePostPage> {
 
     setState(() => _submitting = true);
     try {
-      final imageUrls = await _uploadImages();
+      final imageUrls = await _uploadImages(content);
       final post = await ref.read(postApiProvider).createPost({
         'content': content,
         'status': 'pending',

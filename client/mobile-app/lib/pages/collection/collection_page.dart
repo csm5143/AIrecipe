@@ -405,8 +405,10 @@ class _ShoppingListViewState extends State<_ShoppingListView> {
                   ...items.map((raw) {
                     final item = raw is Map ? raw : const {};
                     final itemName = item['name']?.toString() ?? '';
-                    final amount = item['amount']?.toString() ?? '';
-                    final unit = item['unit']?.toString() ?? '';
+                    final amount = _formatAmount(
+                      item['amount']?.toString() ?? '',
+                      item['unit']?.toString() ?? '',
+                    );
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 7),
                       child: Row(
@@ -415,7 +417,7 @@ class _ShoppingListViewState extends State<_ShoppingListView> {
                               color: AppColors.textPlaceholder),
                           const SizedBox(width: 10),
                           Expanded(child: Text(itemName)),
-                          Text('$amount$unit',
+                          Text(amount,
                             style: Theme.of(context).textTheme.labelMedium
                                 ?.copyWith(color: AppColors.textSecondary)),
                         ],
@@ -430,6 +432,14 @@ class _ShoppingListViewState extends State<_ShoppingListView> {
       ],
     );
   }
+}
+
+String _formatAmount(String amount, String unit) {
+  final cleanAmount = amount.trim();
+  final cleanUnit = unit.trim();
+  if (cleanAmount.isEmpty) return cleanUnit;
+  if (cleanUnit.isEmpty || cleanAmount.endsWith(cleanUnit)) return cleanAmount;
+  return '$cleanAmount$cleanUnit';
 }
 
 class _FridgeView extends StatelessWidget {
@@ -492,7 +502,7 @@ class _FridgeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final amount = [item.amount, item.unit].where((v) => v.isNotEmpty).join('');
+    final amount = _formatAmount(item.amount, item.unit);
 
     return _Panel(
       margin: const EdgeInsets.only(bottom: 10),

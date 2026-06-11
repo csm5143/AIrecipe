@@ -302,6 +302,7 @@ import {
   AGE_BAND_OPTIONS, FITNESS_CATEGORY_OPTIONS, GOAL_OPTIONS, STATUS_OPTIONS,
 } from './data';
 import { recipeApi } from '@/api/recipe';
+import { uploadRecipeCover, uploadRecipeStep } from '@/api/upload';
 
 const router = useRouter();
 const route = useRoute();
@@ -363,7 +364,10 @@ function getStatusText(status: string) {
 
 function handleCoverChange(file: any) {
   coverPreview.value = URL.createObjectURL(file.raw);
-  form.coverImage = file.raw;
+  const rid = String(form.id || `edit_${Date.now()}`);
+  uploadRecipeCover(file.raw, rid, form.title).then(res => {
+    if (res.url) form.coverImage = res.url;
+  }).catch(() => ElMessage.error('封面上传失败'));
 }
 
 function addIngredient() {
@@ -384,6 +388,10 @@ function removeStep(index: number) {
 
 function handleStepImageChange(file: any, index: number) {
   form.steps[index].image = URL.createObjectURL(file.raw);
+  const rid = String(form.id || `edit_${Date.now()}`);
+  uploadRecipeStep(file.raw, rid, index, form.title).then(res => {
+    if (res.url) form.steps[index].image = res.url;
+  }).catch(() => ElMessage.error('步骤图上传失败'));
 }
 
 function formatBeijingTime(isoString: string): string {

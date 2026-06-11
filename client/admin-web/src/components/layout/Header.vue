@@ -25,6 +25,12 @@
             <el-icon><FullScreen /></el-icon>
           </button>
         </el-tooltip>
+
+        <el-tooltip :content="isDark ? 'Light mode' : 'Dark mode'" placement="bottom">
+          <button class="action-btn" @click="toggleTheme">
+            <el-icon><Sunny v-if="isDark" /><Moon v-else /></el-icon>
+          </button>
+        </el-tooltip>
       </div>
 
       <el-dropdown trigger="click" @command="handleCommand">
@@ -99,10 +105,12 @@ import { ref, computed, reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '@/store/modules/user';
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from 'element-plus';
+import { usePreferences } from '@/composables/usePreferences';
 
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
+const { preferences, updatePreferences } = usePreferences();
 
 const isRefreshing = ref(false);
 const passwordDialogVisible = ref(false);
@@ -136,6 +144,8 @@ const passwordRules: FormRules = {
     },
   ],
 };
+
+const isDark = computed(() => preferences.themeMode === 'dark');
 
 const avatarText = computed(() => {
   const name = userStore.profile?.nickname || '管理员';
@@ -178,6 +188,10 @@ function toggleFullscreen() {
   } else {
     document.exitFullscreen();
   }
+}
+
+function toggleTheme() {
+  updatePreferences({ themeMode: isDark.value ? 'light' : 'dark' });
 }
 
 async function handleCommand(command: string) {

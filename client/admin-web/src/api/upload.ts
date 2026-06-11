@@ -37,41 +37,35 @@ export async function uploadFile(file: File, folder: keyof typeof cosConfig.fold
 /**
  * 上传菜谱封面
  */
-export async function uploadRecipeCover(file: File, recipeId?: string): Promise<UploadResponse> {
+export async function uploadRecipeCover(file: File, recipeId?: string, title?: string): Promise<UploadResponse> {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('folder', cosConfig.folders.RECIPE_COVER);
-  if (recipeId) {
-    formData.append('recipeId', recipeId);
-  }
+  if (recipeId) formData.append('recipeId', recipeId);
+  if (title) formData.append('title', title);
 
   const response = await request.post<any, any>('/upload/recipe-cover', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+    headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 60000,
   });
-
   return response.data;
 }
 
 /**
  * 上传菜谱步骤图
  */
-export async function uploadRecipeStep(file: File, recipeId: string, stepIndex: number): Promise<UploadResponse> {
+export async function uploadRecipeStep(file: File, recipeId: string, stepIndex: number, title?: string): Promise<UploadResponse> {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('folder', cosConfig.folders.RECIPE_STEPS);
   formData.append('recipeId', recipeId);
   formData.append('stepIndex', String(stepIndex));
+  if (title) formData.append('title', title);
 
   const response = await request.post<any, any>('/upload/recipe-step', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+    headers: { 'Content-Type': 'multipart/form-data' },
     timeout: 60000,
   });
-
   return response.data;
 }
 

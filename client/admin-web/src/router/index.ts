@@ -65,6 +65,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '反馈管理', icon: 'ChatDotRound' },
       },
       {
+        path: 'comments',
+        name: 'Comments',
+        component: () => import('@/views/comment/index.vue'),
+        meta: { title: '评论管理', icon: 'ChatLineRound' },
+      },
+      {
         path: 'reports',
         name: 'Reports',
         component: () => import('@/views/report/index.vue'),
@@ -92,7 +98,7 @@ const routes: RouteRecordRaw[] = [
         path: 'recipe-audit',
         name: 'RecipeAudit',
         component: () => import('@/views/recipe-audit/index.vue'),
-        meta: { title: '菜谱审核', icon: 'Stamp' },
+        meta: { title: '作品审核', icon: 'Stamp' },
       },
       {
         path: 'recycle',

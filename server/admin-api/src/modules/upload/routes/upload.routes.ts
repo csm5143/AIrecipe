@@ -12,6 +12,7 @@ import {
   uploadAiChatImage,
   uploadIngredient,
   uploadUserRecipeImage,
+  uploadPostImage,
   uploadCollectionCover,
   uploadCategoryIcon,
   uploadFeedback,
@@ -41,6 +42,7 @@ router.post('/avatar', asyncHandler(authenticate), withUploadFolder(COS_FOLDERS.
 router.post('/wx-avatar', asyncHandler(wxAuthenticate), withUploadFolder(COS_FOLDERS.AVATARS), uploadMiddleware, asyncHandler(uploadUserAvatar));
 router.post('/chat-image', asyncHandler(wxAuthenticate), withUploadFolder(COS_FOLDERS.AI_CHAT), uploadMiddleware, asyncHandler(uploadAiChatImage));
 router.post('/user-recipe-image', asyncHandler(wxAuthenticate), withUploadFolder(COS_FOLDERS.USER_RECIPES), uploadMiddleware, asyncHandler(uploadUserRecipeImage));
+router.post('/post-image', asyncHandler(wxAuthenticate), withUploadFolder(COS_FOLDERS.POSTS), uploadMiddleware, asyncHandler(uploadPostImage));
 router.post('/collection-cover', asyncHandler(wxAuthenticate), withUploadFolder(COS_FOLDERS.FAVORITES), uploadMiddleware, asyncHandler(uploadCollectionCover));
 router.post('/ingredient', asyncHandler(authenticate), withUploadFolder(COS_FOLDERS.INGREDIENTS), uploadMiddleware, asyncHandler(uploadIngredient));
 router.post('/category-icon', asyncHandler(authenticate), withUploadFolder(COS_FOLDERS.CATEGORIES), uploadMiddleware, asyncHandler(uploadCategoryIcon));

@@ -4,6 +4,8 @@ export interface WeeklyStats {
   labels: string[];
   userTrend: number[];
   recipeTrend: number[];
+  commentTrend: number[];
+  aiTrend: number[];
 }
 
 export interface CategoryStatItem {
@@ -17,7 +19,16 @@ export interface DashboardStats {
   totalRecipes: number;
   totalCollections: number;
   totalFeedbacks: number;
+  totalComments: number;
+  totalFollows: number;
+  totalAiCalls: number;
+  totalViews: number;
   todayNewUsers: number;
+  auditStats: {
+    pending: number;
+    published: number;
+    rejected: number;
+  };
   weeklyStats: WeeklyStats;
   recentFeedbacks: Array<{
     id: number;
@@ -29,6 +40,23 @@ export interface DashboardStats {
     createdAt: string;
     nickname: string;
     avatar: string;
+  }>;
+  topRecipes: Array<{
+    id: number;
+    title: string;
+    coverImage: string | null;
+    viewCount: number;
+    favoriteCount: number;
+    commentCount: number;
+  }>;
+  activeUsers: Array<{
+    id: number;
+    nickname: string;
+    avatar: string;
+    updatedAt: string;
+    commentCount: number;
+    followingCount: number;
+    followerCount: number;
   }>;
 }
 

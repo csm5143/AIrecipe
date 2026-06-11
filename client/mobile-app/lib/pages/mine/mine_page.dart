@@ -763,8 +763,9 @@ class _MineCollectionList extends StatelessWidget {
         final description = (item['description'] ?? '').toString();
         final count = item['itemCount'] ?? item['item_count'] ?? 0;
 
+        final id = (item['id'] ?? '').toString();
         return GestureDetector(
-          onTap: onOpenAll,
+          onTap: () => context.push('/collection/$id'),
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(

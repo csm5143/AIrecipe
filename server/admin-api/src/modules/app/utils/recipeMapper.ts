@@ -5,7 +5,7 @@ export interface AppRecipe {
   description: string;
   ingredients: string[];
   usage: Record<string, string>;
-  steps: string[];
+  steps: Array<{ stepNumber: number; description: string; imageUrl: string }>;
   difficulty: 'easy' | 'normal' | 'hard';
   timeCost: number | null;
   calories: number | null;
@@ -93,9 +93,11 @@ export function mapRecipeToAppFormat(recipe: any): AppRecipe {
     description: recipe.description || '',
     ingredients: ingredientsList,
     usage: rawUsage,
-    steps: rawSteps.map((s: any) =>
-      typeof s === 'string' ? s : (s.description || s.step || s.content || '')
-    ).filter(Boolean),
+    steps: rawSteps.map((s: any, index: number) => ({
+      stepNumber: (s.order || s.step_number || s.step || index + 1),
+      description: typeof s === 'string' ? s : (s.description || s.step || s.content || ''),
+      imageUrl: s?.image || s?.image_url || s?.imageUrl || '',
+    })).filter((s: any) => s.description),
     difficulty: mapDifficulty(recipe.difficulty),
     timeCost: recipe.cookingTime || recipe.timeCost || null,
     calories: recipe.calories || null,

@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="page-header">
       <div class="header-left">
-        <h2 class="page-title">菜谱审核</h2>
+        <h2 class="page-title">作品审核</h2>
         <p class="text-muted">审核用户上传的菜谱，通过后将在社区展示</p>
       </div>
       <div class="header-actions">

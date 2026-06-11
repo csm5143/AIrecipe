@@ -4,8 +4,8 @@
  */
 
 import COS from 'cos-nodejs-sdk-v5';
-import { v4 as uuidv4 } from 'uuid';
 import config from '../config';
+import { buildStorageKey } from '../utils/storageKey';
 
 // 从环境变量读取 COS 配置。不要提供默认 bucket，避免配置错误时静默写到错误位置。
 const cosConfig = config.cos;
@@ -39,6 +39,7 @@ export const COS_FOLDERS = {
   RECIPE_STEPS: 'recipes/steps',
   FAVORITES: 'favorites',
   USER_RECIPES: 'user-recipes',
+  POSTS: 'posts',
   FEEDBACK: 'feedback',
   BANNERS: 'banners',
   CATEGORIES: 'categories',
@@ -69,10 +70,7 @@ function getCOSUrl(key: string): string {
 
 // 生成 COS Key
 function generateCOSKey(folder: string, fileName: string): string {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 8);
-  const ext = fileName.includes('.') ? fileName.substring(fileName.lastIndexOf('.')) : '.jpg';
-  return `${folder}/${timestamp}_${random}${ext}`;
+  return buildStorageKey({ folder, originalName: fileName });
 }
 
 /**
@@ -85,10 +83,10 @@ export class COSService {
   static async uploadFile(
     buffer: Buffer,
     folder: string,
-    originalName: string
+    originalName: string,
+    options: Partial<Parameters<typeof buildStorageKey>[0]> = {}
   ): Promise<{ url: string; key: string }> {
-    const ext = originalName.substring(originalName.lastIndexOf('.')) || '.jpg';
-    const key = generateCOSKey(folder as any, `${uuidv4()}${ext}`);
+    const key = buildStorageKey({ folder, originalName, ...options });
     assertCOSConfigured();
 
     return new Promise((resolve, reject) => {
@@ -118,9 +116,16 @@ export class COSService {
   /**
    * 上传菜谱封面
    */
-  static async uploadRecipeCover(buffer: Buffer, recipeId: string): Promise<{ url: string; key: string }> {
-    const key = `${COS_FOLDERS.RECIPE_COVER}/${recipeId}/cover_${Date.now()}.jpg`;
+  static async uploadRecipeCover(buffer: Buffer, recipeId: string, title?: string): Promise<{ url: string; key: string }> {
     assertCOSConfigured();
+    const baseKey = buildStorageKey({
+      folder: COS_FOLDERS.RECIPE_COVER,
+      segments: ['covers'],
+      prefix: 'cover',
+      label: title || `recipe-${recipeId}`,
+      ext: '.jpg',
+    });
+    const key = await COSService.uniqueKey(baseKey);
     
     return new Promise((resolve, reject) => {
       cos.putObject(
@@ -151,10 +156,19 @@ export class COSService {
   static async uploadRecipeStep(
     buffer: Buffer,
     recipeId: string,
-    stepIndex: number
+    stepIndex: number,
+    title?: string
   ): Promise<{ url: string; key: string }> {
-    const key = `${COS_FOLDERS.RECIPE_STEPS}/${recipeId}/step_${stepIndex}_${Date.now()}.jpg`;
     assertCOSConfigured();
+    const baseKey = buildStorageKey({
+      folder: COS_FOLDERS.RECIPE_STEPS,
+      segments: [title || `recipe-${recipeId}`],
+      prefix: 'step',
+      label: title || `recipe-${recipeId}`,
+      stepIndex,
+      ext: '.jpg',
+    });
+    const key = await COSService.uniqueKey(baseKey);
     
     return new Promise((resolve, reject) => {
       cos.putObject(
@@ -213,7 +227,7 @@ export class COSService {
    * 上传 Banner 图片
    */
   static async uploadBanner(buffer: Buffer): Promise<{ url: string; key: string }> {
-    const key = generateCOSKey(COS_FOLDERS.BANNERS, `banner_${Date.now()}.jpg`);
+    const key = buildStorageKey({ folder: COS_FOLDERS.BANNERS, prefix: 'banner', ext: '.jpg' });
     assertCOSConfigured();
     
     return new Promise((resolve, reject) => {
@@ -273,7 +287,7 @@ export class COSService {
    * 上传分类图标
    */
   static async uploadCategoryIcon(buffer: Buffer, username: string): Promise<{ url: string; key: string }> {
-    const key = `${COS_FOLDERS.CATEGORIES}/${username}/icon_${Date.now()}.png`;
+    const key = buildStorageKey({ folder: COS_FOLDERS.CATEGORIES, segments: [username], prefix: 'icon', ext: '.png' });
     assertCOSConfigured();
 
     return new Promise((resolve, reject) => {

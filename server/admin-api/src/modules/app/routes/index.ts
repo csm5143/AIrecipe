@@ -134,14 +134,14 @@ router.post('/recognize', wxAuthenticate, asyncHandler(async (req, res) => {
       duration: Date.now() - start,
       success: true,
     });
-    await saveIngredientRecognitionLog({
+    saveIngredientRecognitionLog({
       userId,
       imageUrl,
       ingredients: ingredientItems,
       model: activeKey.model,
       tokensUsed: totalUsed,
       rawResponse,
-    });
+    }).catch((err) => console.error('[Recognize] Log save failed:', err?.message || err));
 
     res.json(success({
       ingredients,

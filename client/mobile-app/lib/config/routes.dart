@@ -8,6 +8,7 @@ import '../pages/collection/collection_detail_page.dart';
 import '../pages/mine/mine_page.dart';
 import '../pages/login/login_page.dart';
 import '../pages/recipe_detail/recipe_detail_page.dart';
+import '../pages/recipe_detail/comment_page.dart';
 import '../pages/post_detail/post_detail_page.dart';
 import '../pages/notifications/notifications_page.dart';
 import '../pages/notifications/notification_detail_page.dart';
@@ -103,6 +104,13 @@ final goRouter = GoRouter(
       path: '/recipe/:id',
       builder: (context, state) =>
           RecipeDetailPage(recipeId: state.pathParameters['id'] ?? '0'),
+    ),
+    GoRoute(
+      path: '/recipe/:id/comments',
+      builder: (context, state) => RecipeCommentPage(
+        recipeId: state.pathParameters['id'] ?? '0',
+        recipeTitle: state.uri.queryParameters['title'] ?? '',
+      ),
     ),
     GoRoute(
       path: '/post/:id',

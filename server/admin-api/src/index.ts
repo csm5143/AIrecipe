@@ -44,8 +44,11 @@ import aiKeyRoutes, { aiKeyPublicRoutes } from './modules/ai-key/routes/ai-key.r
 import aiRoutes from './modules/ai/routes/ai.routes';
 import aiControlRoutes from './modules/ai-control/routes/ai-control.routes';
 import devRoutes from './modules/dev/routes/dev.routes';
+import adminCommentRoutes from './modules/admin-comment/routes/admin-comment.routes';
 
 const app: Express = express();
+
+app.use('/h5', express.static(path.join(__dirname, '../public/h5')));
 
 // ==================== 全局中间件 ====================
 
@@ -130,6 +133,7 @@ app.use(`${config.app.apiPrefix}/ai-keys`, aiKeyRoutes);
 app.use(`${config.app.apiPrefix}/wx`, wxRoutes);
 app.use(`${config.app.apiPrefix}/app/fridge`, fridgeRoutes);
 app.use(`${config.app.apiPrefix}/analytics`, analyticsRoutes);
+app.use(`${config.app.apiPrefix}/comments`, adminCommentRoutes);
 app.use(`${config.app.apiPrefix}/upload`, uploadRoutes);
 app.use(`${config.app.apiPrefix}/system`, systemRoutes);
 app.use(`${config.app.apiPrefix}/logs`, logsRoutes);

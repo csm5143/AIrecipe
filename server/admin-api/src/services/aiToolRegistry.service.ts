@@ -35,6 +35,7 @@ type RecipeSearchResult = {
   difficulty: string;
   ingredients: unknown;
   steps?: unknown;
+  matchScore?: number;
 };
 
 type FridgeIngredientInput = Pick<RecognizedIngredient, 'name' | 'amount' | 'unit' | 'category'>;
@@ -80,6 +81,12 @@ function recipeAliases(keyword: string) {
     aliases.add('牛肉小炒');
     aliases.add('炒牛肉');
   }
+  if (/沙县鸡腿饭|鸡腿饭|沙县/.test(keyword)) {
+    aliases.add('沙县鸡腿饭');
+    aliases.add('鸡腿饭');
+    aliases.add('卤鸡腿饭');
+    aliases.add('鸡腿盖饭');
+  }
   if (keyword.includes('西红柿')) aliases.add(keyword.replace(/西红柿/g, '番茄'));
   if (keyword.includes('番茄')) aliases.add(keyword.replace(/番茄/g, '西红柿'));
   return Array.from(aliases).filter(Boolean).slice(0, 8);
@@ -91,7 +98,7 @@ function splitRecipeKeywords(keyword: string) {
     const clean = part.trim();
     if (clean.length >= 2) parts.add(clean);
   }
-  for (const token of ['小炒', '黄牛肉', '牛肉', '青椒', '蒜', '姜', '鸡蛋', '番茄', '西红柿']) {
+  for (const token of ['小炒', '黄牛肉', '牛肉', '青椒', '蒜', '姜', '鸡蛋', '番茄', '西红柿', '沙县', '鸡腿饭', '鸡腿', '米饭']) {
     if (keyword.includes(token)) parts.add(token);
   }
   return Array.from(parts).slice(0, 8);
@@ -101,24 +108,38 @@ function inferRecipeIngredients(keyword: string) {
   if (/小炒黄牛肉|黄牛肉小炒|小炒牛肉|炒牛肉/.test(keyword)) {
     return ['牛肉', '黄牛肉', '青椒', '小米辣', '蒜', '姜'];
   }
+  if (/沙县鸡腿饭|鸡腿饭|卤鸡腿饭|鸡腿盖饭/.test(keyword)) {
+    return ['鸡腿', '米饭', '青菜', '鸡蛋', '香菇', '姜', '葱'];
+  }
   return splitRecipeKeywords(keyword).filter((item) => !/小炒|红烧|清炒|凉拌|家常/.test(item));
 }
 
 function extractRecipeKeyword(text: string) {
   const patterns = [
+    /(?:想做|想吃|要做|准备做|打算做|做一份|做个)\s*([\u4e00-\u9fa5A-Za-z0-9]{2,20}?)(?=这道菜|的食材|放|加入|添加|提醒|并|然后|再|顺便|，|。|,|\.|！|？|$)/,
+    /(?:把|将)\s*([\u4e00-\u9fa5A-Za-z0-9]{2,20}?)(?:这道菜)?的?食材\s*(?:放|加入|添加)/,
     /准备\s*([\u4e00-\u9fa5A-Za-z0-9]{2,20})\s*这道菜/,
     /([\u4e00-\u9fa5A-Za-z0-9]{2,20})\s*这道菜的食材/,
     /([\u4e00-\u9fa5A-Za-z0-9]{2,20})\s*的食材/,
-    /做\s*([\u4e00-\u9fa5A-Za-z0-9]{2,20})/,
+    /做\s*([\u4e00-\u9fa5A-Za-z0-9]{2,20}?)(?=这道菜|的食材|放|加入|添加|提醒|并|然后|再|顺便|，|。|,|\.|！|？|$)/,
   ];
   for (const pattern of patterns) {
     const match = text.match(pattern);
-    const keyword = match?.[1]?.trim();
+    const keyword = cleanupRecipeKeyword(match?.[1] || '');
     if (keyword && !/这些|明天|今天|提醒|准备|食材|小菜篮|小菜蓝|小冰箱/.test(keyword)) {
       return keyword.slice(0, 20);
     }
   }
   return '';
+}
+
+function cleanupRecipeKeyword(value: string) {
+  return value
+    .replace(/^(我|你|他|她|它|帮我|请|想|要|准备|打算)+/, '')
+    .replace(/(这道菜|的食材|食材清单|采购清单|买菜清单)$/g, '')
+    .replace(/^(做|吃)/, '')
+    .replace(/\s+/g, '')
+    .trim();
 }
 
 const INGREDIENT_STOP_WORDS = new Set([
@@ -143,15 +164,25 @@ function normalizeIngredientItems(value: unknown) {
   return value
     .map((item: any) => {
       if (typeof item === 'string') return { name: item, amount: '', unit: '', category: '' };
+      const amount = normalizeAmount(String(item?.amount || item?.quantity || '').trim());
+      const unit = String(item?.unit || '').trim();
       return {
         name: String(item?.name || item?.ingredient || '').trim(),
-        amount: String(item?.amount || item?.quantity || '').trim(),
-        unit: String(item?.unit || '').trim(),
+        amount,
+        unit: amount && unit && amount.endsWith(unit) ? '' : unit,
         category: String(item?.category || '').trim(),
       };
     })
     .filter((item) => item.name)
     .slice(0, 30);
+}
+
+function normalizeAmount(value: string) {
+  return value
+    .replace(/^(适量)\1+$/, '$1')
+    .replace(/^(少许)\1+$/, '$1')
+    .replace(/^(若干)\1+$/, '$1')
+    .trim();
 }
 
 function normalizeIngredientName(value: string) {
@@ -248,7 +279,7 @@ async function findRecipes(keyword: string): Promise<RecipeSearchResult[]> {
   const recipeMap = new Map<number, (typeof initialRecipes)[number]>();
   [...initialRecipes, ...fallbackRecipes].forEach((recipe) => recipeMap.set(recipe.id, recipe));
 
-  const ranked = Array.from(recipeMap.values())
+  const rankedItems = Array.from(recipeMap.values())
     .map((recipe) => {
       const haystack = [
         recipe.title,
@@ -268,10 +299,9 @@ async function findRecipes(keyword: string): Promise<RecipeSearchResult[]> {
     })
     .filter((item) => !keyword || item.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5)
-    .map((item) => item.recipe);
+    .slice(0, 5);
 
-  return ranked.map((recipe) => ({
+  return rankedItems.map(({ recipe, score }) => ({
     id: recipe.id,
     title: recipe.title,
     description: recipe.description || '',
@@ -279,7 +309,14 @@ async function findRecipes(keyword: string): Promise<RecipeSearchResult[]> {
     difficulty: recipe.difficulty,
     ingredients: recipe.ingredients,
     steps: recipe.steps,
+    matchScore: score,
   }));
+}
+
+function isExactRecipeNameMatch(keyword: string, recipe?: RecipeSearchResult) {
+  if (!recipe) return false;
+  const title = recipe.title || '';
+  return Boolean(keyword && title.includes(keyword));
 }
 
 async function addRecipeToShoppingList(userId: number, recipe: RecipeSearchResult) {
@@ -331,8 +368,8 @@ async function addRecipeToShoppingList(userId: number, recipe: RecipeSearchResul
   };
 }
 
-function inferDraftIngredients(title: string, recentContext: string): RecipeDraft['ingredients'] {
-  const explicitItems = extractIngredientItemsFromText(recentContext)
+function inferDraftIngredients(title: string, currentText: string): RecipeDraft['ingredients'] {
+  const explicitItems = extractIngredientItemsFromText(currentText)
     .filter((item) => !/做法|步骤|建议|口味|清单/.test(item.name))
     .map((item) => ({
       name: item.name,
@@ -358,6 +395,22 @@ function inferDraftIngredients(title: string, recentContext: string): RecipeDraf
     ];
   }
 
+  if (/沙县鸡腿饭|鸡腿饭|卤鸡腿饭|鸡腿盖饭/.test(title)) {
+    return [
+      { name: '鸡腿', amount: '2', unit: '只', category: 'meat', isOptional: false },
+      { name: '大米', amount: '300', unit: 'g', category: 'staple', isOptional: false },
+      { name: '青菜', amount: '200', unit: 'g', category: 'vegetable', isOptional: false },
+      { name: '鸡蛋', amount: '2', unit: '个', category: 'egg', isOptional: true },
+      { name: '香菇', amount: '4', unit: '朵', category: 'vegetable', isOptional: true },
+      { name: '姜', amount: '10', unit: 'g', category: 'seasoning', isOptional: false },
+      { name: '葱', amount: '2', unit: '根', category: 'seasoning', isOptional: false },
+      { name: '生抽', amount: '20', unit: 'ml', category: 'seasoning', isOptional: false },
+      { name: '老抽', amount: '8', unit: 'ml', category: 'seasoning', isOptional: false },
+      { name: '料酒', amount: '15', unit: 'ml', category: 'seasoning', isOptional: false },
+      { name: '冰糖', amount: '8', unit: 'g', category: 'seasoning', isOptional: false },
+    ];
+  }
+
   if (explicitItems.length > 0) {
     return explicitItems.slice(0, 12);
   }
@@ -372,26 +425,36 @@ function inferDraftIngredients(title: string, recentContext: string): RecipeDraf
   ];
 }
 
-function generateRecipeDraft(title: string, recentContext: string): RecipeDraft {
+function generateRecipeDraft(title: string, currentText: string): RecipeDraft {
   const cleanTitle = title || '家常菜';
-  const ingredients = inferDraftIngredients(cleanTitle, recentContext);
+  const ingredients = inferDraftIngredients(cleanTitle, currentText);
   const mainIngredient = ingredients.find((item) => !item.isOptional && item.category !== 'seasoning')?.name || ingredients[0]?.name || cleanTitle;
-  const dishTypes = /炒|小炒/.test(cleanTitle) ? ['stir_fry'] : ['fried'];
+  const dishTypes = /沙县鸡腿饭|鸡腿饭|卤/.test(cleanTitle) ? ['rice_bowl'] : /炒|小炒/.test(cleanTitle) ? ['stir_fry'] : ['fried'];
+  const isChickenRice = /沙县鸡腿饭|鸡腿饭|卤鸡腿饭|鸡腿盖饭/.test(cleanTitle);
 
   return {
     title: cleanTitle,
     description: `系统菜谱库暂未匹配到「${cleanTitle}」，这是按 recipe-generator 专业菜谱标准生成的采购草稿。`,
-    cookingTime: /炒|小炒/.test(cleanTitle) ? 15 : 25,
+    cookingTime: isChickenRice ? 35 : /炒|小炒/.test(cleanTitle) ? 15 : 25,
     difficulty: 'EASY',
     servings: 2,
     ingredients,
-    steps: [
-      { order: 1, content: `将${mainIngredient}处理成适口大小，加入料酒、生抽和淀粉抓匀，腌制约10分钟。`, duration: 10 },
-      { order: 2, content: '蒜和姜切末，青椒或其他配菜切块，所有食材先备齐再开火。', duration: 5 },
-      { order: 3, content: `热锅下油，先将${mainIngredient}快速滑炒至变色后盛出，避免久炒变老。`, duration: 3 },
-      { order: 4, content: `锅中留底油爆香姜蒜，加入配菜大火快炒，再倒回${mainIngredient}翻匀调味。`, duration: 4 },
-    ],
-    tips: '这是 AI 生成的菜谱草稿，适合用于采购清单；正式做菜前建议根据个人口味调整辣度和咸度。肉类下锅前尽量沥干水分，大火快炒能减少出水。',
+    steps: isChickenRice
+      ? [
+          { order: 1, content: '鸡腿洗净划两刀，用料酒、生抽、姜片腌10分钟；大米提前淘洗好。', duration: 10 },
+          { order: 2, content: '锅里少油煎鸡腿至两面微黄，加入生抽、老抽、冰糖、姜葱和适量清水。', duration: 8 },
+          { order: 3, content: '小火卤煮鸡腿至熟透入味，同时把米饭蒸好，青菜焯熟。', duration: 20 },
+          { order: 4, content: '米饭装碗，摆上鸡腿、青菜、鸡蛋或香菇，淋一点卤汁即可。', duration: 3 },
+        ]
+      : [
+          { order: 1, content: `将${mainIngredient}处理成适口大小，加入料酒、生抽和淀粉抓匀，腌制约10分钟。`, duration: 10 },
+          { order: 2, content: '蒜和姜切末，青椒或其他配菜切块，所有食材先备齐再开火。', duration: 5 },
+          { order: 3, content: `热锅下油，先将${mainIngredient}快速滑炒至变色后盛出，避免久炒变老。`, duration: 3 },
+          { order: 4, content: `锅中留底油爆香姜蒜，加入配菜大火快炒，再倒回${mainIngredient}翻匀调味。`, duration: 4 },
+        ],
+    tips: isChickenRice
+      ? '这是 AI 生成的采购草稿，适合先买菜。鸡腿饭的关键是卤汁不要太咸，最后淋饭只需要少量，青菜单独焯熟会更清爽。'
+      : '这是 AI 生成的菜谱草稿，适合用于采购清单；正式做菜前建议根据个人口味调整辣度和咸度。肉类下锅前尽量沥干水分，大火快炒能减少出水。',
     dishTypes,
     source: 'ai_draft',
   };
@@ -622,18 +685,46 @@ function wantsMemorySave(text: string) {
 function parseReminderTime(text: string) {
   const now = new Date();
   const triggerAt = new Date(now);
-  if (/明天/.test(text)) triggerAt.setDate(triggerAt.getDate() + 1);
+  const dateMatch = text.match(/(?:(\d{4})[年/-])?(\d{1,2})[月/-](\d{1,2})[日号]?/);
+  if (dateMatch) {
+    const year = dateMatch[1] ? Number(dateMatch[1]) : now.getFullYear();
+    triggerAt.setFullYear(year, Number(dateMatch[2]) - 1, Number(dateMatch[3]));
+  } else if (/后天/.test(text)) {
+    triggerAt.setDate(triggerAt.getDate() + 2);
+  } else if (/明天|明早|明晚|明日/.test(text)) {
+    triggerAt.setDate(triggerAt.getDate() + 1);
+  }
 
-  const hourMatch = text.match(/(\d{1,2})\s*[点:：时]/);
+  const relativeMinuteMatch = text.match(/(\d{1,3})\s*(?:分钟|分)\s*后/);
+  if (relativeMinuteMatch) {
+    triggerAt.setTime(now.getTime() + Number(relativeMinuteMatch[1]) * 60_000);
+    triggerAt.setSeconds(0, 0);
+    return triggerAt;
+  }
+
+  const relativeHourMatch = text.match(/(\d{1,2})\s*(?:小时|钟头)\s*后/);
+  if (relativeHourMatch) {
+    triggerAt.setTime(now.getTime() + Number(relativeHourMatch[1]) * 60 * 60_000);
+    triggerAt.setSeconds(0, 0);
+    return triggerAt;
+  }
+
+  const colonMatch = text.match(/(\d{1,2})\s*[:：]\s*(\d{1,2})/);
+  const hourMatch = colonMatch || text.match(/(\d{1,2})\s*(?:点|时)/);
   let hour = hourMatch ? Number(hourMatch[1]) : 9;
-  if (/下午|晚上/.test(text) && hour < 12) hour += 12;
-  if (/上午/.test(text) && hour === 12) hour = 0;
+  if (/下午|晚上|今晚|明晚/.test(text) && hour < 12) hour += 12;
+  if (/凌晨|早上|上午|明早/.test(text) && hour === 12) hour = 0;
 
-  const minuteMatch = text.match(/\d{1,2}\s*[点:：时]\s*(\d{1,2})\s*分?/);
-  const minute = minuteMatch ? Number(minuteMatch[1]) : 0;
+  const minuteMatch = colonMatch || text.match(/\d{1,2}\s*(?:点|时)\s*(半|一刻|三刻|\d{1,2})?\s*分?/);
+  let minute = 0;
+  const minuteText = minuteMatch?.[2];
+  if (minuteText === '半') minute = 30;
+  else if (minuteText === '一刻') minute = 15;
+  else if (minuteText === '三刻') minute = 45;
+  else if (minuteText) minute = Number(minuteText);
   triggerAt.setHours(Math.min(Math.max(hour, 0), 23), Math.min(Math.max(minute, 0), 59), 0, 0);
 
-  if (!/明天/.test(text) && triggerAt.getTime() <= now.getTime()) {
+  if (!dateMatch && !/后天|明天|明早|明晚|明日/.test(text) && triggerAt.getTime() <= now.getTime()) {
     triggerAt.setDate(triggerAt.getDate() + 1);
   }
   return triggerAt;
@@ -674,6 +765,7 @@ async function createShoppingReminder(userId: number, text: string, shoppingList
     type: task.type,
     title: task.title,
     body: task.body,
+    data: task.data,
     triggerAt: task.triggerAt,
   };
 }
@@ -754,9 +846,9 @@ export async function planAndExecuteAiTools(ctx: ToolContext): Promise<AiToolCal
   let generatedDraft: RecipeDraft | null = null;
   if (enabledTools.has('generate_recipe_draft') && (wantsShoppingList(ctx.text) || /生成菜谱|创建菜谱|菜谱草稿|准备食材/.test(ctx.text))) {
     const recipeResults = calls.find((call) => call.name === 'search_recipe' && call.success)?.result as RecipeSearchResult[] | undefined;
-    if (!recipeResults || recipeResults.length === 0) {
+    if (!recipeResults || recipeResults.length === 0 || !isExactRecipeNameMatch(keyword, recipeResults[0])) {
       try {
-        generatedDraft = generateRecipeDraft(keyword || extractRecipeKeyword(ctx.text) || '家常菜', recentContext);
+        generatedDraft = generateRecipeDraft(keyword || extractRecipeKeyword(ctx.text) || '家常菜', ctx.text);
         calls.push({
           name: 'generate_recipe_draft',
           args: { title: generatedDraft.title, source: 'recipe-generator' },
@@ -774,10 +866,10 @@ export async function planAndExecuteAiTools(ctx: ToolContext): Promise<AiToolCal
       const recipeResults =
         (calls.find((call) => call.name === 'search_recipe' && call.success)?.result as RecipeSearchResult[] | undefined) ||
         (await findRecipes(keyword));
-      const recipe = recipeResults[0];
+      const recipe = isExactRecipeNameMatch(keyword, recipeResults[0]) ? recipeResults[0] : undefined;
       const list = recipe
         ? await addRecipeToShoppingList(ctx.userId, recipe)
-        : await addDraftToShoppingList(ctx.userId, generatedDraft || generateRecipeDraft(keyword || '家常菜', recentContext));
+        : await addDraftToShoppingList(ctx.userId, generatedDraft || generateRecipeDraft(keyword || '家常菜', ctx.text));
       calls.push({
         name: 'add_to_shopping_list',
         args: recipe

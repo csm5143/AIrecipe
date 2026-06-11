@@ -27,7 +27,7 @@ export const userApi = {
     request.put<UserRow>(`/users/${id}`, data),
 
   updateStatus: (id: number, status: string) =>
-    request.put(`/users/${id}/status`, { status }),
+    request.patch(`/users/${id}/status`, { status }),
 
   delete: (id: number) =>
     request.delete(`/users/${id}`),

@@ -21,6 +21,15 @@ class CollectionApi {
     });
   }
 
+  Future<void> addRecipeToCollection(String recipeId, String collectionId) {
+    return guardApi(() async {
+      await _dio.post(
+        '/wx/app/collections/$collectionId/items',
+        data: {'recipeId': recipeId},
+      );
+    });
+  }
+
   Future<void> addRecipeToDefaultCollection(String recipeId) {
     return guardApi(() async {
       var collections = await getCollections();
@@ -35,10 +44,7 @@ class CollectionApi {
       final collectionId = (collection['id'] ?? '').toString();
       if (collectionId.isEmpty) return;
 
-      await _dio.post(
-        '/wx/app/collections/$collectionId/items',
-        data: {'recipeId': recipeId},
-      );
+      await addRecipeToCollection(recipeId, collectionId);
     });
   }
 

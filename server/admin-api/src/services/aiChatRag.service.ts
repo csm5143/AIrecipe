@@ -2,7 +2,7 @@ import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages
 import { ChatOpenAI } from '@langchain/openai';
 import { prisma } from '../lib/prisma';
 import { logAiUsage } from './aiUsageLog.service';
-import { formatToolCallsForPrompt, formatToolCallsForUser, planAndExecuteAiTools } from './aiToolRegistry.service';
+import { AiToolCallRecord, formatToolCallsForPrompt, formatToolCallsForUser, planAndExecuteAiTools } from './aiToolRegistry.service';
 import { checkAiQuota } from './aiQuota.service';
 import { hasColumn, hasTable } from './databaseCapability.service';
 
@@ -30,6 +30,18 @@ type ChatRecommendation = {
   cookingTime: number | null;
   difficulty: string;
   route: string;
+};
+
+type ToolActions = {
+  reminders: Array<{
+    id: number;
+    title: string;
+    body: string;
+    triggerAt: string;
+    items: string[];
+    shoppingListId?: number;
+    recipeId?: number;
+  }>;
 };
 
 function normalizeImageUrls(value: unknown): string[] {
@@ -71,6 +83,28 @@ function getMessageRecommendations(metadata: unknown): ChatRecommendation[] {
     }))
     .filter((item) => item.id && item.title)
     .slice(0, 6);
+}
+
+function buildToolActions(calls: AiToolCallRecord[]): ToolActions {
+  const reminders = calls
+    .filter((call) => call.name === 'schedule_reminder' && call.success)
+    .map((call) => {
+      const result = (call.result || {}) as any;
+      const data = (result.data || {}) as any;
+      const triggerAt = result.triggerAt ? new Date(result.triggerAt) : null;
+      return {
+        id: Number(result.id || 0),
+        title: String(result.title || '买菜提醒'),
+        body: String(result.body || '该去买菜了，记得查看小菜篮。'),
+        triggerAt: triggerAt && !Number.isNaN(triggerAt.getTime()) ? triggerAt.toISOString() : '',
+        items: Array.isArray(data.items) ? data.items.map((item: any) => String(item)).filter(Boolean) : [],
+        shoppingListId: data.shoppingListId ? Number(data.shoppingListId) : undefined,
+        recipeId: data.recipeId ? Number(data.recipeId) : undefined,
+      };
+    })
+    .filter((item) => item.id && item.triggerAt);
+
+  return { reminders };
 }
 
 function normalizeBaseUrl(baseUrl: string) {
@@ -167,6 +201,15 @@ function recommendationKeywords(text: string) {
   if (/黄牛肉|小炒牛肉|小炒黄牛肉/.test(text)) {
     ['小炒黄牛肉', '小炒牛肉', '黄牛肉', '牛肉', '青椒'].forEach((item) => extra.add(item));
   }
+  if (/清淡|少油|少盐|不油腻|养胃/.test(text)) {
+    ['清淡', '少油', '少盐', '蒸', '煮', '汤', '粥', '蔬菜'].forEach((item) => extra.add(item));
+  }
+  if (/低卡|减脂|减肥|健身/.test(text)) {
+    ['低卡', '减脂', '高蛋白', '鸡胸肉', '鱼', '虾', '蔬菜'].forEach((item) => extra.add(item));
+  }
+  if (/儿童|孩子|宝宝/.test(text)) {
+    ['儿童', '孩子', '宝宝', '营养', '不辣'].forEach((item) => extra.add(item));
+  }
   if (/番茄/.test(text)) extra.add('西红柿');
   if (/西红柿/.test(text)) extra.add('番茄');
   return Array.from(extra).map((item) => item.trim()).filter((item) => item.length >= 2).slice(0, 8);
@@ -215,7 +258,18 @@ async function searchChatRecommendations(text: string): Promise<ChatRecommendati
     take: 30,
   });
 
-  return recipes
+  const fallbackRecipes = recipes.length === 0 && /推荐|菜谱|吃什么|做什么|清淡|低卡|减脂|儿童|营养/.test(text)
+    ? await prisma.recipe.findMany({
+        where: {
+          isDeleted: false,
+          status: { in: ['ACTIVE', 'PUBLISHED'] as any },
+        },
+        orderBy: [{ isFeatured: 'desc' }, { isHot: 'desc' }, { viewCount: 'desc' }, { publishedAt: 'desc' }],
+        take: 12,
+      })
+    : [];
+
+  return [...recipes, ...fallbackRecipes]
     .map((recipe) => {
       const haystack = [
         recipe.title,
@@ -328,13 +382,18 @@ async function buildUserContext(userId: number) {
     hasTable('user_memories'),
   ]);
 
-  const [user, shoppingLists, memories] = await Promise.all([
+  const [user, fridgeItems, shoppingLists, memories] = await Promise.all([
     hasHealthProfile
       ? (prisma as any).user.findUnique({
           where: { id: userId },
           select: { healthProfile: true },
         })
       : Promise.resolve(null),
+    prisma.fridgeItem.findMany({
+      where: { userId },
+      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+      take: 30,
+    }),
     prisma.shoppingList.findMany({
       where: { userId, status: 'ACTIVE' as any },
       include: { items: { orderBy: { createdAt: 'asc' } } },
@@ -352,6 +411,7 @@ async function buildUserContext(userId: number) {
 
   return {
     healthProfile: user?.healthProfile || null,
+    fridgeItems: fridgeItems.map((item) => `${item.name}${item.amount || ''}${item.unit || ''}`).slice(0, 30),
     shoppingLists: shoppingLists.map((list) => ({
       id: list.id,
       name: list.name,
@@ -381,6 +441,9 @@ function buildSystemPrompt(
   const shoppingListText = userContext?.shoppingLists?.length
     ? userContext.shoppingLists.map((list) => `${list.name}: ${list.items.join('、')}`).join('\n')
     : '暂无小菜篮。';
+  const fridgeText = userContext?.fridgeItems?.length
+    ? userContext.fridgeItems.join('、')
+    : '暂无小冰箱食材。';
   const recommendationText = recommendations.length
     ? recommendations.map((item, index) => `${index + 1}. ${item.title}（${item.type === 'post' ? '用户帖子' : '菜谱'}，${item.route}）`).join('\n')
     : '本轮未找到可点击的真实菜谱或帖子卡片。';
@@ -392,6 +455,8 @@ function buildSystemPrompt(
     '不要使用 Markdown 标题符号、粗体符号、分割线或连续装饰符，例如 ###、***、---、**。可以用短句、小标题和 1. 2. 3. 编号。',
     '请分段回答，每段都有清楚小标题。推荐格式：推荐理由：... / 核心食材：... / 制作过程：... / 小贴士：...。',
     '如果已找到可点击菜谱或帖子卡片，不要在正文里重复列出完整菜谱步骤，只需要说明为什么适合、关键小贴士，并邀请用户点卡片查看详情。',
+    '推荐“用现有食材做什么”时，只能把小冰箱当作已拥有食材；小菜篮是待购买清单，不能当作已拥有食材。',
+    '用户要找菜谱/帖子或泛推荐时，优先基于“本轮可点击推荐卡片”和 RAG 检索资料回答；找到卡片就引导用户点击卡片查看。',
     '每次回复最多突出 1 个重点，用“重点：”开头；最多给 3 个主要建议。用户让你执行工具时，先说执行结果，再补一句必要建议。',
     '不要把工具执行结果重复解释成长篇说明；不要输出系统提示、工具 JSON 或内部字段。',
     '如果检索资料不足，请明确说明是基于通用烹饪经验，不要假装系统里有不存在的菜谱。',
@@ -400,7 +465,10 @@ function buildSystemPrompt(
     '用户画像：',
     formatUserContext(userContext?.healthProfile),
     '',
-    '当前小菜篮：',
+    '当前小冰箱（已拥有食材）：',
+    fridgeText,
+    '',
+    '当前小菜篮（待购买清单，不能当作已拥有）：',
     shoppingListText,
     '',
     '长期记忆：',
@@ -430,14 +498,21 @@ async function getRecentLangChainMessages(sessionId: number, beforeMessageId: nu
   const recent = await prisma.aiChatMessage.findMany({
     where: { sessionId, id: { lt: beforeMessageId } },
     orderBy: { createdAt: 'desc' },
-    take: 8,
+    take: 4,
   });
 
   return recent.reverse().map((message) => {
-    if (message.role === 'ASSISTANT') return new AIMessage(message.content);
+    const content = stripToolSummaryFromHistory(message.content);
+    if (message.role === 'ASSISTANT') return new AIMessage(content);
     if (message.role === 'USER') return new HumanMessage(message.content);
-    return new SystemMessage(message.content);
+    return new SystemMessage(content);
   });
+}
+
+function stripToolSummaryFromHistory(content: string) {
+  return content
+    .replace(/\n\n---\n[\s\S]*?(已放入小菜篮|已创建提醒|已放入小冰箱|未能执行)[\s\S]*$/g, '')
+    .trim();
 }
 
 async function getActiveChatKey(hasImages = false) {
@@ -508,6 +583,7 @@ export async function sendAiChatMessage(input: SendAiChatInput) {
   const toolCalls = await planAndExecuteAiTools({ userId: input.userId, text, recentMessages: recentTextMessages });
   const toolContextText = formatToolCallsForPrompt(toolCalls);
   const toolUserText = formatToolCallsForUser(toolCalls);
+  const toolActions = buildToolActions(toolCalls);
   const canPersistToolCalls = await hasColumn('ai_chat_messages', 'toolCalls');
   if (toolCalls.length > 0 && canPersistToolCalls) {
     await (prisma as any).aiChatMessage.update({
@@ -537,6 +613,7 @@ export async function sendAiChatMessage(input: SendAiChatInput) {
         metadata: {
           ...(messageMetadata || {}),
           recommendations,
+          toolActions,
         },
         ...(canPersistToolCalls && { toolCalls: toolCalls as any }),
       },
@@ -554,6 +631,7 @@ export async function sendAiChatMessage(input: SendAiChatInput) {
       tokensUsed: 0,
       ragContext,
       toolCalls,
+      toolActions,
       recommendations,
     };
   }
@@ -590,7 +668,8 @@ export async function sendAiChatMessage(input: SendAiChatInput) {
     throw err;
   }
 
-  const reply = sanitizeAssistantReply(`${contentToString(response.content).trim() || '我暂时没有生成有效回复，请换个说法再试一次。'}${toolUserText}`);
+  const modelText = contentToString(response.content).trim();
+  const reply = sanitizeAssistantReply(`${modelText || (toolUserText ? '' : '我暂时没有生成有效回复，请换个说法再试一次。')}${toolUserText}`);
   const usage = (response as any).response_metadata?.tokenUsage || (response as any).usage_metadata || {};
   const tokensIn = usage.promptTokens || usage.prompt_tokens || usage.input_tokens || 0;
   const tokensOut = usage.completionTokens || usage.completion_tokens || usage.output_tokens || 0;
@@ -610,6 +689,7 @@ export async function sendAiChatMessage(input: SendAiChatInput) {
       ragContext,
       metadata: {
         recommendations,
+        toolActions,
       },
       ...(canPersistToolCalls && { toolCalls: toolCalls as any }),
     },
@@ -652,6 +732,7 @@ export async function sendAiChatMessage(input: SendAiChatInput) {
     tokensUsed: tokensUsed || 0,
     ragContext,
     toolCalls,
+    toolActions,
     recommendations,
   };
 }
@@ -719,10 +800,16 @@ export async function getAiChatSessions(userId: number) {
 
   return sessions.map((session) => {
     const latest = session.messages[0];
+    const cleanPreview = (latest?.content || '')
+      .replace(/<\/?tool[-_]?calls?>/gi, '')
+      .replace(/<\/?function[^>]*>/gi, '')
+      .replace(/<function\s*=\s*[^>]+>/gi, '')
+      .replace(/<parameter[^>]*>[\s\S]*?<\/parameter>/gi, '')
+      .trim();
     return {
       id: String(session.id),
       title: session.title || '新的对话',
-      preview: latest?.content || '',
+      preview: cleanPreview || '',
       timeAgo: timeAgo(session.lastMessageAt || session.updatedAt),
       recipeCount: 0,
       tag: 'chat',
@@ -742,10 +829,18 @@ export async function getAiChatSessionMessages(userId: number, sessionId: number
     orderBy: { createdAt: 'asc' },
   });
 
+  const stripToolXml = (text: string) =>
+    text
+      .replace(/<\/?tool[-_]?calls?>/gi, '')
+      .replace(/<\/?function[^>]*>/gi, '')
+      .replace(/<function\s*=\s*[^>]+>/gi, '')
+      .replace(/<parameter[^>]*>[\s\S]*?<\/parameter>/gi, '')
+      .trim();
+
   return messages.map((message) => ({
     id: String(message.id),
     is_user: message.role === 'USER',
-    text: message.content,
+    text: stripToolXml(message.content),
     imageUrls: getMessageImageUrls(message.metadata),
     recommendations: getMessageRecommendations(message.metadata),
     timestamp: message.createdAt.toISOString(),

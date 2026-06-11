@@ -120,88 +120,104 @@ class _GlassBottomNavBarState extends ConsumerState<GlassBottomNavBar>
         },
         child: Container(
           margin: EdgeInsets.only(
-            left: 32,
-            right: 32,
-            bottom: 6 + bottomPadding,
+            left: 48,
+            right: 48,
+            bottom: 4 + bottomPadding,
           ),
-          height: 56,
+          height: 48,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [const Color(0x66FFFFFF), const Color(0x4DFFFFFF)],
-            ),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: const Color(0x1A000000), width: 0.5),
+            color: const Color(0x33FFFFFF),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0x14FFFFFF), width: 1),
             boxShadow: [
+              // Outer soft shadow for depth
               BoxShadow(
-                color: const Color(0xFF000000).withAlpha(8),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+                color: const Color(0xFF000000).withAlpha(10),
+                blurRadius: 24,
+                offset: const Offset(0, 6),
+              ),
+              // Inner top highlight (liquid glass refraction)
+              const BoxShadow(
+                color: Color(0x26FFFFFF),
+                blurRadius: 0,
+                spreadRadius: 0,
+                offset: Offset(0, -1),
               ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(28),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-              child: Row(
-                children: List.generate(5, (i) {
-                  final active = i == _activeIndex || (i == 2 && isOpen);
-                  final isCenter = i == 2;
-                  return Expanded(
-                    child: Center(
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 350),
-                        curve: Curves.easeOutCubic,
-                        width: isCenter && !active
-                            ? 40
-                            : (isCenter && active ? 36 : 38),
-                        height: isCenter && !active
-                            ? 40
-                            : (isCenter && active ? 36 : 38),
-                        decoration: BoxDecoration(
-                          color: active
-                              ? (isCenter
-                                    ? AppColors.surface
-                                    : AppColors.textPrimary)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(
-                            isCenter ? 20 : 19,
-                          ),
-                          boxShadow: active && !isCenter
-                              ? [
-                                  BoxShadow(
-                                    color: const Color(
-                                      0xFF000000,
-                                    ).withAlpha(12),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ]
-                              : null,
-                        ),
-                        child: AnimatedRotation(
-                          turns: isCenter && active ? 0.125 : 0,
+            borderRadius: BorderRadius.circular(24),
+            child: Stack(
+              children: [
+                // Frosted blur layer
+                BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      // Subtle warm tint so it doesn't vanish on white
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          const Color(0x08FAF8F6),
+                          const Color(0x06FAF8F6),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                  ),
+                ),
+                // Icons row on top of blur
+                Row(
+                  children: List.generate(5, (i) {
+                    final active = i == _activeIndex || (i == 2 && isOpen);
+                    final isCenter = i == 2;
+                    return Expanded(
+                      child: Center(
+                        child: AnimatedContainer(
                           duration: const Duration(milliseconds: 350),
                           curve: Curves.easeOutCubic,
-                          child: Icon(
-                            isCenter && active
-                                ? Icons.close_rounded
-                                : _tabIcons[i],
+                          width: isCenter && !active ? 38 : 36,
+                          height: isCenter && !active ? 38 : 36,
+                          decoration: BoxDecoration(
                             color: active
                                 ? (isCenter
-                                      ? AppColors.textPrimary
-                                      : AppColors.surface)
-                                : AppColors.textSecondary.withAlpha(160),
-                            size: isCenter ? 24 : 22,
+                                      ? AppColors.surface
+                                      : AppColors.textPrimary)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(isCenter ? 19 : 18),
+                            boxShadow: active && !isCenter
+                                ? [
+                                    BoxShadow(
+                                      color: const Color(0xFF000000).withAlpha(14),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: AnimatedRotation(
+                            turns: isCenter && active ? 0.125 : 0,
+                            duration: const Duration(milliseconds: 350),
+                            curve: Curves.easeOutCubic,
+                            child: Icon(
+                              isCenter && active
+                                  ? Icons.close_rounded
+                                  : _tabIcons[i],
+                              color: active
+                                  ? (isCenter
+                                        ? AppColors.textPrimary
+                                        : AppColors.surface)
+                                  : AppColors.textSecondary.withAlpha(180),
+                              size: isCenter ? 22 : 20,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  );
-                }),
-              ),
+                    );
+                  }),
+                ),
+              ],
             ),
           ),
         ),

@@ -4,17 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/theme.dart';
 import '../../config/glass_theme.dart';
+import '../../data/api/app_exception.dart';
 import '../../providers/ai_provider.dart';
+import '../../providers/api_providers.dart';
 
 class AiEntryPage extends ConsumerWidget {
   const AiEntryPage({super.key});
-
-  static const _quickNeeds = [
-    _QuickNeed(Icons.kitchen_outlined, '冰箱配菜'),
-    _QuickNeed(Icons.local_fire_department_outlined, '低卡晚餐'),
-    _QuickNeed(Icons.child_care_outlined, '儿童餐'),
-    _QuickNeed(Icons.timer_outlined, '15分钟快手'),
-  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,45 +19,17 @@ class AiEntryPage extends ConsumerWidget {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _TopBar(onBack: () => context.go('/')),
               const SizedBox(height: 20),
               _AssistantHeader(onStart: () => context.push('/ai/chat')),
-              const SizedBox(height: 18),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: _quickNeeds
-                    .map(
-                      (item) => _QuickNeedChip(
-                        item: item,
-                        onTap: () =>
-                            context.push('/ai/chat', extra: item.label),
-                      ),
-                    )
-                    .toList(),
-              ),
               const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '最近对话',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-                  Text(
-                    chatHistoryAsync.maybeWhen(
-                      data: (items) => '${items.length} 条',
-                      orElse: () => '',
-                    ),
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
+              Text(
+                '最近对话',
+                style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 12),
               Expanded(
@@ -75,13 +42,18 @@ class AiEntryPage extends ConsumerWidget {
                           child: ListView.separated(
                             itemCount: chatHistory.length,
                             separatorBuilder: (_, _) =>
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 8),
                             itemBuilder: (context, index) {
                               final item = chatHistory[index];
                               return _ChatHistoryCard(
                                 item: item,
                                 onTap: () =>
                                     context.push('/ai/chat?session=${item.id}'),
+                                onDelete: () => _deleteSession(
+                                  ref,
+                                  context,
+                                  item.id,
+                                ),
                               );
                             },
                           ),
@@ -93,13 +65,30 @@ class AiEntryPage extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
               _StartChatButton(onTap: () => context.push('/ai/chat')),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _deleteSession(
+    WidgetRef ref,
+    BuildContext context,
+    String sessionId,
+  ) async {
+    try {
+      await ref.read(aiApiProvider).deleteSession(sessionId);
+      ref.invalidate(chatHistoryProvider);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e is AppException ? e.message : '删除失败')),
+        );
+      }
+    }
   }
 }
 
@@ -142,68 +131,62 @@ class _AssistantHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: GlassTheme.glassDecoration(
-        borderRadius: 24,
-        bgColor: const Color(0xEFFFFFFF),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 68,
-            height: 68,
-            decoration: BoxDecoration(
-              color: AppColors.textPrimary,
-              borderRadius: BorderRadius.circular(22),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x22000000),
-                  blurRadius: 22,
-                  offset: Offset(0, 10),
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.restaurant_menu,
-              color: AppColors.surface,
-              size: 32,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '小厨子',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.headlineLarge?.copyWith(fontSize: 26),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '告诉我食材、口味和人数，我帮你生成今天的做饭方案。',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          GestureDetector(
-            onTap: onStart,
-            child: Container(
-              width: 44,
-              height: 44,
+    return GestureDetector(
+      onTap: onStart,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: GlassTheme.glassDecoration(
+          borderRadius: 24,
+          bgColor: const Color(0xEFFFFFFF),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
               decoration: BoxDecoration(
-                color: AppColors.surfaceSecondary,
-                borderRadius: BorderRadius.circular(16),
+                color: AppColors.textPrimary,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x22000000),
+                    blurRadius: 22,
+                    offset: Offset(0, 10),
+                  ),
+                ],
               ),
-              child: const Icon(Icons.chat_bubble_outline, size: 21),
+              child: const Icon(
+                Icons.restaurant_menu,
+                color: AppColors.surface,
+                size: 26,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '小厨子',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.headlineLarge?.copyWith(fontSize: 22),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '告诉我食材、口味和人数，我帮你生成今天的做饭方案。',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -312,134 +295,95 @@ class _HistoryError extends StatelessWidget {
 class _ChatHistoryCard extends StatelessWidget {
   final ChatHistoryItem item;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
-  const _ChatHistoryCard({required this.item, required this.onTap});
+  const _ChatHistoryCard({
+    required this.item,
+    required this.onTap,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
+    return Dismissible(
+      key: Key('session-${item.id}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.error.withOpacity(0.12),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0x0A000000)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x08000000),
-              blurRadius: 20,
-              offset: Offset(0, 6),
-            ),
-          ],
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceSecondary,
-                borderRadius: BorderRadius.circular(14),
+        child: const Icon(Icons.delete_outline, color: AppColors.error, size: 22),
+      ),
+      confirmDismiss: (_) async {
+        return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('删除对话'),
+            content: const Text('删除后对话记录将无法恢复'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('取消'),
               ),
-              child: Icon(_iconForTag(item.tag), size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          item.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.labelMedium?.copyWith(fontSize: 15),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        item.timeAgo,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    item.preview,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.textSecondary,
-                      height: 1.35,
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('删除', style: TextStyle(color: AppColors.error)),
+              ),
+            ],
+          ),
+        );
+      },
+      onDismissed: (_) => onDelete(),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0x0A000000)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceSecondary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.chat_bubble_outline, size: 19, color: AppColors.textSecondary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(fontSize: 15),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      item.timeAgo,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(
-              Icons.chevron_right,
-              size: 20,
-              color: AppColors.textSecondary,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  IconData _iconForTag(String tag) {
-    switch (tag) {
-      case 'kitchen':
-        return Icons.kitchen_outlined;
-      case 'restaurant':
-        return Icons.restaurant_outlined;
-      default:
-        return Icons.chat_bubble_outline;
-    }
-  }
-}
-
-class _QuickNeed {
-  final IconData icon;
-  final String label;
-
-  const _QuickNeed(this.icon, this.label);
-}
-
-class _QuickNeedChip extends StatelessWidget {
-  final _QuickNeed item;
-  final VoidCallback onTap;
-
-  const _QuickNeedChip({required this.item, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0x0A000000)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(item.icon, size: 17, color: AppColors.textSecondary),
-            const SizedBox(width: 6),
-            Text(item.label, style: Theme.of(context).textTheme.labelMedium),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
+

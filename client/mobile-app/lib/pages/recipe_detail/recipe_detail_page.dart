@@ -14,6 +14,7 @@ import '../../providers/api_providers.dart';
 import '../../providers/collection_provider.dart';
 import '../../providers/recipe_provider.dart';
 import '../../widgets/capsule_toast.dart';
+import 'widgets/recipe_comments_section.dart';
 
 class RecipeDetailPage extends ConsumerWidget {
   final String recipeId;
@@ -50,18 +51,64 @@ class RecipeDetailPage extends ConsumerWidget {
   }
 }
 
-class _RecipeDetailContent extends StatelessWidget {
+class _RecipeDetailContent extends ConsumerStatefulWidget {
   final Recipe recipe;
 
   const _RecipeDetailContent({required this.recipe});
 
   @override
+  ConsumerState<_RecipeDetailContent> createState() =>
+      _RecipeDetailContentState();
+}
+
+class _RecipeDetailContentState extends ConsumerState<_RecipeDetailContent> {
+  final _scrollController = ScrollController();
+  final _commentsAnchorKey = GlobalKey();
+  final _commentsKey = GlobalKey<RecipeCommentsSectionState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 520) {
+      _commentsKey.currentState?.loadMore();
+    }
+  }
+
+  void _focusComments() {
+    final anchorContext = _commentsAnchorKey.currentContext;
+    if (anchorContext != null) {
+      Scrollable.ensureVisible(
+        anchorContext,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOut,
+        alignment: 0.08,
+      );
+    }
+    _commentsKey.currentState?.focusComposer();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final recipe = widget.recipe;
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
           CustomScrollView(
+            controller: _scrollController,
             slivers: [
               SliverToBoxAdapter(child: _HeroImage(recipe: recipe)),
               SliverToBoxAdapter(
@@ -99,6 +146,14 @@ class _RecipeDetailContent extends StatelessWidget {
                       _IngredientsSection(recipe: recipe),
                       const SizedBox(height: 28),
                       _StepsSection(steps: recipe.steps),
+                      const SizedBox(height: 28),
+                      Container(
+                        key: _commentsAnchorKey,
+                        child: RecipeCommentsSection(
+                          key: _commentsKey,
+                          recipeId: recipe.id,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -109,7 +164,7 @@ class _RecipeDetailContent extends StatelessWidget {
             left: 16,
             right: 16,
             bottom: 16,
-            child: _BottomActionBar(recipe: recipe),
+            child: _BottomActionBar(recipe: recipe, onComment: _focusComments),
           ),
         ],
       ),
@@ -546,13 +601,27 @@ class _StepsSection extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          step.title,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.labelMedium?.copyWith(fontSize: 15),
-                        ),
-                        const SizedBox(height: 4),
+                        if (step.imageUrl != null &&
+                            step.imageUrl!.isNotEmpty) ...[
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: CachedNetworkImage(
+                              imageUrl: step.imageUrl!,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              errorWidget: (_, _, _) => const SizedBox.shrink(),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                        if (step.title.isNotEmpty)
+                          Text(
+                            step.title,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.labelMedium?.copyWith(fontSize: 15),
+                          ),
+                        if (step.title.isNotEmpty) const SizedBox(height: 4),
                         Text(
                           step.description,
                           style: Theme.of(context).textTheme.bodyMedium
@@ -575,8 +644,9 @@ class _StepsSection extends StatelessWidget {
 
 class _BottomActionBar extends ConsumerStatefulWidget {
   final Recipe recipe;
+  final VoidCallback onComment;
 
-  const _BottomActionBar({required this.recipe});
+  const _BottomActionBar({required this.recipe, required this.onComment});
 
   @override
   ConsumerState<_BottomActionBar> createState() => _BottomActionBarState();
@@ -588,6 +658,39 @@ class _BottomActionBarState extends ConsumerState<_BottomActionBar> {
   bool _bookmarked = false;
   bool _savingFavorite = false;
   bool _savingBasket = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLikedStatus();
+  }
+
+  Future<void> _checkLikedStatus() async {
+    try {
+      final results = await Future.wait([
+        ref.read(favoritesApiProvider).getLikedRecipes(pageSize: 200),
+        ref.read(collectionApiProvider).getCollections(),
+      ]);
+      if (!mounted) return;
+      final likedRecipes = results[0] as List<Recipe>;
+      final collections = results[1] as List<Map<String, dynamic>>;
+      final liked = likedRecipes.any((r) => r.id == widget.recipe.id);
+      final bookmarked = collections.any((c) {
+        final items = c['items'] as List? ?? [];
+        return items.any((item) {
+          final recipeId =
+              (item is Map ? item['recipeId'] : null)?.toString() ?? '';
+          return recipeId == widget.recipe.id;
+        });
+      });
+      setState(() {
+        _isLiked = liked;
+        _bookmarked = bookmarked;
+      });
+    } catch (_) {
+      // Best-effort state hydration only; the action buttons still work.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -612,6 +715,13 @@ class _BottomActionBarState extends ConsumerState<_BottomActionBar> {
             inactiveIcon: Icons.bookmark_border,
             activeColor: AppColors.textPrimary,
             onTap: _savingFavorite ? null : _saveToCollection,
+          ),
+          _ActionIcon(
+            active: false,
+            activeIcon: Icons.mode_comment,
+            inactiveIcon: Icons.mode_comment_outlined,
+            activeColor: AppColors.textPrimary,
+            onTap: widget.onComment,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -649,6 +759,7 @@ class _BottomActionBarState extends ConsumerState<_BottomActionBar> {
       if (!mounted) return;
       final liked = result['liked'] == true;
       setState(() => _isLiked = liked);
+      ref.invalidate(likedRecipesProvider);
     } catch (_) {
       if (mounted) showCapsuleToast(context, '操作失败', icon: Icons.error_outline);
     } finally {
@@ -661,13 +772,133 @@ class _BottomActionBarState extends ConsumerState<_BottomActionBar> {
       if (mounted) showCapsuleToast(context, '请先登录');
       return;
     }
+    try {
+      final collections = await ref
+          .read(collectionApiProvider)
+          .getCollections();
+      if (!mounted) return;
+
+      if (collections.isEmpty) {
+        // Create default collection
+        await ref.read(collectionApiProvider).createCollection('默认收藏');
+        final newCollections = await ref
+            .read(collectionApiProvider)
+            .getCollections();
+        if (newCollections.isNotEmpty) {
+          await _addToCollection(newCollections.first['id'].toString());
+        }
+        return;
+      }
+
+      // Show collection picker
+      final pickedId = await showModalBottomSheet<String>(
+        context: context,
+        backgroundColor: AppColors.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+        ),
+        builder: (ctx) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  '选择收藏夹',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                ),
+              ),
+              const Divider(height: 1),
+              ...collections.map(
+                (c) => ListTile(
+                  leading: const Icon(Icons.folder_outlined),
+                  title: Text((c['name'] ?? '').toString()),
+                  trailing: Text(
+                    '${c['itemCount'] ?? 0}项',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  onTap: () => Navigator.pop(ctx, c['id'].toString()),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.add, color: AppColors.accent),
+                title: const Text(
+                  '新建收藏夹',
+                  style: TextStyle(color: AppColors.accent),
+                ),
+                onTap: () async {
+                  final name = await _showCreateCollectionDialog(ctx);
+                  if (name != null && ctx.mounted) {
+                    Navigator.pop(ctx, 'new:$name');
+                  }
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      );
+
+      if (pickedId == null || !mounted) return;
+
+      String collectionId = pickedId;
+      if (pickedId.startsWith('new:')) {
+        final name = pickedId.substring(4);
+        final created = await ref
+            .read(collectionApiProvider)
+            .createCollection(name);
+        collectionId = created['id'].toString();
+      }
+
+      await _addToCollection(collectionId);
+    } catch (error) {
+      if (!mounted) return;
+      showCapsuleToast(
+        context,
+        _errorMessage(error),
+        icon: Icons.error_outline,
+      );
+    }
+  }
+
+  Future<String?> _showCreateCollectionDialog(BuildContext ctx) async {
+    final ctrl = TextEditingController();
+    return showDialog<String>(
+      context: ctx,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('新建收藏夹'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: '收藏夹名称'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              final name = ctrl.text.trim();
+              Navigator.pop(dialogCtx, name.isEmpty ? null : name);
+            },
+            child: const Text('创建'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _addToCollection(String collectionId) async {
     setState(() => _savingFavorite = true);
     try {
       await ref
           .read(collectionApiProvider)
-          .addRecipeToDefaultCollection(widget.recipe.id);
+          .addRecipeToCollection(widget.recipe.id, collectionId);
       await ref.read(myCollectionProvider.notifier).load();
-
       if (!mounted) return;
       setState(() => _bookmarked = true);
       showCapsuleToast(context, '已加入收藏夹', icon: Icons.bookmark);
@@ -679,9 +910,7 @@ class _BottomActionBarState extends ConsumerState<_BottomActionBar> {
         icon: Icons.error_outline,
       );
     } finally {
-      if (mounted) {
-        setState(() => _savingFavorite = false);
-      }
+      if (mounted) setState(() => _savingFavorite = false);
     }
   }
 

@@ -3,6 +3,21 @@ import { success } from '../../../types/response';
 import { prisma } from '../../../lib/prisma';
 import { subDays, startOfDay, endOfDay } from '../utils/date';
 
+function dayKey(date: Date) {
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function emptyDailyMap(now: Date, days: number) {
+  const labels: string[] = [];
+  const map: Record<string, number> = {};
+  for (let i = days - 1; i >= 0; i--) {
+    const key = dayKey(subDays(now, i));
+    labels.push(key);
+    map[key] = 0;
+  }
+  return { labels, map };
+}
+
 export async function getDashboardStats(req: Request, res: Response) {
   const today = new Date();
   const weekAgo = subDays(today, 7);
@@ -14,8 +29,18 @@ export async function getDashboardStats(req: Request, res: Response) {
     todayNewUsers,
     weeklyUsers,
     weeklyRecipes,
+    weeklyComments,
+    weeklyAiUsage,
     recentFeedbacks,
     viewAgg,
+    totalComments,
+    totalFollows,
+    totalAiCalls,
+    pendingWorks,
+    publishedWorks,
+    rejectedWorks,
+    topRecipes,
+    activeUsers,
   ] = await Promise.all([
     prisma.user.count({ where: { deletedAt: null } }),
     prisma.recipe.count({ where: { isDeleted: false } }),
@@ -34,121 +59,164 @@ export async function getDashboardStats(req: Request, res: Response) {
       where: { createdAt: { gte: weekAgo }, isDeleted: false },
       _count: true,
     }),
+    prisma.comment.groupBy({
+      by: ['createdAt'],
+      where: { createdAt: { gte: weekAgo } },
+      _count: true,
+    }),
+    prisma.aiUsageLog.groupBy({
+      by: ['createdAt'],
+      where: { createdAt: { gte: weekAgo } },
+      _count: true,
+    }),
     prisma.feedback.findMany({
       take: 5,
       orderBy: { createdAt: 'desc' },
       include: { user: { select: { nickname: true, avatar: true } } },
     }),
     prisma.recipe.aggregate({ _sum: { viewCount: true } }),
+    prisma.comment.count(),
+    prisma.follow.count(),
+    prisma.aiUsageLog.count(),
+    prisma.recipe.count({ where: { source: 'USER', status: 'PENDING', isDeleted: false } }),
+    prisma.recipe.count({ where: { source: 'USER', status: 'PUBLISHED', isDeleted: false } }),
+    prisma.recipe.count({ where: { source: 'USER', status: 'REJECTED', isDeleted: false } }),
+    prisma.recipe.findMany({
+      where: { isDeleted: false },
+      orderBy: [{ viewCount: 'desc' }, { favoriteCount: 'desc' }],
+      take: 8,
+      select: { id: true, title: true, coverImage: true, viewCount: true, favoriteCount: true, commentCount: true },
+    }),
+    prisma.user.findMany({
+      where: { deletedAt: null },
+      orderBy: { updatedAt: 'desc' },
+      take: 8,
+      select: {
+        id: true,
+        nickname: true,
+        avatar: true,
+        updatedAt: true,
+        _count: { select: { comments: true, following: true, followers: true } },
+      },
+    }),
   ]);
 
-  // 统计每周用户/菜谱趋势（最近7天）
-  const userTrend: Record<string, number> = {};
-  const recipeTrend: Record<string, number> = {};
-  for (let i = 6; i >= 0; i--) {
-    const d = subDays(today, i);
-    const key = `${d.getMonth() + 1}月${d.getDate()}日`;
-    userTrend[key] = 0;
-    recipeTrend[key] = 0;
-  }
-  weeklyUsers.forEach(u => {
-    const d = u.createdAt;
-    const key = `${d.getMonth() + 1}月${d.getDate()}日`;
-    if (key in userTrend) userTrend[key] += u._count;
+  const daily = emptyDailyMap(today, 7);
+  const userTrend = { ...daily.map };
+  const recipeTrend = { ...daily.map };
+  const commentTrend = { ...daily.map };
+  const aiTrend = { ...daily.map };
+
+  weeklyUsers.forEach(item => {
+    const key = dayKey(item.createdAt);
+    if (key in userTrend) userTrend[key] += item._count;
   });
-  weeklyRecipes.forEach(r => {
-    const d = r.createdAt;
-    const key = `${d.getMonth() + 1}月${d.getDate()}日`;
-    if (key in recipeTrend) recipeTrend[key] += r._count;
+  weeklyRecipes.forEach(item => {
+    const key = dayKey(item.createdAt);
+    if (key in recipeTrend) recipeTrend[key] += item._count;
+  });
+  weeklyComments.forEach(item => {
+    const key = dayKey(item.createdAt);
+    if (key in commentTrend) commentTrend[key] += item._count;
+  });
+  weeklyAiUsage.forEach(item => {
+    const key = dayKey(item.createdAt);
+    if (key in aiTrend) aiTrend[key] += item._count;
   });
 
-  const labels = Object.keys(userTrend);
-  const weeklyStats = {
-    labels,
-    userTrend: Object.values(userTrend),
-    recipeTrend: Object.values(recipeTrend),
+  const feedbackTypeMap: Record<string, string> = {
+    BUG_REPORT: 'Bug feedback',
+    FEATURE_REQUEST: 'Feature request',
+    CONTENT_ISSUE: 'Content issue',
+    IMPROVEMENT: 'Improvement',
+    OTHER: 'Other',
+  };
+  const feedbackStatusMap: Record<string, string> = {
+    PENDING: 'Pending',
+    IN_PROGRESS: 'In progress',
+    REPLIED: 'Replied',
+    RESOLVED: 'Resolved',
+    CLOSED: 'Closed',
   };
 
-  const FEEDBACK_TYPE_MAP: Record<string, string> = {
-    BUG_REPORT: 'Bug反馈', FEATURE_REQUEST: '功能建议', CONTENT_ISSUE: '内容纠错', IMPROVEMENT: '改进建议', OTHER: '其他问题',
-  };
-  const FEEDBACK_STATUS_MAP: Record<string, string> = {
-    PENDING: '待处理', IN_PROGRESS: '处理中', REPLIED: '已回复', RESOLVED: '已解决', CLOSED: '已关闭',
-  };
-
-  const feedbackList = recentFeedbacks.map(f => ({
-    id: f.id,
-    content: f.content,
-    type: f.type.toLowerCase(),
-    typeText: FEEDBACK_TYPE_MAP[f.type] || f.type,
-    status: f.status.toLowerCase(),
-    statusText: FEEDBACK_STATUS_MAP[f.status] || f.status,
-    createdAt: f.createdAt.toISOString().slice(0, 16).replace('T', ' '),
-    nickname: f.user?.nickname || '匿名用户',
-    avatar: f.user?.avatar || '',
+  res.json(success({
+    totalUsers,
+    totalRecipes,
+    totalCollections,
+    totalFeedbacks,
+    totalComments,
+    totalFollows,
+    totalAiCalls,
+    todayNewUsers,
+    totalViews: viewAgg._sum.viewCount ?? 0,
+    auditStats: { pending: pendingWorks, published: publishedWorks, rejected: rejectedWorks },
+    weeklyStats: {
+      labels: daily.labels,
+      userTrend: daily.labels.map(key => userTrend[key]),
+      recipeTrend: daily.labels.map(key => recipeTrend[key]),
+      commentTrend: daily.labels.map(key => commentTrend[key]),
+      aiTrend: daily.labels.map(key => aiTrend[key]),
+    },
+    recentFeedbacks: recentFeedbacks.map(item => ({
+      id: item.id,
+      content: item.content,
+      type: item.type.toLowerCase(),
+      typeText: feedbackTypeMap[item.type] || item.type,
+      status: item.status.toLowerCase(),
+      statusText: feedbackStatusMap[item.status] || item.status,
+      createdAt: item.createdAt.toISOString().slice(0, 16).replace('T', ' '),
+      nickname: item.user?.nickname || 'Anonymous',
+      avatar: item.user?.avatar || '',
+    })),
+    topRecipes,
+    activeUsers: activeUsers.map(item => ({
+      id: item.id,
+      nickname: item.nickname || '',
+      avatar: item.avatar || '',
+      updatedAt: item.updatedAt.toISOString().slice(0, 16).replace('T', ' '),
+      commentCount: item._count.comments,
+      followingCount: item._count.following,
+      followerCount: item._count.followers,
+    })),
   }));
-
-  const totalViews = viewAgg._sum.viewCount ?? 0;
-  const result = { totalUsers, totalRecipes, totalCollections, totalFeedbacks, todayNewUsers, totalViews, weeklyStats, recentFeedbacks: feedbackList };
-  res.json(success(result));
 }
 
 export async function getUserStats(req: Request, res: Response) {
   const now = new Date();
   const daysAgo = parseInt(req.query.days as string) || 30;
   const start = subDays(now, daysAgo);
-
   const dailyUsers = await prisma.user.groupBy({
     by: ['createdAt'],
     where: { createdAt: { gte: start }, deletedAt: null },
     _count: { id: true },
   });
 
-  const labels: string[] = [];
-  const dataMap: Record<string, number> = {};
-  for (let i = daysAgo; i >= 0; i--) {
-    const d = subDays(now, i);
-    const key = `${d.getMonth() + 1}/${d.getDate()}`;
-    labels.push(key);
-    dataMap[key] = 0;
-  }
-
-  dailyUsers.forEach(u => {
-    const d = new Date(u.createdAt);
-    const key = `${d.getMonth() + 1}/${d.getDate()}`;
-    if (key in dataMap) dataMap[key] += u._count.id;
+  const { labels, map } = emptyDailyMap(now, daysAgo + 1);
+  dailyUsers.forEach(item => {
+    const key = dayKey(item.createdAt);
+    if (key in map) map[key] += item._count.id;
   });
 
-  res.json(success({ labels, datasets: [{ label: '用户增长', data: labels.map(l => dataMap[l]) }] }));
+  res.json(success({ labels, datasets: [{ label: 'Users', data: labels.map(label => map[label]) }] }));
 }
 
 export async function getRecipeStats(req: Request, res: Response) {
   const now = new Date();
   const daysAgo = parseInt(req.query.days as string) || 30;
   const start = subDays(now, daysAgo);
-
   const dailyRecipes = await prisma.recipe.groupBy({
     by: ['createdAt'],
     where: { createdAt: { gte: start }, isDeleted: false },
     _count: { id: true },
   });
 
-  const labels: string[] = [];
-  const dataMap: Record<string, number> = {};
-  for (let i = daysAgo; i >= 0; i--) {
-    const d = subDays(now, i);
-    const key = `${d.getMonth() + 1}/${d.getDate()}`;
-    labels.push(key);
-    dataMap[key] = 0;
-  }
-
-  dailyRecipes.forEach(r => {
-    const d = new Date(r.createdAt);
-    const key = `${d.getMonth() + 1}/${d.getDate()}`;
-    if (key in dataMap) dataMap[key] += r._count.id;
+  const { labels, map } = emptyDailyMap(now, daysAgo + 1);
+  dailyRecipes.forEach(item => {
+    const key = dayKey(item.createdAt);
+    if (key in map) map[key] += item._count.id;
   });
 
-  res.json(success({ labels, datasets: [{ label: '菜谱发布', data: labels.map(l => dataMap[l]) }] }));
+  res.json(success({ labels, datasets: [{ label: 'Recipes', data: labels.map(label => map[label]) }] }));
 }
 
 export async function getFeedbackStats(req: Request, res: Response) {
@@ -159,8 +227,8 @@ export async function getFeedbackStats(req: Request, res: Response) {
     prisma.feedback.count({ where: { status: 'CLOSED' } }),
   ]);
   res.json(success({
-    labels: ['待处理', '处理中', '已解决', '已关闭'],
-    datasets: [{ label: '反馈状态', data: [pending, inProgress, resolved, closed] }],
+    labels: ['Pending', 'In progress', 'Resolved', 'Closed'],
+    datasets: [{ label: 'Feedback status', data: [pending, inProgress, resolved, closed] }],
   }));
 }
 
@@ -170,62 +238,69 @@ export async function getRecipeCategoryStats(req: Request, res: Response) {
     select: { dishTypes: true, category: true },
   });
 
-  const COLOR_PALETTE = [
+  const colorPalette = [
     '#f54e00', '#1f8a65', '#4a7dbf', '#d4880e',
     '#9b59b6', '#e67e22', '#2ecc71', '#e74c3c',
   ];
-
-  const map: Record<string, string> = {
-    staple: '主食', stir_fry: '小炒菜', soup: '汤品', boiled: '煮食',
-    fried: '炒食', cold: '凉菜', porridge: '粥', noodles: '面食',
-    dessert: '甜品', drink: '饮品', braised: '卤味', bbq: '烧烤',
-    hotpot: '火锅', deep_fried: '油炸', baked: '烘焙', sashimi: '刺身',
-    western: '西餐', diet: '减脂餐', children: '儿童餐',
+  const labels: Record<string, string> = {
+    staple: 'Staple',
+    stir_fry: 'Stir fry',
+    soup: 'Soup',
+    boiled: 'Boiled',
+    fried: 'Fried',
+    cold: 'Cold dish',
+    porridge: 'Porridge',
+    noodles: 'Noodles',
+    dessert: 'Dessert',
+    drink: 'Drink',
+    braised: 'Braised',
+    bbq: 'BBQ',
+    hotpot: 'Hotpot',
+    deep_fried: 'Deep fried',
+    baked: 'Baked',
+    sashimi: 'Sashimi',
+    western: 'Western',
+    diet: 'Diet',
+    children: 'Children',
   };
 
   const counts: Record<string, number> = {};
-  for (const r of recipes) {
-    // dishTypes 有值则用 dishTypes，否则 fallback 到 category
-    const types: string[] = Array.isArray(r.dishTypes) && r.dishTypes.length
-      ? r.dishTypes as string[]
-      : r.category ? [r.category]
-      : [];
-    for (const t of types) {
-      const label = map[t] || t;
+  for (const recipe of recipes) {
+    const types = Array.isArray(recipe.dishTypes) && recipe.dishTypes.length
+      ? recipe.dishTypes as string[]
+      : recipe.category ? [recipe.category] : [];
+    for (const type of types) {
+      const label = labels[type] || type;
       counts[label] = (counts[label] || 0) + 1;
     }
   }
 
-  const sorted = Object.entries(counts)
+  const data = Object.entries(counts)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 8);
-
-  const data = sorted.map(([name, value], i) => ({
-    name,
-    value,
-    itemStyle: { color: COLOR_PALETTE[i % COLOR_PALETTE.length] },
-  }));
+    .slice(0, 8)
+    .map(([name, value], index) => ({
+      name,
+      value,
+      itemStyle: { color: colorPalette[index % colorPalette.length] },
+    }));
 
   res.json(success({ data }));
 }
 
 export async function getAiTokenStats(req: Request, res: Response) {
-  const keys = await prisma.aiApiKey.findMany({
-    orderBy: { createdAt: 'asc' },
-  });
-
-  const stats = keys.map(k => ({
-    model: k.model,
-    name: k.name,
-    totalTokens: k.totalTokens,
-    usedTokens: k.usedTokens,
-    remaining: k.totalTokens === null ? null : Math.max(0, k.totalTokens - k.usedTokens),
-    isActive: k.isActive,
+  const keys = await prisma.aiApiKey.findMany({ orderBy: { createdAt: 'asc' } });
+  const stats = keys.map(key => ({
+    model: key.model,
+    name: key.name,
+    totalTokens: key.totalTokens,
+    usedTokens: key.usedTokens,
+    remaining: key.totalTokens === null ? null : Math.max(0, key.totalTokens - key.usedTokens),
+    isActive: key.isActive,
   }));
 
-  const totalUsed = stats.reduce((sum, s) => sum + s.usedTokens, 0);
-  const totalRemaining = stats.reduce((sum, s) => sum + (s.remaining || 0), 0);
-  const total = stats.reduce((sum, s) => sum + (s.totalTokens || 0), 0);
+  const totalUsed = stats.reduce((sum, item) => sum + item.usedTokens, 0);
+  const totalRemaining = stats.reduce((sum, item) => sum + (item.remaining || 0), 0);
+  const total = stats.reduce((sum, item) => sum + (item.totalTokens || 0), 0);
 
   res.json(success({
     keys: stats,

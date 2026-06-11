@@ -1,6 +1,6 @@
-/**
- * 小程序用户端路由 - /api/v1/wx/user/*, /api/v1/wx/feedback, /api/v1/wx/collection
- * 无需 admin 认证，只需 wx 用户认证
+﻿/**
+ * 灏忕▼搴忕敤鎴风璺敱 - /api/v1/wx/user/*, /api/v1/wx/feedback, /api/v1/wx/collection
+ * 鏃犻渶 admin 璁よ瘉锛屽彧闇€ wx 鐢ㄦ埛璁よ瘉
  */
 
 import { Router, Router as ExpressRouter } from 'express';
@@ -17,14 +17,20 @@ import {
   getAiChatSessions,
   sendAiChatMessage,
 } from '../../../services/aiChatRag.service';
+import { runAgent, continueAgent } from '../../../services/aiAgent.service';
 import { createNotification } from '../../../services/notification.service';
 import { logUserActivity } from '../../../services/activityLog.service';
 import notificationRoutes from '../../notification/routes/notification.routes';
+import { getFollowingFeed } from '../controllers/feed.controller';
+import commentRoutes from '../../comment/routes/comment.routes';
 
 const router: ExpressRouter = Router();
-
-// 所有路由需要微信用户身份
+// All app routes require wx user authentication.
 router.use(wxAuthenticate);
+router.get('/following-feed', asyncHandler(getFollowingFeed));
+router.post('/following-feed', asyncHandler(getFollowingFeed));
+router.use(commentRoutes);
+// 鎵€鏈夎矾鐢遍渶瑕佸井淇＄敤鎴疯韩浠?router.use(wxAuthenticate);
 
 function mapRecipeForApp(recipe: any) {
   return {
@@ -42,33 +48,34 @@ function mapRecipeForApp(recipe: any) {
   };
 }
 
-// ============ 用户收藏夹 ============
+// ============ 鐢ㄦ埛鏀惰棌澶?============
 
-/** 获取当前用户的收藏夹列表 */
+/** 鑾峰彇褰撳墠鐢ㄦ埛鐨勬敹钘忓す鍒楄〃 */
 router.get('/my-collections', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const list = await prisma.collection.findMany({
     where: { userId },
     orderBy: { createdAt: 'asc' },
+    include: { items: { select: { recipeId: true } } },
   });
   res.json(success(list));
 }));
 
-/** 创建收藏夹 */
+/** 鍒涘缓鏀惰棌澶?*/
 router.post('/collections', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const { name, description, isPublic } = req.body;
   const trimmedName = normalizeCollectionName(name);
   const count = await prisma.collection.count({ where: { userId } });
   if (count >= 10) {
-    res.status(400).json(badRequest('最多创建10个收藏夹'));
+    res.status(400).json(badRequest('鏈€澶氬垱寤?0涓敹钘忓す'));
     return;
   }
   const existing = await prisma.collection.findFirst({
     where: { userId, name: trimmedName },
   });
   if (existing) {
-    res.status(400).json(badRequest('收藏夹名称已存在'));
+    res.status(400).json(badRequest('鏀惰棌澶瑰悕绉板凡瀛樺湪'));
     return;
   }
   const collection = await prisma.collection.create({
@@ -79,17 +86,17 @@ router.post('/collections', asyncHandler(async (req, res) => {
       isPublic: isPublic || false,
     },
   });
-  res.json(success(collection, '创建成功'));
+  res.json(success(collection, '鍒涘缓鎴愬姛'));
 }));
 
-/** 更新收藏夹 */
+/** 鏇存柊鏀惰棌澶?*/
 router.put('/collections/:id', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const id = parseInt(req.params.id);
   const { name, description, coverImage } = req.body;
   const existing = await prisma.collection.findUnique({ where: { id, userId } });
   if (!existing) {
-    res.status(404).json({ code: 404, message: '收藏夹不存在', timestamp: Date.now() });
+    res.status(404).json({ code: 404, message: '鏀惰棌澶逛笉瀛樺湪', timestamp: Date.now() });
     return;
   }
   if (name !== undefined) normalizeCollectionName(name);
@@ -98,16 +105,16 @@ router.put('/collections/:id', asyncHandler(async (req, res) => {
   if (description !== undefined) data.description = description;
   if (coverImage !== undefined) data.coverImage = coverImage;
   const updated = await prisma.collection.update({ where: { id }, data });
-  res.json(success(updated, '更新成功'));
+  res.json(success(updated, '鏇存柊鎴愬姛'));
 }));
 
-/** 删除收藏夹 */
+/** 鍒犻櫎鏀惰棌澶?*/
 router.delete('/collections/:id', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const id = parseInt(req.params.id);
   const existing = await prisma.collection.findUnique({ where: { id, userId } });
   if (!existing) {
-    res.status(404).json({ code: 404, message: '收藏夹不存在', timestamp: Date.now() });
+    res.status(404).json({ code: 404, message: '鏀惰棌澶逛笉瀛樺湪', timestamp: Date.now() });
     return;
   }
   const deleteCheck = canDeleteCollection(existing);
@@ -116,10 +123,10 @@ router.delete('/collections/:id', asyncHandler(async (req, res) => {
     return;
   }
   await prisma.collection.delete({ where: { id } });
-  res.json(success(null, '删除成功'));
+  res.json(success(null, '鍒犻櫎鎴愬姛'));
 }));
 
-/** 获取收藏夹详情 */
+/** 鑾峰彇鏀惰棌澶硅鎯?*/
 router.get('/collections/:id', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const id = parseInt(req.params.id);
@@ -140,7 +147,7 @@ router.get('/collections/:id', asyncHandler(async (req, res) => {
     },
   });
   if (!collection || collection.userId !== userId) {
-    res.status(404).json({ code: 404, message: '收藏夹不存在', timestamp: Date.now() });
+    res.status(404).json({ code: 404, message: '鏀惰棌澶逛笉瀛樺湪', timestamp: Date.now() });
     return;
   }
   const mapped = {
@@ -150,13 +157,13 @@ router.get('/collections/:id', asyncHandler(async (req, res) => {
   res.json(success(mapped));
 }));
 
-/** 添加收藏 */
+/** 娣诲姞鏀惰棌 */
 router.post('/collections/:id/items', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const collectionId = parseInt(req.params.id);
   const recipeId = parseInt(req.body.recipeId);
   if (!recipeId) {
-    res.status(400).json(badRequest('缺少 recipeId'));
+    res.status(400).json(badRequest('缂哄皯 recipeId'));
     return;
   }
   const [collection, recipe] = await Promise.all([
@@ -164,11 +171,11 @@ router.post('/collections/:id/items', asyncHandler(async (req, res) => {
     prisma.recipe.findUnique({ where: { id: recipeId } }),
   ]);
   if (!collection) {
-    res.status(404).json({ code: 404, message: '收藏夹不存在', timestamp: Date.now() });
+    res.status(404).json({ code: 404, message: '鏀惰棌澶逛笉瀛樺湪', timestamp: Date.now() });
     return;
   }
   if (!recipe) {
-    res.status(404).json({ code: 404, message: '菜谱不存在', timestamp: Date.now() });
+    res.status(404).json({ code: 404, message: 'Recipe not found', timestamp: Date.now() });
     return;
   }
 
@@ -177,7 +184,7 @@ router.post('/collections/:id/items', asyncHandler(async (req, res) => {
   });
 
   if (existingItem) {
-    res.json(success(null, '已添加'));
+    res.json(success(null, 'Added'));
     return;
   }
 
@@ -186,17 +193,17 @@ router.post('/collections/:id/items', asyncHandler(async (req, res) => {
     prisma.collection.update({ where: { id: collectionId }, data: { itemCount: { increment: 1 }, updatedAt: new Date() } }),
     prisma.recipe.update({ where: { id: recipeId }, data: { collectCount: { increment: 1 } } }),
   ]);
-  res.json(success(null, '已添加'));
+  res.json(success(null, 'Added'));
 }));
 
-/** 移除收藏 */
+/** 绉婚櫎鏀惰棌 */
 router.delete('/collections/:id/items/:recipeId', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const collectionId = parseInt(req.params.id);
   const recipeId = parseInt(req.params.recipeId);
   const collection = await prisma.collection.findUnique({ where: { id: collectionId, userId } });
   if (!collection) {
-    res.status(404).json({ code: 404, message: '收藏夹不存在', timestamp: Date.now() });
+    res.status(404).json({ code: 404, message: '鏀惰棌澶逛笉瀛樺湪', timestamp: Date.now() });
     return;
   }
   const item = await prisma.collectionItem.findUnique({
@@ -215,12 +222,12 @@ router.delete('/collections/:id/items/:recipeId', asyncHandler(async (req, res) 
       }),
     ]);
   }
-  res.json(success(null, '已移除'));
+  res.json(success(null, 'Removed'));
 }));
 
-// ============ 反馈 ============
+// ============ 鍙嶉 ============
 
-/** 提交反馈 */
+/** 鎻愪氦鍙嶉 */
 // ============ User profile ============
 
 router.get('/users/:id', asyncHandler(async (req, res) => {
@@ -318,7 +325,6 @@ router.post('/users/:id/follow', asyncHandler(async (req, res) => {
   if (!existingFollow) {
     await prisma.follow.create({ data: { followerId, followingId } });
 
-    // 通知被关注者
     const follower = await prisma.user.findUnique({
       where: { id: followerId },
       select: { nickname: true },
@@ -326,8 +332,8 @@ router.post('/users/:id/follow', asyncHandler(async (req, res) => {
     createNotification({
       userId: followingId,
       type: 'NEW_FOLLOWER',
-      title: '你有新的关注者',
-      content: `${follower?.nickname || '有用户'} 关注了你`,
+      title: 'New follower',
+      content: `${follower?.nickname || 'User'} followed you`,
       data: { followerId, followerName: follower?.nickname || '' },
     });
   }
@@ -347,7 +353,7 @@ router.post('/feedback', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const { type, content, contact, images } = req.body;
   if (!type || !content) {
-    res.status(400).json(badRequest('缺少必填字段'));
+    res.status(400).json(badRequest('缂哄皯蹇呭～瀛楁'));
     return;
   }
   const feedback = await prisma.feedback.create({
@@ -360,10 +366,10 @@ router.post('/feedback', asyncHandler(async (req, res) => {
       status: 'PENDING',
     },
   });
-  res.json(success({ feedbackId: feedback.id }, '提交成功'));
+  res.json(success({ feedbackId: feedback.id }, '鎻愪氦鎴愬姛'));
 }));
 
-/** 获取我的反馈历史 */
+/** 鑾峰彇鎴戠殑鍙嶉鍘嗗彶 */
 router.get('/my-feedback', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const page = parseInt(req.query.page as string) || 1;
@@ -394,7 +400,7 @@ router.get('/my-feedback', asyncHandler(async (req, res) => {
     createTime: f.createdAt.getTime(),
     status: f.status.toLowerCase(),
     reply: f.replies.map(r => ({
-      adminName: r.admin?.nickname || '管理员',
+      adminName: r.admin?.nickname || 'Admin',
       content: r.content,
       createTime: r.createdAt.getTime(),
     })),
@@ -402,7 +408,7 @@ router.get('/my-feedback', asyncHandler(async (req, res) => {
   res.json(paginated(formatted, { page, pageSize, total }));
 }));
 
-/** 获取单个反馈状态 */
+/** 鑾峰彇鍗曚釜鍙嶉鐘舵€?*/
 router.get('/feedback/:id', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const id = parseInt(req.params.id);
@@ -416,7 +422,7 @@ router.get('/feedback/:id', asyncHandler(async (req, res) => {
     },
   });
   if (!feedback) {
-    res.status(404).json({ code: 404, message: '反馈不存在', timestamp: Date.now() });
+    res.status(404).json({ code: 404, message: 'Feedback not found', timestamp: Date.now() });
     return;
   }
   res.json(success({
@@ -428,14 +434,14 @@ router.get('/feedback/:id', asyncHandler(async (req, res) => {
     status: feedback.status.toLowerCase(),
     createTime: feedback.createdAt.getTime(),
     reply: feedback.replies.map(r => ({
-      adminName: r.admin?.nickname || '管理员',
+      adminName: r.admin?.nickname || 'Admin',
       content: r.content,
       createTime: r.createdAt.getTime(),
     })),
   }));
 }));
 
-/** 批量获取用户所有收藏夹中的菜谱 ID（避免 N+1 查询） */
+/** 鎵归噺鑾峰彇鐢ㄦ埛鎵€鏈夋敹钘忓す涓殑鑿滆氨 ID锛堥伩鍏?N+1 鏌ヨ锛?*/
 router.get('/collected-recipe-ids', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const items = await prisma.collectionItem.findMany({
@@ -445,7 +451,7 @@ router.get('/collected-recipe-ids', asyncHandler(async (req, res) => {
   res.json(success(items.map(i => i.recipeId)));
 }));
 
-/** 获取当前用户点赞过的菜谱 */
+/** 鑾峰彇褰撳墠鐢ㄦ埛鐐硅禐杩囩殑鑿滆氨 */
 router.get('/favorites', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const page = parseInt(req.query.page as string) || 1;
@@ -473,9 +479,9 @@ router.get('/favorites', asyncHandler(async (req, res) => {
   res.json(paginated(data, { page, pageSize, total }));
 }));
 
-// ============ 小菜篮 ============
+// ============ 灏忚彍绡?============
 
-/** 获取用户的购物清单列表 */
+/** 鑾峰彇鐢ㄦ埛鐨勮喘鐗╂竻鍗曞垪琛?*/
 router.get('/shopping-lists', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const lists = await prisma.shoppingList.findMany({
@@ -486,23 +492,23 @@ router.get('/shopping-lists', asyncHandler(async (req, res) => {
   res.json(success(lists));
 }));
 
-/** 创建/更新购物清单（同一菜谱同名清单 => upsert） */
+/** 鍒涘缓/鏇存柊璐墿娓呭崟锛堝悓涓€鑿滆氨鍚屽悕娓呭崟 => upsert锛?*/
 router.post('/shopping-lists', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const { name, items } = req.body;
   const recipeId = req.body.recipeId ? parseInt(req.body.recipeId) : undefined;
   if (!name || !items || !Array.isArray(items)) {
-    res.status(400).json(badRequest('缺少必填字段'));
+    res.status(400).json(badRequest('缂哄皯蹇呭～瀛楁'));
     return;
   }
 
-  // 查找是否已有同名清单
+  // 鏌ユ壘鏄惁宸叉湁鍚屽悕娓呭崟
   let list = await prisma.shoppingList.findFirst({
     where: { userId, name },
   });
 
   if (list) {
-    // 更新已有清单
+    // 鏇存柊宸叉湁娓呭崟
     list = await prisma.shoppingList.update({
       where: { id: list.id },
       data: {
@@ -522,7 +528,7 @@ router.post('/shopping-lists', asyncHandler(async (req, res) => {
       include: { items: true },
     });
   } else {
-    // 新建清单
+    // 鏂板缓娓呭崟
     list = await prisma.shoppingList.create({
       data: {
         userId,
@@ -541,20 +547,20 @@ router.post('/shopping-lists', asyncHandler(async (req, res) => {
       include: { items: true },
     });
   }
-  res.json(success(list, '保存成功'));
+  res.json(success(list, '淇濆瓨鎴愬姛'));
 }));
 
-/** 删除购物清单 */
+/** 鍒犻櫎璐墿娓呭崟 */
 router.delete('/shopping-lists/:id', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const id = parseInt(req.params.id);
   const list = await prisma.shoppingList.findFirst({ where: { id, userId } });
   if (!list) {
-    res.status(404).json({ code: 404, message: '清单不存在', timestamp: Date.now() });
+    res.status(404).json({ code: 404, message: 'Shopping list not found', timestamp: Date.now() });
     return;
   }
   await prisma.shoppingList.delete({ where: { id } });
-  res.json(success(null, '已删除'));
+  res.json(success(null, 'Deleted'));
 }));
 
 router.get('/scheduled-tasks', asyncHandler(async (req, res) => {
@@ -582,9 +588,9 @@ router.get('/scheduled-tasks', asyncHandler(async (req, res) => {
   }))));
 }));
 
-// ============ 浏览历史 ============
+// ============ 娴忚鍘嗗彶 ============
 
-/** 记录浏览历史 */
+/** 璁板綍娴忚鍘嗗彶 */
 // ============ AI chat ============
 
 router.post('/ai-chat', asyncHandler(async (req, res) => {
@@ -600,7 +606,8 @@ router.post('/ai-chat', asyncHandler(async (req, res) => {
   }
 
   try {
-    const result = await sendAiChatMessage({
+    // Use the new Agent for intelligent tool calling
+    const result = await runAgent({
       userId,
       text: promptText,
       imageUrls: normalizedImageUrls,
@@ -610,7 +617,7 @@ router.post('/ai-chat', asyncHandler(async (req, res) => {
       userId,
       action: 'ai_chat',
       targetId: result.sessionId ? String(result.sessionId) : undefined,
-      detail: `AI 对话：${promptText.slice(0, 50)}${promptText.length > 50 ? '...' : ''}${normalizedImageUrls.length ? `，图片 ${normalizedImageUrls.length} 张` : ''}`,
+      detail: `AI chat: ${promptText.slice(0, 50)}${promptText.length > 50 ? '...' : ''}${normalizedImageUrls.length ? `, images ${normalizedImageUrls.length}` : ''}`,
     });
     res.json(success(result));
   } catch (err: any) {
@@ -619,10 +626,56 @@ router.post('/ai-chat', asyncHandler(async (req, res) => {
   }
 }));
 
+// Continue agent after user confirms/rejects pending actions
+router.post('/ai-chat/continue', asyncHandler(async (req, res) => {
+  const userId = (req as any).userId;
+  const { sessionId, messageId, actions } = req.body as {
+    sessionId: number;
+    messageId: number;
+    actions: Array<{ id: string; confirmed: boolean }>;
+  };
+
+  if (!sessionId || !messageId || !Array.isArray(actions) || actions.length === 0) {
+    res.status(400).json(badRequest('Missing sessionId, messageId, or actions'));
+    return;
+  }
+
+  try {
+    const result = await continueAgent({
+      userId,
+      sessionId: Number(sessionId),
+      messageId: Number(messageId),
+      confirmedActions: actions,
+    });
+    res.json(success(result));
+  } catch (err: any) {
+    console.error('[WX AI Chat Continue] Error:', err);
+    res.status(500).json(badRequest(`Continue failed: ${err.message}`));
+  }
+}));
+
 router.get('/ai-chat/sessions', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   const sessions = await getAiChatSessions(userId);
   res.json(success(sessions));
+}));
+
+router.delete('/ai-chat/sessions/:id', asyncHandler(async (req, res) => {
+  const userId = (req as any).userId;
+  const sessionId = parseInt(req.params.id);
+  if (!sessionId || isNaN(sessionId)) {
+    res.status(400).json(badRequest('Missing session id'));
+    return;
+  }
+  try {
+    await prisma.aiChatSession.updateMany({
+      where: { id: sessionId, userId, status: { not: 'DELETED' as any } },
+      data: { status: 'DELETED' as any },
+    });
+    res.json(success(null, '鍒犻櫎'));
+  } catch (err: any) {
+    res.status(500).json(badRequest(err.message || '鍒犻櫎澶辫触'));
+  }
 }));
 
 router.get('/ai-chat/sessions/:id/messages', asyncHandler(async (req, res) => {
@@ -644,7 +697,7 @@ router.delete('/ai-chat/messages/:id', asyncHandler(async (req, res) => {
     res.status(404).json({ code: 404, message: 'AI chat message not found', timestamp: Date.now() });
     return;
   }
-  res.json(success(null, '消息已删除'));
+  res.json(success(null, 'Message deleted'));
 }));
 
 router.put('/ai-chat/messages/:id', asyncHandler(async (req, res) => {
@@ -652,7 +705,7 @@ router.put('/ai-chat/messages/:id', asyncHandler(async (req, res) => {
   const messageId = parseInt(req.params.id);
   const text = String(req.body?.text || '').trim();
   if (!text) {
-    res.status(400).json(badRequest('消息内容不能为空'));
+    res.status(400).json(badRequest('娑堟伅鍐呭涓嶈兘涓虹┖'));
     return;
   }
 
@@ -665,7 +718,7 @@ router.put('/ai-chat/messages/:id', asyncHandler(async (req, res) => {
     userId,
     action: 'ai_chat_edit',
     targetId: result.sessionId ? String(result.sessionId) : undefined,
-    detail: `编辑 AI 对话：${text.slice(0, 50)}${text.length > 50 ? '...' : ''}`,
+    detail: `Edit AI chat: ${text.slice(0, 50)}${text.length > 50 ? '...' : ''}`,
   });
   res.json(success(result));
 }));
@@ -701,13 +754,17 @@ router.get('/browse-history', asyncHandler(async (req, res) => {
   ]);
 
   const data = list
-    .filter(item => item.recipe)
     .map(item => ({
       id: item.id,
       recipeId: item.recipeId,
+      targetType: (item as any).targetType || (item.recipeId ? 'recipe' : 'page'),
+      targetId: (item as any).targetId || item.recipeId,
+      targetTitle: (item as any).targetTitle || item.recipe?.title || '',
+      targetCover: (item as any).targetCover || item.recipe?.coverImage || '',
       source: item.source || '',
+      duration: item.duration || 0,
       viewedAt: item.createdAt.getTime(),
-      recipe: {
+      recipe: item.recipe ? {
         id: item.recipe.id,
         title: item.recipe.title,
         coverImage: item.recipe.coverImage || '',
@@ -717,7 +774,7 @@ router.get('/browse-history', asyncHandler(async (req, res) => {
         collectCount: item.recipe.collectCount || 0,
         authorName: item.recipe.authorName || '',
         authorAvatar: item.recipe.authorAvatar || '',
-      },
+      } : null,
     }));
 
   res.json(paginated(data, { page, pageSize, total }));
@@ -725,28 +782,35 @@ router.get('/browse-history', asyncHandler(async (req, res) => {
 
 router.post('/browse-history', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
-  const { recipeId } = req.body;
-  if (!recipeId) {
-    res.status(400).json(badRequest('缺少 recipeId'));
+  const targetType = String(req.body.targetType || (req.body.recipeId ? 'recipe' : '')).trim();
+  const targetId = req.body.targetId ? parseInt(req.body.targetId) : (req.body.recipeId ? parseInt(req.body.recipeId) : null);
+  const recipeId = req.body.recipeId ? parseInt(req.body.recipeId) : (targetType === 'recipe' || targetType === 'post' ? targetId : undefined);
+  if (!targetType || !targetId) {
+    res.status(400).json(badRequest('Missing browse target'));
     return;
   }
   await prisma.browseHistory.create({
     data: {
       userId,
-      recipeId: parseInt(recipeId),
+      recipeId,
+      targetType,
+      targetId,
+      targetTitle: req.body.targetTitle || null,
+      targetCover: req.body.targetCover || null,
+      duration: req.body.duration ? parseInt(req.body.duration) : 0,
       source: req.body.source || 'detail',
     },
   });
-  res.json(success(null, '已记录'));
+  res.json(success(null, 'Recorded'));
 }));
 
 router.delete('/browse-history', asyncHandler(async (req, res) => {
   const userId = (req as any).userId;
   await prisma.browseHistory.deleteMany({ where: { userId } });
-  res.json(success(null, '浏览历史已清空'));
+  res.json(success(null, 'Browse history cleared'));
 }));
 
-// ============ 通知 ============
+// ============ 閫氱煡 ============
 router.use('/notifications', notificationRoutes);
 
 export default router;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../config/theme.dart';
 import '../../models/recipe.dart';
@@ -18,12 +19,14 @@ class UploadRecipePage extends ConsumerStatefulWidget {
 }
 
 class _UploadRecipePageState extends ConsumerState<UploadRecipePage> {
+  final _picker = ImagePicker();
   final _nameCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _cookTimeCtrl = TextEditingController(text: '30');
   final _servingsCtrl = TextEditingController(text: '2');
   final List<_IngredientEditors> _ingredients = [];
-  final List<TextEditingController> _steps = [];
+  final List<_StepData> _steps = [];
+  XFile? _coverFile;
   String _difficulty = 'normal';
   bool _saving = false;
 
@@ -44,26 +47,23 @@ class _UploadRecipePageState extends ConsumerState<UploadRecipePage> {
           _IngredientEditors(
             name: TextEditingController(text: item.name),
             amount: TextEditingController(
-              text: [
-                item.amount,
-                item.unit,
-              ].where((v) => v.isNotEmpty).join(''),
+              text: [item.amount, item.unit].where((v) => v.isNotEmpty).join(''),
             ),
           ),
         );
       }
       for (final step in recipe.steps) {
-        _steps.add(TextEditingController(text: step.description));
+        _steps.add(_StepData(
+          controller: TextEditingController(text: step.description),
+          imageUrl: step.imageUrl,
+        ));
       }
     }
 
     if (_ingredients.isEmpty) {
-      _ingredients.addAll([
-        _IngredientEditors.empty(),
-        _IngredientEditors.empty(),
-      ]);
+      _ingredients.addAll([_IngredientEditors.empty(), _IngredientEditors.empty()]);
     }
-    if (_steps.isEmpty) _steps.add(TextEditingController());
+    if (_steps.isEmpty) _steps.add(_StepData(controller: TextEditingController()));
   }
 
   @override
@@ -72,45 +72,72 @@ class _UploadRecipePageState extends ConsumerState<UploadRecipePage> {
     _descCtrl.dispose();
     _cookTimeCtrl.dispose();
     _servingsCtrl.dispose();
-    for (final item in _ingredients) {
-      item.dispose();
-    }
-    for (final step in _steps) {
-      step.dispose();
-    }
+    for (final item in _ingredients) { item.dispose(); }
+    for (final step in _steps) { step.dispose(); }
     super.dispose();
   }
 
   Future<void> _saveRecipe(String status) async {
     final title = _nameCtrl.text.trim();
     if (status != 'draft' && title.isEmpty) {
-      showCapsuleToast(context, 'Please enter a recipe title');
+      showCapsuleToast(context, '请输入菜谱名称');
       return;
     }
 
     setState(() => _saving = true);
     try {
+      final uploadApi = ref.read(uploadApiProvider);
+
+      // Upload cover image
+      String coverUrl = widget.initialRecipe?.coverImage ?? '';
+      if (_coverFile != null) {
+        coverUrl = await uploadApi.uploadUserRecipeImage(
+          _coverFile!,
+          purpose: 'cover',
+          title: title,
+        );
+      }
+
+      // Upload step images in parallel
+      final stepImageFutures = _steps.asMap().entries.map((entry) async {
+        final index = entry.key;
+        final step = entry.value;
+        if (step.imageFile != null) {
+          return await uploadApi.uploadUserRecipeImage(
+            step.imageFile!,
+            purpose: 'step',
+            title: title,
+            stepIndex: index,
+          );
+        }
+        return step.imageUrl ?? '';
+      }).toList();
+      final stepImages = await Future.wait(stepImageFutures);
+
+      final stepsPayload = <Map<String, dynamic>>[];
+      for (var i = 0; i < _steps.length; i++) {
+        final text = _steps[i].controller.text.trim();
+        if (text.isEmpty && stepImages[i].isEmpty) continue;
+        stepsPayload.add({
+          'order': i + 1,
+          'content': text,
+          'image': stepImages[i],
+        });
+      }
+
       final payload = {
         'title': title,
         'description': _descCtrl.text.trim(),
-        'coverImage': widget.initialRecipe?.coverImage ?? '',
+        'coverImage': coverUrl,
         'difficulty': _difficulty,
         'cookingTime': _cookTimeCtrl.text.trim(),
         'servings': _servingsCtrl.text.trim(),
         'status': status,
         'ingredients': _ingredients
-            .map(
-              (item) => {
-                'name': item.name.text.trim(),
-                'amount': item.amount.text.trim(),
-              },
-            )
+            .map((item) => {'name': item.name.text.trim(), 'amount': item.amount.text.trim()})
             .where((item) => item['name']!.isNotEmpty)
             .toList(),
-        'steps': _steps
-            .map((step) => step.text.trim())
-            .where((step) => step.isNotEmpty)
-            .toList(),
+        'steps': stepsPayload,
       };
 
       final existingId = widget.initialRecipe?.id;
@@ -122,14 +149,10 @@ class _UploadRecipePageState extends ConsumerState<UploadRecipePage> {
 
       ref.invalidate(myRecipeListProvider);
       if (!mounted) return;
-      showCapsuleToast(
-        context,
-        status == 'draft' ? '草稿已保存' : '已提交审核',
-        icon: Icons.check_circle_outline,
-      );
+      showCapsuleToast(context, status == 'draft' ? '草稿已保存' : '已提交审核', icon: Icons.check_circle_outline);
       context.go('/drafts');
     } catch (error) {
-      if (mounted) showCapsuleToast(context, 'Save failed: $error');
+      if (mounted) showCapsuleToast(context, '保存失败: $error');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -179,7 +202,11 @@ class _UploadRecipePageState extends ConsumerState<UploadRecipePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _CoverPicker(imageUrl: widget.initialRecipe?.coverImage ?? ''),
+            _CoverPicker(
+              imageUrl: widget.initialRecipe?.coverImage ?? '',
+              imageFile: _coverFile,
+              onPick: () => _pickCoverImage(),
+            ),
             const SizedBox(height: 16),
             _GlassInput(
               controller: _nameCtrl,
@@ -238,7 +265,11 @@ class _UploadRecipePageState extends ConsumerState<UploadRecipePage> {
             ..._steps.asMap().entries.map(
               (entry) => _StepEditor(
                 index: entry.key,
-                controller: entry.value,
+                controller: entry.value.controller,
+                imageFile: entry.value.imageFile,
+                imageUrl: entry.value.imageUrl,
+                onPickImage: () => _pickStepImage(entry.key),
+                onRemoveImage: () => _removeStepImage(entry.key),
                 onRemove: _steps.length <= 1
                     ? null
                     : () => setState(() {
@@ -258,7 +289,36 @@ class _UploadRecipePageState extends ConsumerState<UploadRecipePage> {
   }
 
   void _addStep() {
-    setState(() => _steps.add(TextEditingController()));
+    setState(() => _steps.add(_StepData(controller: TextEditingController())));
+  }
+
+  Future<void> _pickCoverImage() async {
+    final file = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85, maxWidth: 1600);
+    if (file != null) setState(() => _coverFile = file);
+  }
+
+  Future<void> _pickStepImage(int index) async {
+    final file = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80, maxWidth: 1200);
+    if (file != null) setState(() => _steps[index].imageFile = file);
+  }
+
+  void _removeStepImage(int index) {
+    setState(() {
+      _steps[index].imageFile = null;
+      _steps[index].imageUrl = null;
+    });
+  }
+}
+
+class _StepData {
+  final TextEditingController controller;
+  XFile? imageFile;
+  String? imageUrl;
+
+  _StepData({required this.controller, this.imageFile, this.imageUrl});
+
+  void dispose() {
+    controller.dispose();
   }
 }
 
@@ -283,42 +343,47 @@ class _IngredientEditors {
 
 class _CoverPicker extends StatelessWidget {
   final String imageUrl;
+  final XFile? imageFile;
+  final VoidCallback? onPick;
 
-  const _CoverPicker({required this.imageUrl});
+  const _CoverPicker({required this.imageUrl, this.imageFile, this.onPick});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 220,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.surfaceSecondary,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.divider),
-        image: imageUrl.isEmpty
-            ? null
-            : DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover),
+    final hasImage = imageFile != null || imageUrl.isNotEmpty;
+
+    return GestureDetector(
+      onTap: onPick,
+      child: Container(
+        height: 200,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceSecondary,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: AppColors.divider),
+        ),
+        child: hasImage
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: imageFile != null
+                    ? FutureBuilder(
+                        future: imageFile!.readAsBytes(),
+                        builder: (_, snap) => snap.hasData
+                            ? Image.memory(snap.data!, fit: BoxFit.cover)
+                            : const Center(child: CircularProgressIndicator()),
+                      )
+                    : Image.network(imageUrl, fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 48, color: AppColors.textPlaceholder)),
+              )
+            : const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.photo_camera, size: 48, color: AppColors.textPlaceholder),
+                  SizedBox(height: 8),
+                  Text('点击上传封面图', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                ],
+              ),
       ),
-      child: imageUrl.isEmpty
-          ? const Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.photo_camera,
-                  size: 48,
-                  color: AppColors.textPlaceholder,
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '封面上传功能即将开放',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            )
-          : null,
     );
   }
 }
@@ -437,15 +502,25 @@ class _StepEditor extends StatelessWidget {
   final int index;
   final TextEditingController controller;
   final VoidCallback? onRemove;
+  final XFile? imageFile;
+  final String? imageUrl;
+  final VoidCallback? onPickImage;
+  final VoidCallback? onRemoveImage;
 
   const _StepEditor({
     required this.index,
     required this.controller,
     this.onRemove,
+    this.imageFile,
+    this.imageUrl,
+    this.onPickImage,
+    this.onRemoveImage,
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = imageFile != null || (imageUrl != null && imageUrl!.isNotEmpty);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -461,20 +536,53 @@ class _StepEditor extends StatelessWidget {
             child: Center(
               child: Text(
                 '${index + 1}',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.surface,
-                ),
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.surface),
               ),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: _GlassInput(
-              controller: controller,
-              hint: '描述这一步...',
-              maxLines: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _GlassInput(controller: controller, hint: '描述这一步...', maxLines: 3),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: hasImage ? onRemoveImage : onPickImage,
+                      child: Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceSecondary,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.divider),
+                        ),
+                        child: hasImage
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: imageFile != null
+                                    ? FutureBuilder(
+                                        future: imageFile!.readAsBytes(),
+                                        builder: (_, snap) => snap.hasData
+                                            ? Image.memory(snap.data!, width: 64, height: 64, fit: BoxFit.cover)
+                                            : const Icon(Icons.image, size: 24, color: AppColors.textSecondary),
+                                      )
+                                    : Image.network(imageUrl!, width: 64, height: 64, fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => const Icon(Icons.image, size: 24, color: AppColors.textSecondary)),
+                              )
+                            : const Icon(Icons.add_photo_alternate, size: 24, color: AppColors.textSecondary),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      hasImage ? '点击移除图片' : '添加步骤图片',
+                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
           IconButton(

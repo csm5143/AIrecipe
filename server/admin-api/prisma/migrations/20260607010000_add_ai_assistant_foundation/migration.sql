@@ -2,6 +2,25 @@ ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "healthProfile" JSONB;
 
 ALTER TABLE "ai_chat_messages" ADD COLUMN IF NOT EXISTS "toolCalls" JSONB;
 
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_schema = current_schema()
+      AND table_name = 'scheduled_tasks'
+  )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = current_schema()
+      AND table_name = 'scheduled_tasks'
+      AND column_name = 'triggerAt'
+  ) THEN
+    DROP TABLE "scheduled_tasks";
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS "user_memories" (
   "id" SERIAL PRIMARY KEY,
   "userId" INTEGER NOT NULL,

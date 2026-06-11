@@ -38,8 +38,10 @@ export async function processDueScheduledTasks() {
           data: {
             scheduledTaskId: task.id,
             type: task.type,
+            notificationKind: task.type,
             ...(task.data || {}),
           },
+          throwOnError: true,
         });
         await (prisma as any).scheduledTask.update({
           where: { id: task.id },
